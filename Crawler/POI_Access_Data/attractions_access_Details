@@ -1,0 +1,71 @@
+Given Sites in Problem Stataement
+	1. TripAdvisor (select data from things to do)
+		comments:
+			data is splitted in multiple pages 
+				POIs is stored in div with class = "listing_title"
+				for now we have considered starting 3 pages only (can also do upto n-page)
+			some list in "things to do" contain tours or trips guide provided by some private company => we ingonred this 
+				we have explored all other clubed urls and extracted attractions from them 
+					while writing these items in file added culbed data in [] brackets also
+	2. http://www.virtualtourist.com/
+		this site redirects to two sites
+			Tripadvisor 
+			smartertravel
+		smartertravel
+			comments:
+				Only important travel guide part
+					Hard to detect POIs
+						in some bloclks data is written is stories format
+						Data is not consistent in all links within given city
+
+				more info link
+					the provide link of viator site which we have already explored
+
+	3. lonely planet
+		h3 with class = "styles__heading___vDzID"
+		comments:
+			can't access data using normal carwling , showing request forbidden
+			
+
+Other Sites:
+	1. Skyscanner
+		h2 tag with class = "placeName"
+		they block ip also 
+			they blocked my ip after crawling 10 cities and i have to crawl data for rest 10 cities after some time
+	Comments:
+		Only 10 POIs are listed in one page 
+		we have taken data from starting 25 pages
+
+
+	2. Inspirock (this is itinerary maker site and shows max intinerary of 60 days)
+		div with class = "name attLink clickable-text"
+
+	Comments:
+		for POIs we crawled data from 60 days itinerary
+
+
+
+	3. Viator
+		h2 tag with class = "man mtm product-title"
+
+	Comments
+		Riyadh city is not found there 
+		some attractions are only tour company details 
+		Accessed data for first page only for now
+		i also tried to access data by exploring tour details, but itinerary is not mentioned in some cities
+			los angeles have but Bangkok not
+
+
+	4. utrip.com
+		p tag with class "headerTitle"
+	comments
+		Data is loaded in DOM in async manner
+
+
+
+
+
+
+
+
+
