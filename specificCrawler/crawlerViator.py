@@ -11,6 +11,12 @@ def getCurrentTime() -> str:
     return datetime.datetime.now().strftime(strFormat)
 
 
+def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
+    meanShifted = (givenRating - worstRating + 1)
+    range = bestRating - worstRating
+    return meanShifted / range
+
+
 class CrawlerViator(scrapy.Spider):
     name = 'viator'
 
@@ -87,9 +93,19 @@ class CrawlerViator(scrapy.Spider):
         sideBox = response.css('body > div.page.mtl > div.body > div.main-wide.unitRight > div.page-bg.line.light-border-b > div.unitRight.aside > div > div.mtmm.mhmm > div.line > div')
         address = sideBox.css('meta[itemprop="streetAddress"]::attr(content)').extract_first()
 
+        ratingBox = sideBox.css('p[itemprop="aggregateRating"]')
+        avgRating, ratingCount = None, None
+        if ratingBox:
+            bestRating = int(ratingBox.css('meta[itemprop="bestRating"]::attr(content)').extract_first())
+            worstRating = int(ratingBox.css('meta[itemprop="worstRating"]::attr(content)').extract_first())
+            givenRating = float(ratingBox.css('meta[itemprop="ratingValue"]::attr(content)').extract_first())
+            ratingCount = int(ratingBox.css('span[itemprop="reviewCount"]::text').extract_first())
+            avgRating = scaleRating(givenRating=givenRating, worstRating=worstRating, bestRating=bestRating)
+
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
-                                    description=description, notes=notes, address=address)
+                                    description=description, notes=notes, address=address,
+                                    avgRating=avgRating, ratingCount=ratingCount)
 
         yield pointListing.jsonify()
 
@@ -125,9 +141,7 @@ class CrawlerViator(scrapy.Spider):
             bestRating = int(ratingBox.css('meta[itemprop="bestRating"]::attr(content)').extract_first())
             worstRating = int(ratingBox.css('meta[itemprop="worstRating"]::attr(content)').extract_first())
             givenRating = int(ratingBox.css('div.unit::attr(title)').extract_first()[:1])
-            meanShifted = (givenRating - worstRating + 1)
-            range = bestRating - worstRating
-            rating = meanShifted / range  # float
+            rating = scaleRating(givenRating=givenRating, worstRating=worstRating, bestRating=bestRating)
 
             ratingDate = ratingBox.css('span::text').extract_first()
 
@@ -143,4 +157,7 @@ class CrawlerViator(scrapy.Spider):
             index = int(queryString[-1])
             queryString[-1] = str(index+1)
             nextPageURL = '='.join(queryString)
-            yield scrapy.Request(nextPageURL, self.parseNextReviewPage)
+            # TODO: uncomment the below line to continue processing the other reviews
+            # for now, we just need the first page.
+            # yield scrapy.Request(nextPageURL, self.parseNextReviewPage)
+

@@ -70,6 +70,8 @@ class CityListing(EntityListing):
     regionName: Optional[str] = None
     coordinates: Optional[Coordinate] = None
     recommendedNumDays: Optional[int] = None
+    avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
+    ratingCount: Optional[int] = None
 
     def __post_init__(self):
         self._listingType = 'city'
@@ -91,6 +93,8 @@ class PointListing(EntityListing):
     canStay: Optional[bool] = None
     canTour: Optional[bool] = None
     category: Optional[str] = None
+    avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
+    ratingCount: Optional[int] = None
 
     def __post_init__(self):
         self._listingType = 'point'
