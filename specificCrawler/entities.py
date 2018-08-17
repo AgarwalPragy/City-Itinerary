@@ -34,16 +34,6 @@ class EntityListing:
 
 
 @dataclass
-class Review(EntityListing):
-    date: Optional[str] = None
-    content: Optional[str] = None
-    rating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
-
-    def __post_init__(self):
-        self._listingType = 'review'
-
-
-@dataclass
 class CountryListing(EntityListing):
     countryName: str
     coordinates: Optional[Coordinate] = None
@@ -102,3 +92,17 @@ class ImageResource(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'imageResource'
+
+
+@dataclass
+class Review(EntityListing):
+    countryName: str
+    cityName: str
+    pointName: Optional[str] = None
+
+    date: Optional[str] = None
+    content: Optional[str] = None
+    rating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
+
+    def __post_init__(self):
+        self._listingType = 'review'

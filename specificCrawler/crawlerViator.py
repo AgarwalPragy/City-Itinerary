@@ -114,7 +114,11 @@ class CrawlerViator(scrapy.Spider):
                             countryName=countryName, cityName=cityName, pointName=pointName,
                             imageURL=pointImage).jsonify()
 
-        yield response.follow('?subPageType=reviews', callback=self.parseReviewsPage)
+        yield response.follow('?subPageType=reviews', callback=self.parseReviewsPage, meta={
+            'countryName': countryName,
+            'cityName': cityName,
+            'pointName': pointName
+        })
 
     def parseReviewsPage(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/New-Delhi-attractions/Taj-Mahal/d804-a3010?subPageType=reviews
@@ -133,7 +137,7 @@ class CrawlerViator(scrapy.Spider):
             seoID, destinationID, 1
         )
 
-        yield scrapy.Request(firstPageURL, self.parseNextReviewPage)
+        yield scrapy.Request(firstPageURL, self.parseNextReviewPage, meta=response.meta)
 
     def parseNextReviewPage(self, response: scrapy.http.Response):
         reviewList = response.css('div[itemprop="review"]')
@@ -150,6 +154,7 @@ class CrawlerViator(scrapy.Spider):
             content = ''.join(contentBox.css('p::text').extract())
 
             yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                         countryName=response.meta['countryName'], cityName=response.meta['cityName'], pointName=response.meta['pointName'],
                          content=content, rating=rating, date=ratingDate).jsonify()
 
         if len(reviewList) == 25:
