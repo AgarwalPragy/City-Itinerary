@@ -44,14 +44,6 @@ class Review(EntityListing):
 
 
 @dataclass
-class ImageResource(EntityListing):
-    imageURL: str
-
-    def __post_init__(self):
-        self._listingType = 'imageResource'
-
-
-@dataclass
 class CountryListing(EntityListing):
     countryName: str
     coordinates: Optional[Coordinate] = None
@@ -100,3 +92,13 @@ class PointListing(EntityListing):
         self._listingType = 'point'
 
 
+@dataclass
+class ImageResource(EntityListing):
+    countryName: str
+    cityName: str
+    pointName: str
+
+    imageURL: str
+
+    def __post_init__(self):
+        self._listingType = 'imageResource'

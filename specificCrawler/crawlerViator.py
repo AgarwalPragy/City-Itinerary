@@ -111,6 +111,7 @@ class CrawlerViator(scrapy.Spider):
 
         pointImage = response.css('div.img-product > img::attr(src)').extract_first()
         yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                            countryName=countryName, cityName=cityName, pointName=pointName,
                             imageURL=pointImage).jsonify()
 
         yield response.follow('?subPageType=reviews', callback=self.parseReviewsPage)
