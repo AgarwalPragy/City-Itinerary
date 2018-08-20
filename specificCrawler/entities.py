@@ -1,4 +1,5 @@
 from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 import dataclasses
 import json
@@ -77,7 +78,7 @@ class PointListing(EntityListing):
     category: Optional[str] = None
     avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
     ratingCount: Optional[int] = None
-
+    rank: Optional[int] = None
     def __post_init__(self):
         self._listingType = 'point'
 
