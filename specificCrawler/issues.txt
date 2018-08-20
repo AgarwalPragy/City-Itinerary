@@ -1,0 +1,5 @@
+Issues handled:
+	- Different cities/POIs can have the same name. Mitigated by keeping the whole name "country/city/point"
+
+Issiues not handled:
+	- The same country can have many names. Example: USA, United... . Can be mitigated by comparing cordinates?

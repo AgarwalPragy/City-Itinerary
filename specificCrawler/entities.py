@@ -1,12 +1,10 @@
 from typing import Optional, Dict, Any
-from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 import dataclasses
 import json
 from uuid import uuid4
 
 __all__ = ['Review', 'EntityListing', 'Coordinate', 'CountryListing', 'CityListing', 'PointListing', 'ImageResource']
-
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     # https://stackoverflow.com/a/51286749/2570622

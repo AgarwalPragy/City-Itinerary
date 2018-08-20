@@ -1,24 +1,22 @@
 import scrapy
 from entities import *
-import datetime
-
+import json
+from utilities import processName, getCurrentTime, scaleRating
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
 
-def getCurrentTime() -> str:
-    strFormat = '%y-%m-%d %H:%M:%S'
-    return datetime.datetime.now().strftime(strFormat)
+skipNonRequired = True
 
-
-def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
-    meanShifted = (givenRating - worstRating + 1)
-    range = bestRating - worstRating
-    return meanShifted / range
-
+with open('requiredPlaces.json', 'r') as f:
+    requiredPlaces = json.loads(f.read())
+    requiredCities = list(map(processName, requiredPlaces['cities']))
+    print('Required Cities:', requiredCities)
+    requiredCountries = list(map(processName, requiredPlaces['countries']))
+    print('Required Countries:', requiredCountries)
 
 class CrawlerViator(scrapy.Spider):
-    name = 'viator'
+    name = 'viator_v2'
 
     start_urls = ['https://www.viator.com/Amsterdam/d525-ttd']
 
@@ -38,30 +36,57 @@ class CrawlerViator(scrapy.Spider):
                                         countryName=countryName)
         yield countryListing.jsonify()
 
-        cityMenuBox = response.css('#regionMenuBox > div.menu-dropdown-box.small > div > div:nth-child(1)')
-        hrefs = cityMenuBox.css('a')
-        for href in hrefs:
-            curl = href.css('::attr(durl)').extract_first()
-            yield response.follow(curl, callback=self.parseCityPage)
+        if skipNonRequired:
+            if processName(countryName) not in requiredCountries:
+                # do not process this country's cities
+                print('Skipping country: ', countryName)
+                return
+        countryId = response.url.split('/')[-1].split('-')[0][1:]
+        cityListingURL = 'https://www.viator.com/pascities.jspa?country={}'.format(countryId)
+        yield response.follow(cityListingURL, callback=self.parseCountryCities, meta={'countryName': countryName})
 
-        attractionsPageURL = response.url[:-4]
-        yield response.follow(attractionsPageURL, callback=self.parseCountryAttractionsListPage)
+        # Don't extract attractions from the country page. Instead do it from the city page for better filtering
+        # attractionsPageURL = response.url[:-4]
+        # yield response.follow(attractionsPageURL, callback=self.parseCountryAttractionsListPage)
+
+    def parseCountryCities(self, response: scrapy.http.Response):
+        # example page: https://www.viator.com/pascities.jspa?country=723
+        hrefs = response.css('div.unit.size-pas-cities *> a::attr(durl)').extract()
+        for href in hrefs:
+            yield response.follow(href, callback=self.parseCityPage, meta=response.meta)
 
     def parseCityPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Lucknow/d23770-ttd
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
         countryName = breadcrumbs[1]
+        if countryName != response.meta['countryName']:
+            if countryName is None:
+                countryName = response.meta['countryName']
+            else:
+                self.log('Country name mismatch.\nExpected: {}\nFound: {}'.format(meta['countryName'], countryName))
         if len(breadcrumbs) == 4:
-            regionName, cityName = breadcrumbs[2:3]
+            regionName, cityName = breadcrumbs[2:4]
             regionName = regionName
         else:
             # example page: https://www.viator.com/Mumbai/d953-ttd
             regionName, cityName = None, breadcrumbs[2]
-        cityName = cityName
 
         cityListing = CityListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                   countryName=countryName, cityName=cityName, regionName=regionName)
         yield cityListing.jsonify()
+
+
+        if skipNonRequired:
+            if processName(cityName) not in requiredCities:
+                # do not process this country's cities
+                print('Skipping city: ', countryName, cityName)
+                return
+
+        attractionsPageURL = response.url[:-4]
+        yield response.follow(attractionsPageURL, callback=self.parseCityAttractionsListPage, meta={
+            'countryName': countryName,
+            'cityName': cityName,
+        })
 
     def parseCountryAttractionsListPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Netherlands/d60
@@ -72,6 +97,16 @@ class CrawlerViator(scrapy.Spider):
         nextPageLink = response.css('div.ptm > div:nth-child(1) > div:nth-child(2) > p > a:last-child::attr(href)').extract_first()
         if nextPageLink:
             yield response.follow(nextPageLink, callback=self.parseCountryAttractionsListPage)
+
+    def parseCityAttractionsListPage(self, response: scrapy.http.Response):
+        # example page:  https://www.viator.com/Mumbai/d953
+        hrefs = response.css('div.ptm *> h2 > a::attr(href)').extract()
+        for href in hrefs:
+            yield response.follow(href, callback=self.parseAttractionsPage)
+
+        nextPageLink = response.css('div.ptm > div:nth-child(1) > div:nth-child(2) > p > a:last-child::attr(href)').extract_first()
+        if nextPageLink:
+            yield response.follow(nextPageLink, callback=self.parseCityAttractionsListPage, meta=response.meta)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/Amsterdam-attractions/Albert-Cuyp-Market/d525-a8126
