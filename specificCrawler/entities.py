@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from dataclasses import dataclass, field
 import dataclasses
 import json
+from uuid import uuid4
 
 __all__ = ['Review', 'EntityListing', 'Coordinate', 'CountryListing', 'CityListing', 'PointListing', 'ImageResource']
 
@@ -25,6 +26,7 @@ class EntityListing:
     sourceURL: str
     crawlTimestamp: str
     _listingType: str = field(init=False)
+    _uuid: str = field(init=False)
 
     def jsonify(self) -> Dict[str, Any]:
         # TODO: Make this more efficient
@@ -32,6 +34,7 @@ class EntityListing:
 
     def __post_init__(self):
         self._listingType = 'undefined'
+        self._uuid = 'none'
 
 
 @dataclass
@@ -41,6 +44,7 @@ class CountryListing(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'country'
+        self._uuid = str(uuid4())
 
 
 @dataclass
@@ -58,6 +62,7 @@ class CityListing(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'city'
+        self._uuid = str(uuid4())
 
 
 @dataclass
@@ -83,6 +88,7 @@ class PointListing(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'point'
+        self._uuid = str(uuid4())
 
 
 @dataclass
@@ -95,6 +101,7 @@ class ImageResource(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'imageResource'
+        self._uuid = str(uuid4())
 
 
 @dataclass
@@ -109,3 +116,4 @@ class Review(EntityListing):
 
     def __post_init__(self):
         self._listingType = 'review'
+        self._uuid = str(uuid4())
