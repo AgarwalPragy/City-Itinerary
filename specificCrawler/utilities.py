@@ -22,6 +22,6 @@ def getCurrentTime() -> str:
 
 def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
     meanShifted = (givenRating - worstRating + 1)
-    range = bestRating - worstRating
-    return meanShifted / range
+    range = bestRating - worstRating + 1
+    return meanShifted * 10 / range
 
