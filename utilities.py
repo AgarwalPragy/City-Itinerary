@@ -2,8 +2,9 @@ from unidecode import unidecode
 import datetime
 import json
 import string
+import math
 
-__all__ = ['processName', 'getCurrentTime', 'scaleRating']
+__all__ = ['processName', 'getCurrentTime', 'scaleRating', 'getWilsonScore']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
@@ -27,3 +28,7 @@ def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
     range = bestRating - worstRating + 1
     return meanShifted * 10 / range
 
+def getWilsonScore(p, n) -> float:
+    z = 1.96 # consider 95% confidence interval 
+    lower_bound = (p + z*z/(2*n) - z*math.sqrt((p*(1-p) + z*z/(4*n) )/n) )/ (1 + z*z/n)
+    return lower_bound
