@@ -1,11 +1,14 @@
 import scrapy
-from entities import *
 import datetime
+import sys
+sys.path.append('.')
 
+from entities import *
+from utilities import *
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
-def getStartingUrls(filePath = "../Crawler/POI_Access_Data/skyscanner_cities_access_url"):
+def getStartingUrls(filePath = "Crawler/POI_Access_Data/skyscanner_cities_access_url"):
     urlsDetailFile = open(filePath, 'r')
 
     citiesAndUrls = urlsDetailFile.readlines()
@@ -13,28 +16,19 @@ def getStartingUrls(filePath = "../Crawler/POI_Access_Data/skyscanner_cities_acc
     startingUrls = []
     for cityAndUrl in citiesAndUrls:
         [city, urlForcity] = cityAndUrl.split("\t")
-        print("processing:", urlForcity)
-        startingUrls.append(urlForcity)
+        startingUrls.append(urlForcity.strip())
     urlsDetailFile.close()
     return startingUrls
 
-
-def getCurrentTime() -> str:
-    strFormat = '%y-%m-%d %H:%M:%S'
-    return datetime.datetime.now().strftime(strFormat)
-
-
-def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
-    meanShifted = (givenRating - worstRating + 1)
-    range = bestRating - worstRating
-    return meanShifted / range
 
 
 class CrawlerViator(scrapy.Spider):
     name = 'skyscanner'
 
     start_urls = getStartingUrls()
-    #['https://www.trip.skyscanner.com/bangkok/things-to-do']
+    #["https://www.trip.skyscanner.com/london/things-to-do", "https://www.trip.skyscanner.com/dubai/things-to-do",
+    #"https://www.trip.skyscanner.com/bangkok/things-to-do"]
+    #getStartingUrls()
 
     def parse(self, response: scrapy.http.Response):
         hrefs = response.css('div.items_list *> h2 > a::attr(href)').extract()
@@ -48,7 +42,8 @@ class CrawlerViator(scrapy.Spider):
         nextPageLink = response.css('div.items_list > div:nth-child(2) > ul > li.next.next_page > a::attr(href)').extract_first()
         if nextPageLink:
             self.log("nextpage: " + nextPageLink)
-            yield response.follow(nextPageLink, callback=self.parse)
+            if attractionNumber < 300:
+                yield response.follow(nextPageLink, callback=self.parse)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         breadcrumbs = response.css('div.placeInfoColumn > ul > li > a > span::text').extract()
@@ -80,10 +75,11 @@ class CrawlerViator(scrapy.Spider):
             
             reviewsBox = response.css('div.review_list.row > div > div > div > div.placeRating')
             for reviewBox in reviewsBox:
-                rating = reviewBox.css('div.recommendRatings.row > div > div::attr(aria-label)').extract_first().split()[0]
+                rating = float(reviewBox.css('div.recommendRatings.row > div > div::attr(aria-label)').extract_first().split()[0])
                 ratingDate = reviewBox.css('div.recommendRatings.row > span::text').extract_first()
                 content = reviewBox.css('div.readable.description > span > p::text').extract_first()
 
+                rating = scaleRating(rating, 1, 5)
                 yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                              countryName=countryName, cityName=cityName, pointName=pointName,
                              content=content, rating=rating, date=ratingDate).jsonify()

@@ -1,13 +1,16 @@
 import scrapy
-from entities import *
 import datetime
 import re
+import sys
+sys.path.append('.')
 
+from entities import *
+from utilities import *
 
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
-def getStartingUrls(filePath = "../Crawler/POI_Access_Data/tripadvisor_cities_access_url"):
+def getStartingUrls(filePath = "Crawler/POI_Access_Data/tripadvisor_cities_access_url"):
     urlsDetailFile = open(filePath, 'r')
 
     citiesAndUrls = urlsDetailFile.readlines()
@@ -19,16 +22,6 @@ def getStartingUrls(filePath = "../Crawler/POI_Access_Data/tripadvisor_cities_ac
         startingUrls.append(urlForcity)
     urlsDetailFile.close()
     return startingUrls
-
-def getCurrentTime() -> str:
-    strFormat = '%y-%m-%d %H:%M:%S'
-    return datetime.datetime.now().strftime(strFormat)
-
-
-def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
-    meanShifted = (givenRating - worstRating + 1)
-    range = bestRating - worstRating
-    return meanShifted / range
 
 
 def removeComa(reviewCount: str):
@@ -149,6 +142,7 @@ class CrawlerViator(scrapy.Spider):
         content = response.css('div.entry > p.partial_entry::text').extract_first()
         ratingDate = box.css('span::attr(title)').extract_first()
         rating = float(box.css('span::attr(class)').extract_first().split('_')[-1])/10
+        rating = scaleRating(rating, 1, 5)
         yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                      countryName=response.meta['countryName'], cityName=response.meta['cityName'], pointName=response.meta['pointName'],
                      content=content, rating=rating, date=ratingDate).jsonify()

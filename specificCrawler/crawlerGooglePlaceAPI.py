@@ -1,25 +1,13 @@
-import requests, json
-from entities import *
+import requests
+import json
 import time 
 import datetime
+import sys
+sys.path.append('.')
 
-def getCurrentTime() -> str:
-	strFormat = '%y-%m-%d %H:%M:%S'
-	return datetime.datetime.now().strftime(strFormat)
+from entities import *
+from utilities import *
 
-
-def listToStr(typeList):
-	temp = ""
-	for data in typeList:
-		temp += data + ","
-	if len(temp) > 0:
-		temp = temp[:-1]
-	return temp
-
-def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
-	meanShifted = (givenRating - worstRating + 1)
-	range = bestRating - worstRating
-	return meanShifted / range
 
 def processQuery(countryName, cityName, root_query, query):
 	print("processing: " + query)
@@ -37,7 +25,7 @@ def processQuery(countryName, cityName, root_query, query):
 		pointName = result[i]['name']
 		rating = float(result[i]['rating'])
 		rating = scaleRating(rating, 1, 5)
-		place_type = listToStr(result[i]['types'])
+		place_type = ','.join(result[i]['types'])
 		lat = str(result[i]['geometry']['location']['lat'])
 		lng = str(result[i]['geometry']['location']['lng'])
 		address = result[i]['formatted_address']
@@ -45,15 +33,15 @@ def processQuery(countryName, cityName, root_query, query):
 		print(pointName)
 		print(rating)
 		print(place_type)
-		print(lat + ", " + lng)
+		print(lat, ',', lng)
 		pointListing = PointListing("Google_Place_API", sourceURL= query, crawlTimestamp=getCurrentTime(),
 									countryName=countryName, cityName=cityName, pointName=pointName, avgRating = rating,
 									category = place_type, coordinates = lat + ", " + lng, address = address,
 									)
 
 		POIs[pointName + ", " + cityName + ", "+ countryName] = pointListing
-	if 'next_page_token' in json_result.keys():
-		processQuery(countryName, cityName, root_query, root_query + "&pagetoken="+json_result['next_page_token'])		
+	#if 'next_page_token' in json_result.keys():
+		#processQuery(countryName, cityName, root_query, root_query + "&pagetoken="+json_result['next_page_token'])		
 
 def printPOI(OutfilePath):
 	outFile = open(OutfilePath, 'w')
@@ -72,23 +60,22 @@ def printPOI(OutfilePath):
 
 
 
+if __name__ == '__main__':
+	OutfilePath = "googlePlaceAPI.json"
+	api_key = 'AIzaSyAjJ4_yaHgBv8FzgeWwkTojIrx2cYWUaYA'
 
+	intrested_types = ["bar", "cafe", "casino", "hindu+temple", "movie+theater", "museum", "night+club", "park", "restaurant", "spa", "stadium", "zoo"]
 
-OutfilePath = "googlePlaceAPI.json"
-api_key = 'AIzaSyAjJ4_yaHgBv8FzgeWwkTojIrx2cYWUaYA'
+	cities = [{'city': 'bangkok', 'country' : 'thailand'}, {'city' : 'dubai', 'country' : 'Emirate of Dubai'}, {'city': 'london', 'country' : 'United Kingdom'}]
 
-intrested_types = ["bar", "cafe", "casino", "hindu+temple", "movie+theater", "museum", "night+club", "park", "restaurant", "spa", "stadium", "zoo"]
+	POIs = {}
+	root_url = "https://maps.googleapis.com/maps/api/place/textsearch/json?query="
+	for city in cities:
+		for intrested_type in intrested_types:
+			query = root_url + intrested_type + "s+in+" + city['city'] + "&key="+api_key
+			processQuery(city['country'], city['city'], query, query)
 
-cities = [{'city': 'bangkok', 'country' : 'thailand'}, {'city' : 'seoul', 'country' : 'South Korea'}]
-
-POIs = {}
-root_url = "https://maps.googleapis.com/maps/api/place/textsearch/json?query="
-for city in cities:
-	for intrested_type in intrested_types:
-		query = root_url + intrested_type + "s+in+" + city['city'] + "&key="+api_key
-		processQuery(city['country'], city['city'], query, query)
-
-printPOI(OutfilePath)
+	printPOI(OutfilePath)
 
 
 

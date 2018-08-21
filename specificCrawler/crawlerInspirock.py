@@ -1,12 +1,17 @@
 import scrapy
-from entities import *
 import datetime
+import sys
+sys.path.append('.')
+
+from entities import *
+from utilities import *
 
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
 
-def getStartingUrls(filePath = "../Crawler/POI_Access_Data/inspirock_cities_access_url"):
+urlToCityAndCountryMapping = {}
+def getStartingUrls(filePath = "Crawler/POI_Access_Data/inspirock_cities_access_url"):
     urlsDetailFile = open(filePath, 'r')
 
     citiesAndUrls = urlsDetailFile.readlines()
@@ -14,47 +19,39 @@ def getStartingUrls(filePath = "../Crawler/POI_Access_Data/inspirock_cities_acce
     startingUrls = []
     for cityAndUrl in citiesAndUrls:
         [countryName, city, urlForcity] = cityAndUrl.split("\t")
+        urlForcity = urlForcity.strip()
         print("processing:", urlForcity)
+        urlToCityAndCountryMapping[urlForcity] = {'city' : city, 'country' : countryName}
         startingUrls.append(urlForcity)
     urlsDetailFile.close()
     return startingUrls
-
-
-def getCurrentTime() -> str:
-    strFormat = '%y-%m-%d %H:%M:%S'
-    return datetime.datetime.now().strftime(strFormat)
-
-
-def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
-    meanShifted = (givenRating - worstRating + 1)
-    range = bestRating - worstRating
-    return meanShifted / range
 
 
 class CrawlerViator(scrapy.Spider):
     name = 'inspirock'
 
     start_urls = getStartingUrls()
-    #['https://www.inspirock.com/trip/60-days-in-bangkok-itinerary-in-august-september-1f3aa77f-539f-45ba-a72e-1cf14d5926f3/itinerary/list']
-    #def start_requests(self):
-        #for url in getStartingUrls():
-            #return [scrapy.FormRequest(url, callback=self.parse)]
-
 
     def parse(self, response: scrapy.http.Response):
-        # example page:  https://www.viator.com/Netherlands/d60
         hrefs = response.css('div.tours > a::attr(href)').extract()
+        attractionNumber = 1
         for href in hrefs:
             href = response.urljoin(href)
             self.log("visiting: " + href)
-            yield response.follow(href, callback=self.parseAttractionsPage, meta = response.meta)
+            meta = urlToCityAndCountryMapping[response.url]
+            meta['rank'] = attractionNumber
+            yield response.follow(href, callback=self.parseAttractionsPage, meta = meta)
+            attractionNumber += 1
 
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         breadcrumbs = response.css('div.where-in-world > span > a > span::text').extract()
         if len(breadcrumbs) >= 3:
-            countryName = breadcrumbs[-3] 
-            cityName = breadcrumbs[-2]
+            #countryName = breadcrumbs[-3] 
+            #cityName = breadcrumbs[-2]
+            cityName = response.meta['city']
+            countryName = response.meta['country']
+
             # -2 is the word 'attractions'
             pointName = breadcrumbs[-1]
         else:
@@ -111,8 +108,8 @@ class CrawlerViator(scrapy.Spider):
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
                                     description=description, notes=notes, address=address, 
-                                    openingHour = openingsHour, closingHour = closingsHour, 
-                                    avgRating=avgRating, ratingCount=ratingCount)
+                                    openingHour = openingsHour, closingHour = closingsHour, recommendedNumHours = duration,
+                                    avgRating=avgRating, ratingCount=ratingCount, rank = response.meta['rank'])
 
         yield pointListing.jsonify()
 
