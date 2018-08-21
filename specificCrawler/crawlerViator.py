@@ -1,19 +1,18 @@
 import scrapy
-from entities import *
 import json
-from utilities import processName, getCurrentTime, scaleRating
+import sys
+sys.path.append('.')
+
+from entities import *
+from utilities import *
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
 
 skipNonRequired = True
+print('ReuiredCities', requiredCities)
+print('ReuiredCountries', requiredCountries)
 
-with open('requiredPlaces.json', 'r') as f:
-    requiredPlaces = json.loads(f.read())
-    requiredCities = list(map(processName, requiredPlaces['cities']))
-    print('Required Cities:', requiredCities)
-    requiredCountries = list(map(processName, requiredPlaces['countries']))
-    print('Required Countries:', requiredCountries)
 
 class CrawlerViator(scrapy.Spider):
     name = 'viator_v2'

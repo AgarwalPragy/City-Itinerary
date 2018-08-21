@@ -4,7 +4,8 @@ import dataclasses
 import json
 from uuid import uuid4
 
-__all__ = ['Review', 'EntityListing', 'Coordinate', 'CountryListing', 'CityListing', 'PointListing', 'ImageResource']
+__all__ = ['Review', 'EntityListing', 'CountryListing', 'CityListing', 'PointListing', 'ImageResource']
+
 
 class EnhancedJSONEncoder(json.JSONEncoder):
     # https://stackoverflow.com/a/51286749/2570622
@@ -12,10 +13,6 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
-
-
-class Coordinate:
-    pass
 
 
 @dataclass
@@ -38,7 +35,7 @@ class EntityListing:
 @dataclass
 class CountryListing(EntityListing):
     countryName: str
-    coordinates: Optional[Coordinate] = None
+    coordinates: str = None
 
     def __post_init__(self):
         self._listingType = 'country'
@@ -53,7 +50,7 @@ class CityListing(EntityListing):
     # Note: A city should be uniquely identified by it's name and parent country.
     # Region is just extra info.
     regionName: Optional[str] = None
-    coordinates: Optional[Coordinate] = None
+    coordinates: str = None
     recommendedNumDays: Optional[int] = None
     avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
     ratingCount: Optional[int] = None
@@ -70,7 +67,7 @@ class PointListing(EntityListing):
 
     pointName: str
     address: Optional[str] = None
-    coordinates: Optional[Coordinate] = None
+    coordinates: str = None
     openingHour: Optional[int] = None
     closingHour: Optional[int] = None
     description: Optional[str] = None

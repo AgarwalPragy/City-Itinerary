@@ -1,4 +1,4 @@
-import utilities
-import entities
+from . import utilities
+from . import entities
 
 __all__ = [utilities, entities]

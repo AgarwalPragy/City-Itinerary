@@ -3,7 +3,7 @@ import datetime
 import json
 import string
 
-__all__ = ['processName', 'getCurrentTime', 'scaleRating']
+__all__ = ['processName', 'getCurrentTime', 'scaleRating', 'requiredCities', 'requiredCountries']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
@@ -27,3 +27,8 @@ def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
     range = bestRating - worstRating + 1
     return meanShifted * 10 / range
 
+
+with open('requiredPlaces.json', 'r') as f:
+    requiredPlaces = json.loads(f.read())
+    requiredCities = list(map(processName, requiredPlaces['cities']))
+    requiredCountries = list(map(processName, requiredPlaces['countries']))
