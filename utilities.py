@@ -3,6 +3,8 @@ import datetime
 import json
 import string
 
+__all__ = ['processName', 'getCurrentTime', 'scaleRating']
+
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
 
