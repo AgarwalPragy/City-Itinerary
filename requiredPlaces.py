@@ -10,7 +10,9 @@ requiredCountries = [
     "China",
     "USA",
     "United States of America",
+    "United States",
     "Netherlands",
+    "The Netherlands",
     "Turkey",
     "Japan",
     "United Arab Emirates",
@@ -20,7 +22,8 @@ requiredCountries = [
     "Taiwan",
     "China",
     "Spain",
-    "Saudi Arabia"
+    "Saudi Arabia",
+    "India"
 ]
 
 
@@ -34,6 +37,7 @@ requiredCities = [
     "Singapore",
     "Shanghai",
     "New York",
+    "New York City",
     "Amsterdam",
     "Istanbul",
     "Tokyo",
@@ -45,5 +49,18 @@ requiredCities = [
     "Hong Kong SAR",
     "Riyadh",
     "Barcelona",
-    "Los Angeles"
+    "Los Angeles",
+    "Mumbai",
+    "New Delhi",
+    "Pune",
+    "Kolkata",
+    "Agra",
+    "Jaipur",
+    "Bengaluru",
+    "Bangalore",
+    "Calcutta"
 ]
+
+
+
+
