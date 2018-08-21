@@ -4,6 +4,7 @@ sys.path.append('.')
 
 from entities import *
 from utilities import *
+from requiredPlaces import requiredCountries, requiredCities
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
