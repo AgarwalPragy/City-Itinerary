@@ -4,7 +4,11 @@ import dataclasses
 import json
 from uuid import uuid4
 
-__all__ = ['Review', 'EntityListing', 'CountryListing', 'CityListing', 'PointListing', 'ImageResource']
+__all__ = [
+    'Review', 'ImageResource',
+    'EntityListing', 'CountryListing', 'CityListing', 'PointListing',
+    'EntityAggregated', 'CountryAggregated', 'CityAggregated', 'PointAggregated'
+]
 
 
 class EnhancedJSONEncoder(json.JSONEncoder):
@@ -140,6 +144,7 @@ class CityAggregated(City, EntityAggregated):
     def __post_init__(self):
         self._entityType = 'city'
         self._uuid = str(uuid4())
+
 
 @dataclass
 class CityListing(City, EntityListing):
