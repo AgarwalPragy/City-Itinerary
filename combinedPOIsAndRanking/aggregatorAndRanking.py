@@ -6,7 +6,7 @@ sys.path.append('.')
 from entities import *
 from utilities import *
 
-from rankingOfSites import alexa_ranking, similar_web_ranking
+from siteRankings import alexa_ranking, similar_web_ranking
 
 cities = ['london', 'dubai', 'bangkok']
 files = ["specificCrawler/skyscanner.json", "specificCrawler/inspirock.json","specificCrawler/tripadvisor.json", "specificCrawler/viator.json"]
