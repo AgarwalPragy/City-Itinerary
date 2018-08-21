@@ -1,5 +1,4 @@
 import scrapy
-import json
 import sys
 sys.path.append('.')
 
@@ -73,7 +72,6 @@ class CrawlerViator(scrapy.Spider):
         cityListing = CityListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                   countryName=countryName, cityName=cityName, regionName=regionName)
         yield cityListing.jsonify()
-
 
         if skipNonRequired:
             if processName(cityName) not in requiredCities:

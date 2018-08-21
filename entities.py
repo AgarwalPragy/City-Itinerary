@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass, field
 import dataclasses
 import json
@@ -13,6 +13,24 @@ class EnhancedJSONEncoder(json.JSONEncoder):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
+
+# #####################################################################################
+
+
+@dataclass
+class EntityAggregated:
+    _entityType: str = field(init=False)
+    _uuid: str = field(init=False)
+    sources: List[str] = field(init=False)  # this will be a list of UUIDs of listings
+
+    def jsonify(self) -> Dict[str, Any]:
+        # TODO: Make this more efficient
+        return json.loads(json.dumps(self, cls=EnhancedJSONEncoder))
+
+    def __post_init__(self):
+        self._entityType = 'undefined'
+        self._uuid = 'none'
+        self.sources = []
 
 
 @dataclass
@@ -33,17 +51,13 @@ class EntityListing:
 
 
 @dataclass
-class CountryListing(EntityListing):
+class Country:
     countryName: str
     coordinates: str = None
 
-    def __post_init__(self):
-        self._listingType = 'country'
-        self._uuid = str(uuid4())
-
 
 @dataclass
-class CityListing(EntityListing):
+class City:
     countryName: str
 
     cityName: str
@@ -55,13 +69,9 @@ class CityListing(EntityListing):
     avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
     ratingCount: Optional[int] = None
 
-    def __post_init__(self):
-        self._listingType = 'city'
-        self._uuid = str(uuid4())
-
 
 @dataclass
-class PointListing(EntityListing):
+class Point:
     countryName: str
     cityName: str
 
@@ -80,10 +90,6 @@ class PointListing(EntityListing):
     ratingCount: Optional[int] = None
     rank: Optional[int] = None
     recommendedNumHours: Optional[int] = None
-
-    def __post_init__(self):
-        self._listingType = 'point'
-        self._uuid = str(uuid4())
 
 
 @dataclass
@@ -112,3 +118,46 @@ class Review(EntityListing):
     def __post_init__(self):
         self._listingType = 'review'
         self._uuid = str(uuid4())
+# ------------------------------------------------------------------------------
+
+
+@dataclass
+class CountryAggregated(Country, EntityAggregated):
+    def __post_init__(self):
+        self._entityType = 'country'
+        self._uuid = str(uuid4())
+
+
+@dataclass
+class CountryListing(Country, EntityListing):
+    def __post_init__(self):
+        self._listingType = 'country'
+        self._uuid = str(uuid4())
+
+
+@dataclass
+class CityAggregated(City, EntityAggregated):
+    def __post_init__(self):
+        self._entityType = 'city'
+        self._uuid = str(uuid4())
+
+@dataclass
+class CityListing(City, EntityListing):
+    def __post_init__(self):
+        self._listingType = 'city'
+        self._uuid = str(uuid4())
+
+
+@dataclass
+class PointAggregated(Point, EntityAggregated):
+    def __post_init__(self):
+        self._entityType = 'point'
+        self._uuid = str(uuid4())
+
+
+@dataclass
+class PointListing(Point, EntityListing):
+    def __post_init__(self):
+        self._listingType = 'point'
+        self._uuid = str(uuid4())
+
