@@ -130,6 +130,7 @@ class CountryAggregated(Country, EntityAggregated):
     def __post_init__(self):
         self._entityType = 'country'
         self._uuid = str(uuid4())
+        self.sources = []
 
 
 @dataclass
@@ -144,6 +145,7 @@ class CityAggregated(City, EntityAggregated):
     def __post_init__(self):
         self._entityType = 'city'
         self._uuid = str(uuid4())
+        self.sources = []
 
 
 @dataclass
@@ -158,6 +160,7 @@ class PointAggregated(Point, EntityAggregated):
     def __post_init__(self):
         self._entityType = 'point'
         self._uuid = str(uuid4())
+        self.sources = []
 
 
 @dataclass
