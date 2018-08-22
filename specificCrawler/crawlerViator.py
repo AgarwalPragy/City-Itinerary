@@ -29,7 +29,7 @@ class CrawlerViator(scrapy.Spider):
     def parseCountryPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/India/d723-ttd
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
-        countryName = breadcrumbs[1]
+        countryName = breadcrumbs[1].strip()
 
         countryListing = CountryListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                         countryName=countryName)
@@ -57,18 +57,20 @@ class CrawlerViator(scrapy.Spider):
     def parseCityPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Lucknow/d23770-ttd
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
-        countryName = breadcrumbs[1]
+        countryName = breadcrumbs[1].strip()
         if countryName != response.meta['countryName']:
             if countryName is None:
-                countryName = response.meta['countryName']
+                countryName = response.meta['countryName'].strip()
             else:
                 self.log('Country name mismatch.\nExpected: {}\nFound: {}'.format(meta['countryName'], countryName))
         if len(breadcrumbs) == 4:
             regionName, cityName = breadcrumbs[2:4]
-            regionName = regionName
+            cityName = cityName.strip()
+            regionName = regionName.strip()
         else:
             # example page: https://www.viator.com/Mumbai/d953-ttd
             regionName, cityName = None, breadcrumbs[2]
+            cityName = cityName.strip()
 
         cityListing = CityListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                   countryName=countryName, cityName=cityName, regionName=regionName)
@@ -109,22 +111,22 @@ class CrawlerViator(scrapy.Spider):
     def parseAttractionsPage(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/Amsterdam-attractions/Albert-Cuyp-Market/d525-a8126
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
-        countryName = breadcrumbs[1]
-        cityName = breadcrumbs[-3]
+        countryName = breadcrumbs[1].strip()
+        cityName = breadcrumbs[-3].strip()
         # -2 is the word 'attractions'
-        pointName = breadcrumbs[-1]
+        pointName = breadcrumbs[-1].strip()
         # we don't really care about the region once we have the city?
 
         data = response.css('div.cms-content')
         description, notes = None, None
         if len(data) > 0:
             description = data[0]
-            description = '\n'.join(description.css('div::text').extract())
+            description = '\n'.join(description.css('div::text').extract()).strip()
         if len(data) > 1:
-            notes = data[1].css('::text').extract_first()
+            notes = data[1].css('::text').extract_first().strip()
 
         sideBox = response.css('body > div.page.mtl > div.body > div.main-wide.unitRight > div.page-bg.line.light-border-b > div.unitRight.aside > div > div.mtmm.mhmm > div.line > div')
-        address = sideBox.css('meta[itemprop="streetAddress"]::attr(content)').extract_first()
+        address = sideBox.css('meta[itemprop="streetAddress"]::attr(content)').extract_first().strip()
 
         ratingBox = sideBox.css('p[itemprop="aggregateRating"]')
         avgRating, ratingCount = None, None
@@ -142,7 +144,7 @@ class CrawlerViator(scrapy.Spider):
 
         yield pointListing.jsonify()
 
-        pointImage = response.css('div.img-product > img::attr(src)').extract_first()
+        pointImage = response.css('div.img-product > img::attr(src)').extract_first().strip()
         yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                             countryName=countryName, cityName=cityName, pointName=pointName,
                             imageURL=pointImage).jsonify()
@@ -184,7 +186,7 @@ class CrawlerViator(scrapy.Spider):
             ratingDate = ratingBox.css('span::text').extract_first()
 
             contentBox = review.css('div[itemprop="reviewBody"]')
-            content = ''.join(contentBox.css('p::text').extract())
+            content = ''.join(contentBox.css('p::text').extract()).strip()
 
             yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                          countryName=response.meta['countryName'], cityName=response.meta['cityName'], pointName=response.meta['pointName'],
