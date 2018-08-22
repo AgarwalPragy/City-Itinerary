@@ -1,5 +1,6 @@
 import scrapy
 import sys
+import time
 sys.path.append('.')
 
 from entities import *
@@ -77,7 +78,7 @@ class CrawlerViator(scrapy.Spider):
 
         self.incrementRequestCount()
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
-        countryName = breadcrumbs[1].strip()
+        countryName = breadcrumbs[1]
         if countryName != response.meta['countryName']:
             if countryName is None:
                 countryName = response.meta['countryName'].strip()
@@ -91,6 +92,7 @@ class CrawlerViator(scrapy.Spider):
             # example page: https://www.viator.com/Mumbai/d953-ttd
             regionName, cityName = None, breadcrumbs[2]
             cityName = cityName.strip()
+        countryName = countryName.strip()
 
         cityListing = CityListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                   countryName=countryName, cityName=cityName, regionName=regionName)
@@ -123,10 +125,19 @@ class CrawlerViator(scrapy.Spider):
     def parseCityAttractionsListPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Mumbai/d953
 
+        print('PARSING ATTRACTION LIST ####################################################################################')
+        print(response.url)
+
         self.incrementRequestCount()
-        hrefs = response.css('div.ptm *> h2 > a::attr(href)').extract()
+        hrefs = response.css('div.ptm *> h2 > a')
         for href in hrefs:
-            yield response.follow(href, callback=self.parseAttractionsPage)
+            pointURL = href.css('::attr(href)').extract_first().strip()
+            pointName = href.css('::text').extract_first().strip()
+            yield response.follow(pointURL, callback=self.parseAttractionsPage, meta={
+                'countryName': response.meta['countryName'],
+                'cityName': response.meta['cityName'],
+                'pointName': pointName
+            })
 
         nextPageLink = response.css('div.ptm > div:nth-child(1) > div:nth-child(2) > p > a:last-child::attr(href)').extract_first()
         if nextPageLink:
@@ -135,13 +146,21 @@ class CrawlerViator(scrapy.Spider):
     def parseAttractionsPage(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/Amsterdam-attractions/Albert-Cuyp-Market/d525-a8126
 
+        print('PARSING ATTRACTION PAGE @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@')
+        print(response.url)
+
         self.incrementRequestCount()
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
-        countryName = breadcrumbs[1].strip()
-        cityName = breadcrumbs[-3].strip()
-        # -2 is the word 'attractions'
-        pointName = breadcrumbs[-1].strip()
-        # we don't really care about the region once we have the city?
+        if breadcrumbs:
+            countryName = breadcrumbs[1].strip()
+            cityName = breadcrumbs[-3].strip()
+            # -2 is the word 'attractions'
+            pointName = breadcrumbs[-1].strip()
+            # we don't really care about the region once we have the city?
+        else:
+            countryName = response.meta['countryName']
+            cityName = response.meta['cityName']
+            pointName = response.meta['pointName']
 
         data = response.css('div.cms-content')
         description, notes = None, None
@@ -149,10 +168,14 @@ class CrawlerViator(scrapy.Spider):
             description = data[0]
             description = '\n'.join(description.css('div::text').extract()).strip()
         if len(data) > 1:
-            notes = data[1].css('::text').extract_first().strip()
+            notes = data[1].css('::text').extract_first()
+            if notes:
+                notes = notes.strip()
 
         sideBox = response.css('body > div.page.mtl > div.body > div.main-wide.unitRight > div.page-bg.line.light-border-b > div.unitRight.aside > div > div.mtmm.mhmm > div.line > div')
-        address = sideBox.css('meta[itemprop="streetAddress"]::attr(content)').extract_first().strip()
+        address = sideBox.css('meta[itemprop="streetAddress"]::attr(content)').extract_first()
+        if address:
+            address = address.strip()
 
         ratingBox = sideBox.css('p[itemprop="aggregateRating"]')
         avgRating, ratingCount = None, None
@@ -170,7 +193,9 @@ class CrawlerViator(scrapy.Spider):
 
         yield pointListing.jsonify()
 
-        pointImage = response.css('div.img-product > img::attr(src)').extract_first().strip()
+        pointImage = response.css('div.img-product > img::attr(src)').extract_first()
+        if pointImage:
+            pointImage = pointImage.strip()
         yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                             countryName=countryName, cityName=cityName, pointName=pointName,
                             imageURL=pointImage).jsonify()
@@ -216,7 +241,9 @@ class CrawlerViator(scrapy.Spider):
             ratingDate = ratingBox.css('span::text').extract_first()
 
             contentBox = review.css('div[itemprop="reviewBody"]')
-            content = ''.join(contentBox.css('p::text').extract()).strip()
+            content = ''.join(contentBox.css('p::text').extract())
+            if content:
+                content = content.strip()
 
             yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                          countryName=response.meta['countryName'], cityName=response.meta['cityName'], pointName=response.meta['pointName'],
