@@ -1,3 +1,4 @@
+from utilities import processName
 
 requiredCountries = [
     "Thailand",
@@ -25,7 +26,6 @@ requiredCountries = [
     "Saudi Arabia",
     "India"
 ]
-
 
 requiredCities = [
     "Bangkok",
@@ -62,5 +62,7 @@ requiredCities = [
 ]
 
 
+processedRequiredCities = set(list(map(processName, requiredCities)))
+processedRequiredCountries = set(list(map(processName, requiredCountries)))
 
 
