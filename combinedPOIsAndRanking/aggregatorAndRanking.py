@@ -16,14 +16,14 @@ acceptableFuzzyScore = 90
 
 citiesToProcess = list(map(processName, ['london', 'dubai', 'bangkok']))
 filesToProcess = ["specificCrawler/skyscanner.json", "specificCrawler/inspirock.json",
-                  "specificCrawler/tripadvisor.json", "specificCrawler/viator.json", 'specificCrawler/tripexpert.json']
+                  "specificCrawler/tripadvisor.json", "specificCrawler/viator.json"] #, 'specificCrawler/tripexpert.json']
 
 crawlerToIndexMapping = {'skyscanner': 0, 'inspirock': 1, 'tripadvisor': 2, 'viator_v2': 3, 'tripexpert': 4}
 priorityToIndexMapping = {'freqPriorityIndex' : 0, 'weightedRatingPriorityIndex': 1, 'freqWithALRankingPriorityIndex' : 2,
                          'freqWithSWGRankingPriorityIndex': 3, 'wilsonScorePriorityIndex' : 4, 'weightedPrioritiesIndex' : 5}
 
 #index is same as priority Index
-weightsOfPriority = [0.4, 0, 0.4, 0.15, 0.15]
+weightsOfPriority = [0.4, 0, 0.4, 0.1, 0.1]
 
 
 
@@ -267,8 +267,8 @@ def getPrioritiesValue(combinedPOIsListByCity, weightsOfPriority, crawlerToIndex
 
             weightedPrioritiesScore = weightsOfPriority[priorityToIndexMapping['freqPriorityIndex']] * freq + \
                                       weightsOfPriority[priorityToIndexMapping['weightedRatingPriorityIndex']] * avgRating +\
-                                      weightsOfPriority[priorityToIndexMapping['wilsonScorePriorityIndex']] * wilsonScore +\
-                                      weightsOfPriority[priorityToIndexMapping['freqWithALRankingPriorityIndex']] * alexaScore + \
+                                      weightsOfPriority[priorityToIndexMapping['wilsonScorePriorityIndex']] * wilsonScore -\
+                                      weightsOfPriority[priorityToIndexMapping['freqWithALRankingPriorityIndex']] * alexaScore - \
                                       weightsOfPriority[priorityToIndexMapping['freqWithSWGRankingPriorityIndex']]*swebScore
 
             priority_list[priorityToIndexMapping['weightedPrioritiesIndex']] = weightedPrioritiesScore
@@ -372,13 +372,13 @@ combinedPOIsListByCity: Dict[str, List[List[JPL]]] = combinePOIsByCity(crawlerPo
 
 prioritiesOfPOIsByCity = getPrioritiesValue(combinedPOIsListByCity, weightsOfPriority, crawlerToIndexMapping,priorityToIndexMapping)
 
-priorityString = 'freqWithALRankingPriorityIndex'
+priorityString = 'weightedPrioritiesIndex'
 priorityIndex = priorityToIndexMapping[priorityString]
 sortAllCitiesData(combinedPOIsListByCity, prioritiesOfPOIsByCity, priorityIndex, priorityToIndexMapping)
 numAttractions = 50
 aggregatorList = listOfPOIsToPointAggregators(numAttractions)
 outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + priorityString + ",sites:" + str(
-    len(filesToProcess)) + ",numPointsEachCity" + str(numAttractions) + ",output.json"
+    len(filesToProcess)) + ",numPointsEachCity" + str(numAttractions) + ",output_newAlR.json"
 savePOIs(outFileName, aggregatorList)
 
 
