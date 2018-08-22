@@ -82,14 +82,16 @@ class Point:
     pointName: str
     address: Optional[str] = None
     coordinates: str = None
-    openingHour: Optional[int] = None
-    closingHour: Optional[int] = None
+    openingHour: Optional[str] = None
+    closingHour: Optional[str] = None
     description: Optional[str] = None
     notes: Optional[str] = None
     canEat: Optional[bool] = None
     canStay: Optional[bool] = None
     canTour: Optional[bool] = None
     category: Optional[str] = None
+    tripexpertScore: Optional[int] = None # out of 100
+    website: Optional[str] = None
     avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
     ratingCount: Optional[int] = None
     rank: Optional[int] = None
