@@ -9,7 +9,7 @@ from utilities import *
 from siteRankings import alexa_ranking, similar_web_ranking
 
 cities = ['london', 'dubai', 'bangkok']
-files = ["specificCrawler/skyscanner.json", "specificCrawler/inspirock.json","specificCrawler/tripadvisor.json", "specificCrawler/viator.json"]
+files = ["specificCrawler/skyscanner.json", "specificCrawler/inspirock.json","specificCrawler/tripadvisor.json", "specificCrawler/viator.json", 'specificCrawler/tripexpert.json']
 json_objects = []
 
 combinedPOIsListByCity = {} 
@@ -18,15 +18,19 @@ prioritiesOfPOIsByCity = {}
 acceptableFuzzyScore = 90
 
 
-crawlerToIndex = {'skyscanner' : 0, 'inspirock' : 1, 'tripadvisor' : 2, 'viator_v2' : 3}
+crawlerToIndex = {'skyscanner' : 0, 'inspirock' : 1, 'tripadvisor' : 2, 'viator_v2' : 3, 'tripexpert' : 4}
 priorityFreqIndex = 0
 priorityWeightedRatingIndex = 1
 priorityFreqWithAlexaRanking = 2
 priorityFreWithSimilarWebGranking = 3
 priorityWisonScoreIndex = 4
-numOfPriorities = 5
+priorityWithWeigths = 5
+numOfPriorities = 6
 
-
+freqWeight = 0.4
+wilsonScoreWeight = 0.4
+alexaRankWeight = 0.1
+swebRankWeight = 0.1
 maxRatAndCountByCrawlerInCity = {}
 
 def getMaxRatingAndReviewCount(crawler, cityName):
@@ -61,6 +65,8 @@ def getPrioritiesValue():
             weightedAlexaDenominator = 0
             weightedSWebGNumerator = 0
             weightedSWebGDenominator = 0
+
+            overAllWeightedScore = 0
             for POI in POI_combination:
                 #print(POI['pointName'])
 
@@ -76,7 +82,7 @@ def getPrioritiesValue():
                 # alexa ranking code
                 if POI['rank'] is not None:
                     weightedAlexaNumerator += POI['rank'] / (alexa_ranking[POI['crawler']] * 1.0)
-                    weightedSWebGNumerator += POI['rank'] / (similar_web_ranking[POI['crawler']]['gRank'] * 1.0)
+                    weightedSWebGNumerator += POI['rank'] / (similar_web_ranking[POI['crawler']] * 1.0)
 
                 else:
                     rating = 0
@@ -100,19 +106,28 @@ def getPrioritiesValue():
                     #predict siteRankOfPOI if not given on site 
                     siteRankOfPOI = (maxRating + 1 - rating) * maxCount / (1.0 * ratingPoints)
                     weightedAlexaNumerator += siteRankOfPOI / (alexa_ranking[POI['crawler']]) # comsidering POI as a worst
-                    weightedSWebGNumerator += siteRankOfPOI / (similar_web_ranking[POI['crawler']]['gRank'])
+                    weightedSWebGNumerator += siteRankOfPOI / (similar_web_ranking[POI['crawler']])
                 weightedAlexaDenominator += 1.0/alexa_ranking[POI['crawler']]
-                weightedSWebGDenominator += 1.0/similar_web_ranking[POI['crawler']]['gRank']
+                weightedSWebGDenominator += 1.0/similar_web_ranking[POI['crawler']]
 
 
             priority_list[priorityFreqIndex] = freq
+            overAllWeightedScore += freq * freqWeight
             if ratingCount != 0:
                 avgRating = avgRating / ratingCount
                 wilsonScore = getWilsonScore(avgRating / 10.0, ratingCount)
                 priority_list[priorityWeightedRatingIndex] = avgRating
                 priority_list[priorityWisonScoreIndex] = wilsonScore
+                overAllWeightedScore += wilsonScore * wilsonScoreWeight
 
-            priority_list[priorityFreqWithAlexaRanking] = weightedAlexaNumerator/weightedAlexaDenominator
+            alexaScore = weightedAlexaNumerator / weightedAlexaDenominator
+            swebScore = weightedSWebGNumerator / weightedSWebGDenominator
+            # need to normalize data assumed 500 rank at max
+            overAllWeightedScore -= alexaScore * alexaRankWeight
+            overAllWeightedScore -= swebScore * swebRankWeight
+            priority_list[priorityFreqWithAlexaRanking] = alexaScore
+            priority_list[priorityFreWithSimilarWebGranking] = swebScore
+            priority_list[priorityWithWeigths] = overAllWeightedScore
             if key in prioritiesOfPOIsByCity:
                 prioritiesOfPOIsByCity[key].append(priority_list)
             else:
@@ -123,7 +138,7 @@ def isGreaterOrEqual(a, b):
 
 #list1, list2 are priority value and data1, data2 are aggregated data
 def compareBasedOnPriorityIndex(list1, list2, priorityIndex):
-    if priorityIndex == priorityFreqIndex or priorityIndex == priorityWeightedRatingIndex or priorityIndex == priorityWisonScoreIndex:
+    if priorityIndex == priorityFreqIndex or priorityIndex == priorityWeightedRatingIndex or priorityIndex == priorityWisonScoreIndex or priorityIndex == priorityWithWeigths:
         return isGreaterOrEqual(list1[priorityIndex], list2[priorityIndex])
     elif priorityIndex == priorityFreqWithAlexaRanking or priorityIndex == priorityFreWithSimilarWebGranking:
         if list1[priorityFreqIndex] > list2[priorityFreqIndex]:
@@ -215,39 +230,49 @@ for file in files:
 counter = [0] * len(files)
 for i in range(len(json_objects)):
     for j in range(len(json_objects[i])):
-        if json_objects[i][j]['_listingType'] == 'point':
-            cityName = json_objects[i][j]['cityName'].lower()
-            #countryName = json_objects[i][j]['countryName'].lower()
-            pointName = json_objects[i][j]['pointName'].lower()
+        cityName = json_objects[i][j]['cityName'].lower()
+        #countryName = json_objects[i][j]['countryName'].lower()
+        pointName = processName(json_objects[i][j]['pointName'].lower())
 
-            temp = []
-            temp.append(json_objects[i][j])
+        temp = []
+        temp.append(json_objects[i][j])
 
-            for k in range(i+1, len(json_objects)):
-                maxFuzzyScore = 0
-                maxScoreIndex = 0
+        for k in range(i+1, len(json_objects)):
+            maxFuzzyScore = 0
+            maxScoreIndex = 0
+            flag = True 
+
+            #for l in range(len(json_objects[k])):
+                #newPointName = processName(json_objects[k][l]['cityName'].lower())
+                #if pointName == newPointName:
+                    #temp.append(json_objects[k][l])
+                    #json_objects[k].remove(json_objects[k][l])
+                    #flag = False
+                    #break
+
+            if flag:
                 for l in range(len(json_objects[k])):
-                    if json_objects[k][l]['_listingType'] == 'point':
-                        newCityName = json_objects[k][l]['cityName'].lower()
-                        #newCountryName = json_objects[k][l]['countryName'].lower()
-                        newPointName = json_objects[k][l]['pointName'].lower()
 
-                        if cityName == newCityName:# and countryName == newCountryName:
-                            tempFuzzyScore = fuzz.partial_ratio(pointName, newPointName)
+                    newCityName = processName(json_objects[k][l]['cityName'].lower())
+                    #newCountryName = json_objects[k][l]['countryName'].lower()
+                    newPointName = json_objects[k][l]['pointName'].lower()
 
-                            if tempFuzzyScore > maxFuzzyScore:
-                                maxFuzzyScore = tempFuzzyScore
-                                maxScoreIndex = l 
+                    if cityName == newCityName:# and countryName == newCountryName:
+                        tempFuzzyScore = fuzz.partial_ratio(pointName, newPointName)
+
+                        if tempFuzzyScore > maxFuzzyScore:
+                            maxFuzzyScore = tempFuzzyScore
+                            maxScoreIndex = l 
                 #print("maxFuzzyScore " + str(maxFuzzyScore))
                 if(maxFuzzyScore > acceptableFuzzyScore):
                     temp.append(json_objects[k][maxScoreIndex])
                     json_objects[k].remove(json_objects[k][maxScoreIndex])
-            counter[len(temp) - 1] += 1
-            key = cityName# + "," + countryName
-            if key in combinedPOIsListByCity:
-                combinedPOIsListByCity[key].append(temp)
-            else:
-                combinedPOIsListByCity[key] = [temp]
+        counter[len(temp) - 1] += 1
+        key = cityName# + "," + countryName
+        if key in combinedPOIsListByCity:
+            combinedPOIsListByCity[key].append(temp)
+        else:
+            combinedPOIsListByCity[key] = [temp]
 
 
 def combinePOIsInPointAggregated(listOfPOIs):
@@ -262,7 +287,7 @@ def combinePOIsInPointAggregated(listOfPOIs):
 
     maxLenPointName = ""
     avgRating = 0
-    ratingCount = 0
+    ratingCount = 1
     for POI in listOfPOIs:
         if len(POI['pointName']) > len(maxLenPointName):
             maxLenPointName = POI['pointName']
@@ -289,7 +314,10 @@ def combinePOIsInPointAggregated(listOfPOIs):
 
     for point_prop in pointListingPropBycrawler:
         value = None
-        if 'tripAdvisor' in pointListingPropBycrawler[point_prop]:
+        if 'tripexpert' in pointListingPropBycrawler[point_prop]:
+            value = pointListingPropBycrawler[point_prop]['tripexpert']
+
+        if value is None and 'tripAdvisor' in pointListingPropBycrawler[point_prop]:
             value = pointListingPropBycrawler[point_prop]['tripAdvisor']
 
         if value is None and 'skyscanner' in pointListingPropBycrawler[point_prop]:
@@ -348,7 +376,7 @@ getPrioritiesValue()
 # printing data and sorting based on priority index value
 priority = "weightedAvg"
 #overlAllDataFile = open("combinedPOIsAndRanking/Aggregated_Data/topPOIs" + priority, 'w')
-priorityIndex = priorityWeightedRatingIndex
+priorityIndex = priorityWisonScoreIndex
 for key in combinedPOIsListByCity:
     mergeSort(prioritiesOfPOIsByCity[key], combinedPOIsListByCity[key],priorityIndex , 0, len(combinedPOIsListByCity[key]) - 1)
     outPutFile = open("combinedPOIsAndRanking/Aggregated_Data/city:"+key + ",sites:"+str(len(files))+",priority:"+priority+",fuzzyScore:" + str(acceptableFuzzyScore), 'w')
@@ -367,7 +395,7 @@ for key in combinedPOIsListByCity:
 numAttraction = 50
 # aggregate the top k points for each city and store same in the file 
 aggregatorList = listOfPOIsToPointAggregators(numAttraction)
-outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + str(priority) + ",numPoints:" + str(numAttraction) + ",output.json"
+outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + str(priority) +",sites:"+str(len(files))+ ",numPoints:" + str(numAttraction) + ",output.json"
 savePOIs(outFileName, aggregatorList)
 
 
