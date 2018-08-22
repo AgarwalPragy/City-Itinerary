@@ -102,8 +102,8 @@ class CrawlerInspirock(scrapy.Spider):
                 else:
                     openingsHour += splitter[0].strip() + ','
                     closingsHour += splitter[0].strip() + ','
-            openingsHour = openingsHour[:-2]
-            closingsHour = closingsHour[:-2]
+            openingsHour = openingsHour[:-1]
+            closingsHour = closingsHour[:-1]
 
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
