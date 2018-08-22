@@ -17,43 +17,35 @@ acceptableFuzzyScore = 90
 citiesToProcess = list(map(processName, ['london', 'dubai', 'bangkok']))
 filesToProcess = ["specificCrawler/skyscanner.json", "specificCrawler/inspirock.json",
                   "specificCrawler/tripadvisor.json", "specificCrawler/viator.json", 'specificCrawler/tripexpert.json']
-prioritiesOfPOIsByCity = {}
 
-crawlerToIndex = {'skyscanner': 0, 'inspirock': 1, 'tripadvisor': 2, 'viator_v2': 3, 'tripexpert': 4}
-priorityFreqIndex = 0
-priorityWeightedRatingIndex = 1
-priorityFreqWithAlexaRanking = 2
-priorityFreWithSimilarWebGranking = 3
-priorityWisonScoreIndex = 4
-priorityWithWeigths = 5
-numOfPriorities = 6
+crawlerToIndexMapping = {'skyscanner': 0, 'inspirock': 1, 'tripadvisor': 2, 'viator_v2': 3, 'tripexpert': 4}
+priorityToIndexMapping = {'freqPriorityIndex' : 0, 'weightedRatingPriorityIndex': 1, 'freqWithALRankingPriorityIndex' : 2,
+                         'freqWithSWGRankingPriorityIndex': 3, 'wilsonScorePriorityIndex' : 4, 'weightedPrioritiesIndex' : 5}
 
-freqWeight = 0.4
-wilsonScoreWeight = 0.4
-alexaRankWeight = 0.1
-swebRankWeight = 0.1
-maxRatAndCountByCrawlerInCity = {}
+#index is same as priority Index
+weightsOfPriority = [0.4, 0, 0.4, 0.15, 0.15]
 
 
 
 #list1, list2 are priority value and data1, data2 are aggregated data
-def compareBasedOnPriorityIndex(list1, list2, priorityIndex):
-    if (priorityIndex == priorityFreqIndex
-                or priorityIndex == priorityWeightedRatingIndex
-                or priorityIndex == priorityWisonScoreIndex
-                or priorityIndex == priorityWithWeigths):
+def compareBasedOnPriorityIndex(list1, list2, priorityIndex, priorityToIndexMapping):
+    if (priorityIndex == priorityToIndexMapping['freqPriorityIndex']
+                or priorityIndex == priorityToIndexMapping['weightedRatingPriorityIndex']
+                or priorityIndex == priorityToIndexMapping['wilsonScorePriorityIndex']
+                or priorityIndex == priorityToIndexMapping['weightedPrioritiesIndex']):
         return list1[priorityIndex] >= list2[priorityIndex]
 
-    elif priorityIndex == priorityFreqWithAlexaRanking or priorityIndex == priorityFreWithSimilarWebGranking:
-        if list1[priorityFreqIndex] > list2[priorityFreqIndex]:
+    elif (priorityIndex == priorityToIndexMapping['freqWithALRankingPriorityIndex'] or
+        priorityIndex == priorityToIndexMapping['freqWithSWGRankingPriorityIndex']):
+        if list1[priorityToIndexMapping['freqPriorityIndex']] > list2[priorityToIndexMapping['freqPriorityIndex']]:
             return True
-        elif list1[priorityFreqIndex] < list2[priorityFreqIndex]:
+        elif list1[priorityToIndexMapping['freqPriorityIndex']] < list2[priorityToIndexMapping['freqPriorityIndex']]:
             return False
         else:
             return list2[priorityIndex] >= list1[priorityIndex] # want lower rank pois first
 
 
-def merge(prioritiesListOfList, dataListOfList,priorityIndex, low, mid, high):
+def merge(prioritiesListOfList, dataListOfList,priorityIndex,priorityToIndexMapping, low, mid, high):
     n1 = mid - low + 1
     n2 = high- mid
 
@@ -79,7 +71,7 @@ def merge(prioritiesListOfList, dataListOfList,priorityIndex, low, mid, high):
     k = low  # Initial index of merged subarray
 
     while i < n1 and j < n2 :
-        if compareBasedOnPriorityIndex(leftPrioritiesListOfList[i],rightPrioritiesListOfList[j], priorityIndex):
+        if compareBasedOnPriorityIndex(leftPrioritiesListOfList[i],rightPrioritiesListOfList[j], priorityIndex,priorityToIndexMapping):
             prioritiesListOfList[k] = leftPrioritiesListOfList[i]
             dataListOfList[k] = leftDtaListOfList[i]
             i += 1
@@ -106,12 +98,12 @@ def merge(prioritiesListOfList, dataListOfList,priorityIndex, low, mid, high):
         k += 1
 
 
-def mergeSort(prioritiesListOfList, dataListOfList,priorityIndex, low, high):
+def mergeSort(prioritiesListOfList, dataListOfList,priorityIndex,priorityToIndexMapping, low, high):
     if low < high:
         mid = int((low+(high-1))/2)
-        mergeSort(prioritiesListOfList, dataListOfList, priorityIndex, low, mid)
-        mergeSort(prioritiesListOfList, dataListOfList, priorityIndex, mid+1, high)
-        merge(prioritiesListOfList, dataListOfList, priorityIndex, low, mid, high)
+        mergeSort(prioritiesListOfList, dataListOfList, priorityIndex,priorityToIndexMapping, low, mid)
+        mergeSort(prioritiesListOfList, dataListOfList, priorityIndex, priorityToIndexMapping,mid+1, high)
+        merge(prioritiesListOfList, dataListOfList, priorityIndex, priorityToIndexMapping, low, mid, high)
 
 def savePOIs(fileName: str, pointAggregatedList: List[JPA]):
     data = json.dumps(pointAggregatedList, indent=4)
@@ -119,7 +111,7 @@ def savePOIs(fileName: str, pointAggregatedList: List[JPA]):
         f.write(data)
 
 
-def loadOneFile(filename: str) -> List[JPL]:
+def loadOneFile(filename: str, citiesTOProcess) -> List[JPL]:
     with open(filename, 'r') as f:
         fileData = json.load(f)
 
@@ -132,14 +124,14 @@ def loadOneFile(filename: str) -> List[JPL]:
     return pointListingsForCrawler
 
 
-def loadAllFiles(filenames: List[str]) -> List[List[JPL]]:
+def loadAllFiles(filenames: List[str], citiesToProcess) -> List[List[JPL]]:
     result = []
     for filename in filenames:
-        result.append(loadOneFile(filename))
+        result.append(loadOneFile(filename, citiesToProcess))
     return result
 
 
-def combinePOIsByCity(crawlerPointListings: List[List[JPL]]) -> Dict[str, List[List[JPL]]]:
+def combinePOIsByCity(crawlerPointListings: List[List[JPL]], acceptableFuzzyScore) -> Dict[str, List[List[JPL]]]:
     result = defaultdict(list)
     for i, pointListingsForCrawler1 in enumerate(crawlerPointListings):
         for j, pointListing1 in enumerate(pointListingsForCrawler1):
@@ -184,20 +176,15 @@ def combinePOIsByCity(crawlerPointListings: List[List[JPL]]) -> Dict[str, List[L
             result[key].append(pointListingsToAggregate)
     return result
 
-
-crawlerPointListings: List[List[JPL]] = loadAllFiles(filesToProcess)
-combinedPOIsListByCity: Dict[str, List[List[JPL]]] = combinePOIsByCity(crawlerPointListings)
-
-
-def getMaxRatingAndReviewCount(crawler: str, cityName: str):
+def getMaxRatingAndReviewCount(crawler: str, cityName: str, crawlerToIndexMapping,maxRatAndCountByCrawlerInCity):
     # TODO: Make this function pure
     processedCityName = processName(cityName)
     maxRating  = 0
     maxCount = 0
-    pointListings = crawlerPointListings[crawlerToIndex[crawler]]
+    pointListings = crawlerPointListings[crawlerToIndexMapping[crawler]]
     for pointListing in pointListings:
         if processName(pointListing['cityName']) == processedCityName:
-            if pointListing['avgRating'] and pointListing['avgRating'] > maxRating:
+            if pointListing['avgRating'] is not None and pointListing['avgRating'] > maxRating:
                 maxRating = pointListing['avgRating']
                 maxCount = pointListing['ratingCount']
 
@@ -207,14 +194,15 @@ def getMaxRatingAndReviewCount(crawler: str, cityName: str):
     else:
         maxRatAndCountByCrawlerInCity[crawler] = {}
         maxRatAndCountByCrawlerInCity[crawler][cityName] = {'maxRating' : maxRating, 'maxCount' : maxCount}
+    return maxRatAndCountByCrawlerInCity
 
-def getPrioritiesValue():
-    for key in combinedPOIsListByCity:
-        for POI_combination in combinedPOIsListByCity[key]:
-            priority_list = [0] * numOfPriorities
-            freq = len(POI_combination)
-            rating = 0
-            # print('\nName: ' + str(len(POI_combination)))
+def getPrioritiesValue(combinedPOIsListByCity, weightsOfPriority, crawlerToIndexMapping,priorityToIndexMapping) -> Dict[str, list]:
+    prioritiesOfPOIsByCity = {}
+    maxRatAndCountByCrawlerInCity = {}
+    for city in combinedPOIsListByCity:
+        for combinedPOIs in combinedPOIsListByCity[city]:
+            priority_list = [0] * len(priorityToIndexMapping)
+            freq = len(combinedPOIs)
             ratingCount = 0
             avgRating = 0
             weightedAlexaNumerator = 0
@@ -222,159 +210,133 @@ def getPrioritiesValue():
             weightedSWebGNumerator = 0
             weightedSWebGDenominator = 0
 
-            overAllWeightedScore = 0
-            for POI in POI_combination:
-                #print(POI['pointName'])
-
-                # weighted average of POIs
-                if POI['avgRating'] is not None:
-                    if POI['ratingCount'] is not None:
-                        avgRating += POI['avgRating'] * POI['ratingCount']
-                        ratingCount += POI['ratingCount']
+            weightedPrioritiesScore = 0
+            for pointListing in combinedPOIs:
+                # weighted average rating
+                processedCityName = processName(pointListing['cityName'])
+                if pointListing['avgRating'] is not None:
+                    if pointListing['ratingCount'] is not None:
+                        avgRating += pointListing['avgRating'] * pointListing['ratingCount']
+                        ratingCount += pointListing['ratingCount']
                     else:
-                        avgRating += POI['avgRating'] * 1 # consider at least one person reviewed this POI
+                        avgRating += pointListing['avgRating'] * 1 # consider at least one person reviewed this POI
                         ratingCount += 1
 
-                # alexa ranking code
-                if POI['rank'] is not None:
-                    weightedAlexaNumerator += POI['rank'] / (alexa_ranking[POI['crawler']] * 1.0)
-                    weightedSWebGNumerator += POI['rank'] / (similar_web_ranking[POI['crawler']] * 1.0)
+                # alexa score 
+                if pointListing['rank'] is not None:
+                    weightedAlexaNumerator += pointListing['rank'] / (alexa_ranking[pointListing['crawler']] * 1.0)
+                    weightedSWebGNumerator += pointListing['rank'] / (similar_web_ranking[pointListing['crawler']] * 1.0)
 
-                else:
+                else: #calculated rank from some linear function 
                     rating = 0
-                    ratingPoints = 1
-                    if POI['avgRating'] is not None:
-                        rating = POI['avgRating']
-                    if POI['ratingCount'] is not None:
-                        ratingPoints = POI['ratingCount']
+                    countOfRating = 1 # we are dividing by count to calculate the rank so we don't want it zero
+                    if pointListing['avgRating'] is not None:
+                        rating = pointListing['avgRating']
+                    if pointListing['ratingCount'] is not None:
+                        countOfRating = pointListing['ratingCount']
 
-                    if POI['crawler'] in maxRatAndCountByCrawlerInCity:
-                        if POI['cityName'].strip() not in maxRatAndCountByCrawlerInCity[POI['crawler']]:
-                            getMaxRatingAndReviewCount(POI['crawler'], POI['cityName'].strip())
+                    if pointListing['crawler'] in maxRatAndCountByCrawlerInCity:
+                        if processedCityName not in maxRatAndCountByCrawlerInCity[pointListing['crawler']]:
+                            maxRatAndCountByCrawlerInCity = getMaxRatingAndReviewCount(pointListing['crawler'], processedCityName,crawlerToIndexMapping,maxRatAndCountByCrawlerInCity)
                     else:
-                        cityData = {}
-                        getMaxRatingAndReviewCount(POI['crawler'], POI['cityName'])
-
-                        cityData = maxRatAndCountByCrawlerInCity[POI['crawler']][POI['cityName']]
+                        maxRatAndCountByCrawlerInCity = getMaxRatingAndReviewCount(pointListing['crawler'], processedCityName,crawlerToIndexMapping,maxRatAndCountByCrawlerInCity)
+                        cityData = maxRatAndCountByCrawlerInCity[pointListing['crawler']][processedCityName]
                         maxRating = cityData['maxRating']
                         maxCount = cityData['maxCount']
 
                     #predict siteRankOfPOI if not given on site
-                    siteRankOfPOI = (maxRating + 1 - rating) * maxCount / (1.0 * ratingPoints)
-                    weightedAlexaNumerator += siteRankOfPOI / (alexa_ranking[POI['crawler']]) # comsidering POI as a worst
-                    weightedSWebGNumerator += siteRankOfPOI / (similar_web_ranking[POI['crawler']])
-                weightedAlexaDenominator += 1.0/alexa_ranking[POI['crawler']]
-                weightedSWebGDenominator += 1.0/similar_web_ranking[POI['crawler']]
+                    siteRankOfPOI = (maxRating + 1 - rating) * maxCount / (1.0 * countOfRating)
+                    weightedAlexaNumerator += siteRankOfPOI / (alexa_ranking[pointListing['crawler']])
+                    weightedSWebGNumerator += siteRankOfPOI / (similar_web_ranking[pointListing['crawler']])
+                weightedAlexaDenominator += 1.0/alexa_ranking[pointListing['crawler']]
+                weightedSWebGDenominator += 1.0/similar_web_ranking[pointListing['crawler']]
 
 
-            priority_list[priorityFreqIndex] = freq
-            overAllWeightedScore += freq * freqWeight
+            priority_list[priorityToIndexMapping['freqPriorityIndex']] = freq
             if ratingCount != 0:
                 avgRating = avgRating / ratingCount
                 wilsonScore = getWilsonScore(avgRating / 10.0, ratingCount)
-                priority_list[priorityWeightedRatingIndex] = avgRating
-                priority_list[priorityWisonScoreIndex] = wilsonScore
-                overAllWeightedScore += wilsonScore * wilsonScoreWeight
+                priority_list[priorityToIndexMapping['weightedRatingPriorityIndex']] = avgRating
+                priority_list[priorityToIndexMapping['wilsonScorePriorityIndex']] = wilsonScore
 
             alexaScore = weightedAlexaNumerator / weightedAlexaDenominator
             swebScore = weightedSWebGNumerator / weightedSWebGDenominator
-            # need to normalize data assumed 500 rank at max
-            overAllWeightedScore -= alexaScore * alexaRankWeight
-            overAllWeightedScore -= swebScore * swebRankWeight
-            priority_list[priorityFreqWithAlexaRanking] = alexaScore
-            priority_list[priorityFreWithSimilarWebGranking] = swebScore
-            priority_list[priorityWithWeigths] = overAllWeightedScore
-            if key in prioritiesOfPOIsByCity:
-                prioritiesOfPOIsByCity[key].append(priority_list)
+
+            priority_list[priorityToIndexMapping['freqWithALRankingPriorityIndex']] = alexaScore
+            priority_list[priorityToIndexMapping['freqWithSWGRankingPriorityIndex']] = swebScore
+
+            weightedPrioritiesScore = weightsOfPriority[priorityToIndexMapping['freqPriorityIndex']] * freq + \
+                                      weightsOfPriority[priorityToIndexMapping['weightedRatingPriorityIndex']] * avgRating +\
+                                      weightsOfPriority[priorityToIndexMapping['wilsonScorePriorityIndex']] * wilsonScore +\
+                                      weightsOfPriority[priorityToIndexMapping['freqWithALRankingPriorityIndex']] * alexaScore + \
+                                      weightsOfPriority[priorityToIndexMapping['freqWithSWGRankingPriorityIndex']]*swebScore
+
+            priority_list[priorityToIndexMapping['weightedPrioritiesIndex']] = weightedPrioritiesScore
+            if city in prioritiesOfPOIsByCity:
+                prioritiesOfPOIsByCity[city].append(priority_list)
             else:
-                prioritiesOfPOIsByCity[key] = [priority_list]
+                prioritiesOfPOIsByCity[city] = [priority_list]
 
+    return prioritiesOfPOIsByCity
 
-
-getPrioritiesValue()
-
-# printing data and sorting based on priority index value
-priority = "Freq"
-# overlAllDataFile = open("combinedPOIsAndRanking/Aggregated_Data/topPOIs" + priority, 'w')
-priorityIndex = priorityFreqIndex
-for key in combinedPOIsListByCity:
-
-    mergeSort(prioritiesOfPOIsByCity[key], combinedPOIsListByCity[key], priorityIndex, 0,
-              len(combinedPOIsListByCity[key]) - 1)
-    outPutFile = open("combinedPOIsAndRanking/Aggregated_Data/city:" + key + ",sites:" + str(
-        len(filesToProcess)) + ",priority:" + priority + ",fuzzyScore:" + str(acceptableFuzzyScore), 'w')
-    for i in range(len(combinedPOIsListByCity[key])):
-        maxLenPOIName = ""
-        for POI in combinedPOIsListByCity[key][i]:
-            #outPutFile.write(POI['pointName'] + ", ")
-            if len(maxLenPOIName) < len(POI['pointName']):
-                maxLenPOIName = POI['pointName']
-        # if(len(combinedPOIsListByCity[key][i]) >= 2):
-        # overlAllDataFile.write(combinedPOIsListByCity[key][i][0]['countryName'] + "\t" +combinedPOIsListByCity[key][i][0]['cityName'] + "\t" +maxLenPOIName+"\n")
-        outPutFile.write(str(prioritiesOfPOIsByCity[key][i][priorityFreqIndex]) + ", " + str(
-            prioritiesOfPOIsByCity[key][i][priorityIndex]) + "\n")
-    outPutFile.close()
-
-
-
-numAttraction = 50
 # aggregate the top k points for each city and store same in the file
 
 def combinePOIsInPointAggregated(listOfPOIs: List[JPL]) -> JPA:
-    ignoreList = ['cityName', 'crawler', 'rank', 'crawlTimestamp', 'sourceURL', 'countryName', 'pointName',
+    ignoreProperties = ['cityName', 'crawler', 'crawlTimestamp', 'sourceURL', 'countryName', 'pointName',
                    'avgRating', 'ratingCount', '_listingType', '_uuid']
 
     cityName = listOfPOIs[0]['cityName']
     countryName = listOfPOIs[0]['countryName']
 
-    pointListingPropBycrawler = {}
-    for key in listOfPOIs[0]:
-        if key not in ignoreList:
-            pointListingPropBycrawler[key] = {}
+    pointListingProperties = {} #key is property of pointList object except ignoreList properties
+    for property in listOfPOIs[0]:
+        if property not in ignoreProperties:
+            pointListingProperties[property] = {}  # value will be data from different crawler with key = crawler Name
 
     maxLenPointName = ""
     avgRating = 0
     ratingCount = 1
-    for POI in listOfPOIs:
-        if len(POI['pointName']) > len(maxLenPointName):
-            maxLenPointName = POI['pointName']
-        if POI['avgRating'] is not None:
-            if POI['ratingCount'] is not None:
-                avgRating += POI['avgRating'] * POI['ratingCount']
-                ratingCount += POI['ratingCount']
+    for point in listOfPOIs:
+        if len(point['pointName']) > len(maxLenPointName):
+            maxLenPointName = point['pointName']
+        if point['avgRating'] is not None:
+            if point['ratingCount'] is not None:
+                avgRating += point['avgRating'] * point['ratingCount']
+                ratingCount += point['ratingCount']
             else:
-                avgRating += POI['avgRating'] * 1  # consider at least one person reviewed it
+                avgRating += point['avgRating'] * 1  # consider at least one person reviewed it
                 ratingCount += 1
 
-        for key in POI:
-            if key not in ignoreList:
-                pointListingPropBycrawler[key][POI['crawler']] = POI[key]
+        # for every point store property value in pointListingProperties dict.
+        for property in point:
+            if property not in ignoreProperties:
+                pointListingProperties[property][point['crawler']] = point[property]
 
-    # print(pointListingPropBycrawler)
     avgRating = avgRating / ratingCount
 
     pointAggregated = PointAggregated(countryName=countryName, cityName=cityName, pointName=maxLenPointName,
                                       avgRating=avgRating, ratingCount=ratingCount).jsonify()
 
-    for POI in listOfPOIs:
-        pointAggregated['sources'].append(POI['_uuid'])
+    # append all points uuid
+    for point in listOfPOIs:
+        pointAggregated['sources'].append(point['_uuid'])
 
-    for point_prop in pointListingPropBycrawler:
+    for point_prop in pointListingProperties:
         value = None
-        if 'tripexpert' in pointListingPropBycrawler[point_prop]:
-            value = pointListingPropBycrawler[point_prop]['tripexpert']
+        if 'tripexpert' in pointListingProperties[point_prop]:
+            value = pointListingProperties[point_prop]['tripexpert']
 
-        if value is None and 'tripAdvisor' in pointListingPropBycrawler[point_prop]:
-            value = pointListingPropBycrawler[point_prop]['tripAdvisor']
+        if value is None and 'tripAdvisor' in pointListingProperties[point_prop]:
+            value = pointListingProperties[point_prop]['tripAdvisor']
 
-        if value is None and 'skyscanner' in pointListingPropBycrawler[point_prop]:
-            value = pointListingPropBycrawler[point_prop]['skyscanner']
+        if value is None and 'skyscanner' in pointListingProperties[point_prop]:
+            value = pointListingProperties[point_prop]['skyscanner']
 
-        if value is None and 'inspirock' in pointListingPropBycrawler[point_prop]:
-            value = pointListingPropBycrawler[point_prop]['inspirock']
+        if value is None and 'inspirock' in pointListingProperties[point_prop]:
+            value = pointListingProperties[point_prop]['inspirock']
 
-        if value is None and 'viator_v2' in pointListingPropBycrawler[point_prop]:
-            value = pointListingPropBycrawler[point_prop]['viator_v2']
+        if value is None and 'viator_v2' in pointListingProperties[point_prop]:
+            value = pointListingProperties[point_prop]['viator_v2']
 
         pointAggregated[point_prop] = value
 
@@ -385,26 +347,39 @@ def listOfPOIsToPointAggregators(amount: int) -> List[JPA]:
     """select the top 'amount' POIs per city. Aggregate and return those top POIs as a list"""
     # note: all top pois for all cities go into the same list
     topPoints = []
-
-    for key, aggregatedPointListings in combinedPOIsListByCity.items():
-        for i in range(len(aggregatedPointListings)):
+    for city in combinedPOIsListByCity:
+        for i in range(len(combinedPOIsListByCity[city])):
             if i < amount:
-                pointAggregated = combinePOIsInPointAggregated(aggregatedPointListings[i])
+                pointAggregated = combinePOIsInPointAggregated(combinedPOIsListByCity[city][i])
                 topPoints.append(pointAggregated)
     return topPoints
 
-aggregatorList = listOfPOIsToPointAggregators(numAttraction)
-outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + str(priority) + ",sites:" + str(
-    len(filesToProcess)) + ",numPoints:" + str(numAttraction) + ",output.json"
+def sortAllCitiesData(combinedPOIsListByCity,prioritiesOfPOIsByCity,priorityIndex,priorityToIndexMapping):
+    for city in combinedPOIsListByCity:
+        mergeSort(prioritiesOfPOIsByCity[city], combinedPOIsListByCity[city], priorityIndex,priorityToIndexMapping, 0, len(combinedPOIsListByCity[city]) - 1)
+        outFile = open(city, 'w')
+        for i in range(len(combinedPOIsListByCity[city])):
+            for point in combinedPOIsListByCity[city][i]:
+                outFile.write(str(point['pointName'].encode('utf-8')))
+                outFile.write(",")
+            outFile.write(str(prioritiesOfPOIsByCity[city][i][priorityIndex]))
+            outFile.write("\n")
+        outFile.close()
+    return combinedPOIsListByCity;
+
+crawlerPointListings: List[List[JPL]] = loadAllFiles(filesToProcess, citiesToProcess)
+combinedPOIsListByCity: Dict[str, List[List[JPL]]] = combinePOIsByCity(crawlerPointListings, acceptableFuzzyScore)
+
+prioritiesOfPOIsByCity = getPrioritiesValue(combinedPOIsListByCity, weightsOfPriority, crawlerToIndexMapping,priorityToIndexMapping)
+
+priorityString = 'freqWithALRankingPriorityIndex'
+priorityIndex = priorityToIndexMapping[priorityString]
+sortAllCitiesData(combinedPOIsListByCity, prioritiesOfPOIsByCity, priorityIndex, priorityToIndexMapping)
+numAttractions = 50
+aggregatorList = listOfPOIsToPointAggregators(numAttractions)
+outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + priorityString + ",sites:" + str(
+    len(filesToProcess)) + ",numPointsEachCity" + str(numAttractions) + ",output.json"
 savePOIs(outFileName, aggregatorList)
-
-
-# overlAllDataFile.close()
-
-
-
-
-
 
 
 
