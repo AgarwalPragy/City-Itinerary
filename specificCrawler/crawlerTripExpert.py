@@ -6,7 +6,7 @@ sys.path.append('.')
 
 from entities import *
 from utilities import *
-from requiredPlaces import requiredCountries, requiredCities
+from requiredPlaces import requiredCountries, requiredCities, processedRequiredCities
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
@@ -46,16 +46,24 @@ for country in requiredCountries:
     if processName(country) not in availableCountryNames:
         print('Country not available', country)
 
-processedRequiredCities = set(list(map(processName, requiredCities)))
-
 
 class CrawlerTripExpert(scrapy.Spider):
     name = 'tripexpert'
     start_urls = ['https://www.google.com']
 
+    requestCount = 0
+
+    def incrementRequestCount(self):
+        self.requestCount += 1
+        if self.requestCount % 100 == 0:
+            time.sleep(1)
+        if self.requestCount % 1000 == 0:
+            time.sleep(10)
+        if self.requestCount % 10000 == 0:
+            time.sleep(100)
+
     def parse(self, response: scrapy.http.Response):
         # must always be fired
-        self.reqCount = 0
 
         venuesQueryURL = 'https://api.tripexpert.com/v1/venues?destination_id={}&api_key={}&limit={}'
         for city in availableCities:
@@ -71,9 +79,7 @@ class CrawlerTripExpert(scrapy.Spider):
     def parseCityVenues(self, response: scrapy.http.Response):
         # example page: https://api.tripexpert.com/v1/venues?destination_id=3&api_key=6cb54d22babb25cc64ae730f17455338&limit=100
 
-        self.reqCount += 1
-        if self.reqCount % 1000 == 0:
-            time.sleep(10)
+        self.incrementRequestCount()
 
         venues = json.loads(response.text)['response']['venues']
 
@@ -97,9 +103,7 @@ class CrawlerTripExpert(scrapy.Spider):
     def parseVenueDetails(self, response: scrapy.http.Response):
         # example page: https://api.tripexpert.com/v1/venues/1557894?api_key=6cb54d22babb25cc64ae730f17455338
 
-        self.reqCount += 1
-        if self.reqCount % 1000 == 0:
-            time.sleep(10)
+        self.incrementRequestCount()
 
         venue = json.loads(response.text)['response']['venues'][0]
         pointName = venue['name']

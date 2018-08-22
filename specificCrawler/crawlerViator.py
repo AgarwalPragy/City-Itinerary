@@ -4,20 +4,32 @@ sys.path.append('.')
 
 from entities import *
 from utilities import *
-from requiredPlaces import requiredCountries, requiredCities
+from requiredPlaces import requiredCountries, requiredCities, processedRequiredCities, processedRequiredCountries
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
 
 skipNonRequired = True
-print('ReuiredCities', requiredCities)
-print('ReuiredCountries', requiredCountries)
+print('RequiredCities', requiredCities)
+print('RequiredCountries', requiredCountries)
 
 
 class CrawlerViator(scrapy.Spider):
     name = 'viator_v2'
 
     start_urls = ['https://www.viator.com/Amsterdam/d525-ttd']
+
+
+    requestCount = 0
+
+    def incrementRequestCount(self):
+        self.requestCount += 1
+        if self.requestCount % 100 == 0:
+            time.sleep(1)
+        if self.requestCount % 1000 == 0:
+            time.sleep(10)
+        if self.requestCount % 10000 == 0:
+            time.sleep(100)
 
     def parse(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Amsterdam/d525-ttd
@@ -28,6 +40,9 @@ class CrawlerViator(scrapy.Spider):
 
     def parseCountryPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/India/d723-ttd
+
+        self.incrementRequestCount()
+
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
         countryName = breadcrumbs[1].strip()
 
@@ -36,7 +51,7 @@ class CrawlerViator(scrapy.Spider):
         yield countryListing.jsonify()
 
         if skipNonRequired:
-            if processName(countryName) not in requiredCountries:
+            if processName(countryName) not in processedRequiredCountries:
                 # do not process this country's cities
                 print('Skipping country: ', countryName)
                 return
@@ -50,12 +65,17 @@ class CrawlerViator(scrapy.Spider):
 
     def parseCountryCities(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/pascities.jspa?country=723
+
+        self.incrementRequestCount()
+
         hrefs = response.css('div.unit.size-pas-cities *> a::attr(durl)').extract()
         for href in hrefs:
             yield response.follow(href, callback=self.parseCityPage, meta=response.meta)
 
     def parseCityPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Lucknow/d23770-ttd
+
+        self.incrementRequestCount()
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
         countryName = breadcrumbs[1].strip()
         if countryName != response.meta['countryName']:
@@ -77,7 +97,7 @@ class CrawlerViator(scrapy.Spider):
         yield cityListing.jsonify()
 
         if skipNonRequired:
-            if processName(cityName) not in requiredCities:
+            if processName(cityName) not in processedRequiredCities:
                 # do not process this country's cities
                 print('Skipping city: ', countryName, cityName)
                 return
@@ -90,6 +110,8 @@ class CrawlerViator(scrapy.Spider):
 
     def parseCountryAttractionsListPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Netherlands/d60
+
+        self.incrementRequestCount()
         hrefs = response.css('div.ptm *> h2 > a::attr(href)').extract()
         for href in hrefs:
             yield response.follow(href, callback=self.parseAttractionsPage)
@@ -100,6 +122,8 @@ class CrawlerViator(scrapy.Spider):
 
     def parseCityAttractionsListPage(self, response: scrapy.http.Response):
         # example page:  https://www.viator.com/Mumbai/d953
+
+        self.incrementRequestCount()
         hrefs = response.css('div.ptm *> h2 > a::attr(href)').extract()
         for href in hrefs:
             yield response.follow(href, callback=self.parseAttractionsPage)
@@ -110,6 +134,8 @@ class CrawlerViator(scrapy.Spider):
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         # example page: https://www.viator.com/Amsterdam-attractions/Albert-Cuyp-Market/d525-a8126
+
+        self.incrementRequestCount()
         breadcrumbs = response.css('div.crumbler *> span::text').extract()
         countryName = breadcrumbs[1].strip()
         cityName = breadcrumbs[-3].strip()
@@ -163,6 +189,8 @@ class CrawlerViator(scrapy.Spider):
         # https://www.viator.com/ajax-seoReviewsList.jspa?seoId=3010&destinationID=804&pageLister.page=6
 
         # simply get the d-id and seoID and destinationID from the URL and get the reviews
+
+        self.incrementRequestCount()
         temp = response.url.split('/')[-1].split('?')[0]
         seoID, destinationID = temp.split('-')
         seoID = seoID[1:]
@@ -175,6 +203,8 @@ class CrawlerViator(scrapy.Spider):
         yield scrapy.Request(firstPageURL, self.parseNextReviewPage, meta=response.meta)
 
     def parseNextReviewPage(self, response: scrapy.http.Response):
+
+        self.incrementRequestCount()
         reviewList = response.css('div[itemprop="review"]')
         for review in reviewList:
             ratingBox = review.css('div[itemprop="reviewRating"]')
