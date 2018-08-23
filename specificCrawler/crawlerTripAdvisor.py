@@ -32,14 +32,14 @@ def removeComa(reviewCount: str):
     return temp
 
 
-class CrawlerViator(scrapy.Spider):
+class CrawlerTripAdvisor(scrapy.Spider):
     name = 'tripAdvisor'
 
     start_urls = getStartingUrls()
-    #['https://www.tripadvisor.in/Attractions-g186338-Activities-London_England.html#FILTERED_LIST']
 
     def parse(self, response: scrapy.http.Response):
-        # example page:  https://www.viator.com/Netherlands/d60
+        #example https://www.tripadvisor.in/Attractions-g186338-Activities-London_England.html#FILTERED_LIST
+
         attractionBoxs = response.css('div.attraction_list.attraction_list_short > div.attraction_element > div > div > div > div > div.listing_title')
         
         tourSetRegex = ".+([0-9]+).*"
@@ -62,7 +62,7 @@ class CrawlerViator(scrapy.Spider):
             yield response.follow(nextPageLink, callback=self.parse)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
-        # example page: https://www.viator.com/Amsterdam-attractions/Albert-Cuyp-Market/d525-a8126
+        #https://www.tripadvisor.in/Attraction_Review-g186338-d188862-Reviews-National_Gallery-London_England.html
         breadcrumbs = response.css('ul.breadcrumbs > li > a > span::text').extract()
         countryName = breadcrumbs[-3]
         cityName = breadcrumbs[-2]
@@ -92,11 +92,16 @@ class CrawlerViator(scrapy.Spider):
             avgRating = scaleRating(givenRating=givenRating, worstRating=worstRating, bestRating=bestRating)
             self.log("ratings: "+ str(avgRating))        
 
+        durationBox = response.css('div.AttractionDetailAboutCard__section--13L6a > div::text')
+
+        duration = None
+        if durationBox:
+            duration = durationBox.extract_first().split(':')[-1].strip()
 
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
                                     description=description, notes=notes, address=address, rank = response.meta['rank'],
-                                    avgRating=avgRating, ratingCount=ratingCount)
+                                    avgRating=avgRating, ratingCount=ratingCount, recommendedNumHours = duration)
 
         yield pointListing.jsonify()
 
@@ -105,14 +110,14 @@ class CrawlerViator(scrapy.Spider):
                             'cityName': cityName,
                             'pointName': pointName
                             })
-        #ImageResource = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
+        Image = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
 
-        #if ImageResource:
-            #pointImage = ImageResource.extract_first()
-            #self.log("imageURL " + pointImage)
-            #yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
-                                #countryName=countryName, cityName=cityName, pointName=pointName,
-                                #imageURL=pointImage).jsonify()
+        if Image:
+            pointImage = Image.extract_first()
+            self.log("imageURL " + pointImage)
+            yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                countryName=countryName, cityName=cityName, pointName=pointName,
+                                imageURL=pointImage).jsonify()
 
 
     def getReviews(self, response: scrapy.http.Response):

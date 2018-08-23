@@ -30,11 +30,11 @@ class CrawlerSkyscanner(scrapy.Spider):
 
     def incrementRequestCount(self):
         self.requestCount += 1
-        if self.requestCount % 100 == 0:
+        if self.requestCount % 10 == 0:
             time.sleep(1)
-        if self.requestCount % 1000 == 0:
+        if self.requestCount % 100 == 0:
             time.sleep(10)
-        if self.requestCount % 10000 == 0:
+        if self.requestCount % 1000 == 0:
             time.sleep(100)
 
     start_urls = getStartingUrls()

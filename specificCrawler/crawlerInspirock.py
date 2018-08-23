@@ -112,12 +112,12 @@ class CrawlerInspirock(scrapy.Spider):
                                     avgRating=avgRating, ratingCount=ratingCount, rank=response.meta['rank'])
 
         yield pointListing.jsonify()
-
+        # some problem with loading pics
         pics = response.css('div.photos > div > ul > li > a > img::attr(src)')
-
+    
         if pics:
             pointImage = pics.extract_first()
             self.log("imageURL " + pointImage)
-            #yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
-                                #countryName=countryName, cityName=cityName, pointName=pointName,
-                                #imageURL=pointImage).jsonify()
+            yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                countryName=countryName, cityName=cityName, pointName=pointName,
+                                imageURL=pointImage).jsonify()
