@@ -1,4 +1,4 @@
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, NewType
 from dataclasses import dataclass, field
 import dataclasses
 import json
@@ -6,6 +6,7 @@ from uuid import uuid4
 
 __all__ = [
     'Review', 'ImageResource',
+    'JPA', 'JPL',
     'EntityListing', 'CountryListing', 'CityListing', 'PointListing',
     'EntityAggregated', 'CountryAggregated', 'CityAggregated', 'PointAggregated'
 ]
@@ -21,13 +22,16 @@ class EnhancedJSONEncoder(json.JSONEncoder):
 # #####################################################################################
 
 
+JPL = NewType('JPL', Any)  # Jsonified Point Listing
+JPA = NewType('JPA', Any)  # Jsonified Point Aggregated
+
 @dataclass
 class EntityAggregated:
     _entityType: str = field(init=False)
     _uuid: str = field(init=False)
     sources: List[str] = field(init=False)  # this will be a list of UUIDs of listings
 
-    def jsonify(self) -> Dict[str, Any]:
+    def jsonify(self) -> Dict[str, JPA]:
         # TODO: Make this more efficient
         return json.loads(json.dumps(self, cls=EnhancedJSONEncoder))
 
@@ -45,7 +49,7 @@ class EntityListing:
     _listingType: str = field(init=False)
     _uuid: str = field(init=False)
 
-    def jsonify(self) -> Dict[str, Any]:
+    def jsonify(self) -> Dict[str, JPL]:
         # TODO: Make this more efficient
         return json.loads(json.dumps(self, cls=EnhancedJSONEncoder))
 

@@ -9,8 +9,6 @@ from entities import *
 from utilities import *
 from siteRankings import alexa_ranking, similar_web_ranking
 
-JPL = NewType('JPL', Any) # Jsonified Point Listing
-JPA = NewType('JPA', Any) # Jsonified Point Aggregated
 
 acceptableFuzzyScore = 90
 
