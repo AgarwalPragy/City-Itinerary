@@ -367,6 +367,7 @@ def sortAllCitiesData(combinedPOIsListByCity,prioritiesOfPOIsByCity,priorityInde
         outFile.close()
     return combinedPOIsListByCity;
 
+
 crawlerPointListings: List[List[JPL]] = loadAllFiles(filesToProcess, citiesToProcess)
 combinedPOIsListByCity: Dict[str, List[List[JPL]]] = combinePOIsByCity(crawlerPointListings, acceptableFuzzyScore)
 
@@ -374,11 +375,15 @@ prioritiesOfPOIsByCity = getPrioritiesValue(combinedPOIsListByCity, weightsOfPri
 
 priorityString = 'weightedPrioritiesIndex'
 priorityIndex = priorityToIndexMapping[priorityString]
+
 sortAllCitiesData(combinedPOIsListByCity, prioritiesOfPOIsByCity, priorityIndex, priorityToIndexMapping)
+
 numAttractions = 50
 aggregatorList = listOfPOIsToPointAggregators(numAttractions)
+
 outFileName = "combinedPOIsAndRanking/Aggregated_Data/" + "priority:" + priorityString + ",sites:" + str(
     len(filesToProcess)) + ",numPointsEachCity" + str(numAttractions) + ",output_newAlR.json"
+
 savePOIs(outFileName, aggregatorList)
 
 
