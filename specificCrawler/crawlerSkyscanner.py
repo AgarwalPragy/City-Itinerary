@@ -1,5 +1,5 @@
 import scrapy
-import datetime
+import time
 import sys
 sys.path.append('.')
 
@@ -22,15 +22,26 @@ def getStartingUrls(filePath = "Crawler/POI_Access_Data/skyscanner_cities_access
 
 
 
-class CrawlerViator(scrapy.Spider):
+class CrawlerSkyscanner(scrapy.Spider):
     name = 'skyscanner'
 
+
+    requestCount = 0
+
+    def incrementRequestCount(self):
+        self.requestCount += 1
+        if self.requestCount % 100 == 0:
+            time.sleep(1)
+        if self.requestCount % 1000 == 0:
+            time.sleep(10)
+        if self.requestCount % 10000 == 0:
+            time.sleep(100)
+
     start_urls = getStartingUrls()
-    #["https://www.trip.skyscanner.com/london/things-to-do", "https://www.trip.skyscanner.com/dubai/things-to-do",
-    #"https://www.trip.skyscanner.com/bangkok/things-to-do"]
-    #getStartingUrls()
 
     def parse(self, response: scrapy.http.Response):
+        #"https://www.trip.skyscanner.com/bangkok/things-to-do
+        self.incrementRequestCount()
         hrefs = response.css('div.items_list *> h2 > a::attr(href)').extract()
         attractionNumber =  1
         for href in hrefs:
@@ -46,6 +57,8 @@ class CrawlerViator(scrapy.Spider):
                 yield response.follow(nextPageLink, callback=self.parse)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
+        #example page https://www.skyscanner.com/trip/london/things-to-do/tower-bridge
+        self.incrementRequestCount()
         breadcrumbs = response.css('div.placeInfoColumn > ul > li > a > span::text').extract()
         countryName = breadcrumbs[0]
         cityName = breadcrumbs[1]
@@ -84,20 +97,34 @@ class CrawlerViator(scrapy.Spider):
                              countryName=countryName, cityName=cityName, pointName=pointName,
                              content=content, rating=rating, date=ratingDate).jsonify()
 
+        typesBox = response.css('div.categories.inline_edit.row > span::text')
+        if typesBox:
+            types = typesBox.extract_first()
 
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
                                     description=description, notes=notes, address=address, rank = response.meta['rank'],
-                                    avgRating=avgRating, ratingCount=ratingCount)
+                                    avgRating=avgRating, ratingCount=ratingCount, category = types)
 
         yield pointListing.jsonify()
 
 
-        ImageResource = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
+        image = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
 
-        if ImageResource:
-            pointImage = ImageResource.extract_first()
+        if image:
+            pointImage = image.extract_first()
             self.log("imageURL " + pointImage)
-            #yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
-                                #countryName=countryName, cityName=cityName, pointName=pointName,
-                                #imageURL=pointImage).jsonify()
+            image1 =  ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                countryName=countryName, cityName=cityName, pointName=pointName,
+                                imageURL=pointImage).jsonify()
+            yield image1
+
+            imageNext = response.css('div#topicPhotoGalleryCt.row > div > div > span > img::attr(src)')
+            if imageNext:
+                images = imageNext.extract()
+
+                for image in images:
+                    self.log('imageURL1:' + str(image))
+                    yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                countryName=countryName, cityName=cityName, pointName=pointName,
+                                imageURL=image).jsonify()
