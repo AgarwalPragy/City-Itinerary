@@ -3,8 +3,9 @@ import datetime
 import json
 import string
 import math
+from urllib.parse import unquote
 
-__all__ = ['processName', 'getCurrentTime', 'scaleRating', 'getWilsonScore']
+__all__ = ['processName', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urldecode']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
@@ -32,3 +33,6 @@ def getWilsonScore(p, n) -> float:
     z = 1.96 # consider 95% confidence interval 
     lower_bound = (p + z*z/(2*n) - z*math.sqrt((p*(1-p) + z*z/(4*n) )/n) )/ (1 + z*z/n)
     return lower_bound
+
+def urldecode(urlstring: str) -> str:
+    return unquote(urlstring)

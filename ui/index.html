@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+    <!-- Note: Order of loading is important! -->
+    <link rel="stylesheet" href="_resources/bootstrap/3.3.5/css/bootstrap.min.css">
+    <link rel="stylesheet" href="_resources/bootstrap-datetimepicker/4.17.37/css/bootstrap-datetimepicker.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.10.6/moment.min.js"></script>
+    <script src="_resources/jquery/1.11.3/jquery.min.js"></script>
+    <script src="_resources/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+    <script src="_resources/bootstrap-datetimepicker/4.17.37/js/bootstrap-datetimepicker.min.js"></script>
+
+    <!-- App CSS -->
+    <link rel="stylesheet" type="text/css" href="_resources/index.css">
+
+    <title>City Itinerary Planner</title>
+</head>
+<body>
+    <div class="background-image"></div>
+    <div id="container" class="content">
+
+        <div class="top-box">
+            <div class="input-box">
+                <div class="search-box">
+                    <div class="search-prompt">What's your destination?</div>
+                    <input class="city-searchbar" type="text">
+                </div>
+                <div class="date-box">  
+                    <div class="datepicker-box">
+                        <div class="form-group">
+                            <div class="row">
+                                <div >
+                                    <div id="datetimepicker1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="datepicker-box">
+                        <div class="form-group">
+                            <div class="row">
+                                <div >
+                                    <div id="datetimepicker2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Plan your visit!</button>
+            </div>
+        </div>
+
+
+        <div class="popular-plans-box">
+            <div class="plan-card"
+                 v-for="plan in recentPlans">
+                <img class="city-image" :src="getCityImage(plan)"></img>
+                <span class="city-prompt">
+                    {{getRandomVisitText()}}
+                    <div class="city-name">{{getCityName(plan)}}</div>
+                    in
+                    <div class="plan-length">{{getDurationText(plan.duration)}}</div>
+                </span>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Vue JS -->
+    <script src="_resources/vue/vue.js"></script>
+    <script src="_resources/vue/axios.js"></script>
+    <!-- App JS -->
+    <script src="_resources/index.js"></script>
+
+</body>
+</html>

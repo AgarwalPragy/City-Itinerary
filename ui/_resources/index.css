@@ -1,0 +1,113 @@
+body {
+}
+
+.background-image {
+    background-image: url('http://666a658c624a3c03a6b2-25cda059d975d2f318c03e90bcf17c40.r92.cf1.rackcdn.com/unsplash_527bf56961712_1.JPG');
+    background-size: cover;
+    display: block;
+    filter: blur(5px);
+    -webkit-filter: blur(8px);
+    height: 100%;
+    left: 0;
+    position: fixed;
+    right: 0;
+    z-index: 1;
+}
+
+.content {
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    position: fixed;
+    z-index: 2;
+}
+
+#container {
+    display: grid;
+    grid-template-rows: 1fr 1fr;
+}
+
+div.top-box {
+    background: RGBA(255, 255, 255, 0.45);
+    border: 1px solid RGBA(0, 0, 0, 0.5);
+    border-radius: 5px;
+    padding: 1em;
+    margin: 2em;
+}
+
+    div.input-box {
+        display: grid;
+        grid-template-rows: auto auto auto;
+        text-align: center;
+        width: 60%;
+        margin: auto;
+    }
+
+        div.search-box {
+        }
+
+            div.search-prompt {
+                font-size: 3em;
+            }
+
+            .city-searchbar {
+                width: 100%;
+                font-size: 2em;
+            }
+
+        div.date-box {
+            margin-top: 2em;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-gap: 5em;
+        }
+            div.datepicker-box {
+                /*overflow: hidden;*/
+            }
+
+
+div.popular-plans-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    grid-gap: 1em;
+    width: 70%;
+    margin: auto;
+    margin-top: 2em;
+}
+
+    div.plan-card {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        text-align: center;
+        margin: auto;
+    }
+
+        .city-image {
+            border-radius: 0.5em;
+            border: 1px solid black;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+        }
+
+        .city-prompt {
+            background: #ddd;
+            border: 1px solid #bbb;
+            border-radius: 0.5em;
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            padding: 1em;
+            font-size: 120%;
+        }
+
+            .city-name {
+                font-size: 150%;
+                font-weight: bold;
+            }
+
+            .plan-length {
+                font-size: 120%;
+            }

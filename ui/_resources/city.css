@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{cityName}} - Top Attractions</title>
+</head>
+<body>
+    <div class="city-header">
+        <h1 class="city-name">{{cityName</h1>
+        <div class="city-info-box">
+            <p class="city-description">
+                {{city-description}} Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+                tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+            </p>
+            <span class="city-ratings">{{rating}} 5 star, 999 reviews</span>
+        </div>
+    </div>
+    <div class="top-attractions-box">
+        <div class="attraction-card">
+            <img class="attraction-image"></img>
+            <h2 class="attraction-name"></h2>
+            <span class="attraction-ratings"></span>
+            <a class="attraction-link"></a>
+        </div>
+    </div>
+    <div class="top-attractions-box">
+        <div class="attraction-card">
+            <img class="attraction-image"></img>
+            <h2 class="attraction-name"></h2>
+            <span class="attraction-ratings"></span>
+            <a class="attraction-link"></a>
+        </div>
+    </div>
+</body>
+</html>
