@@ -24,44 +24,52 @@ def getStartingUrls(filePath = "Crawler/POI_Access_Data/skyscanner_cities_access
 
 class CrawlerSkyscanner(scrapy.Spider):
     name = 'skyscanner'
-
+    start_urls = ['https://www.google.com']
 
     requestCount = 0
 
     def incrementRequestCount(self):
         self.requestCount += 1
         if self.requestCount % 10 == 0:
-            time.sleep(1)
+            time.sleep(4)
         if self.requestCount % 100 == 0:
-            time.sleep(10)
+            time.sleep(40)
         if self.requestCount % 1000 == 0:
-            time.sleep(100)
+            time.sleep(400)
 
-    start_urls = getStartingUrls()
 
     def parse(self, response: scrapy.http.Response):
+        # always fired because Google :/
+
+        for url in getStartingUrls():
+            self.log("visiting: " + url)
+            yield scrapy.Request(url, callback=self.parseX, meta={
+                    'rank': 0
+                })
+
+
+    def parseX(self, response: scrapy.http.Response):
         #"https://www.trip.skyscanner.com/bangkok/things-to-do
-        self.incrementRequestCount()
+        
         hrefs = response.css('div.items_list *> h2 > a::attr(href)').extract()
-        attractionNumber =  1
         for href in hrefs:
             self.log("visiting: " + href)
-            meta = {'rank' : attractionNumber }
-            yield response.follow(href, callback=self.parseAttractionsPage, meta = meta)
-            attractionNumber += 1
+            response.meta['rank'] += 1
+            yield response.follow(href, callback=self.parseAttractionsPage, meta = response.meta)
+
 
         nextPageLink = response.css('div.items_list > div:nth-child(2) > ul > li.next.next_page > a::attr(href)').extract_first()
         if nextPageLink:
             self.log("nextpage: " + nextPageLink)
-            if attractionNumber < 300:
-                yield response.follow(nextPageLink, callback=self.parse)
+            if response.meta['rank'] < 100:
+                yield response.follow(nextPageLink, callback=self.parseX, meta = response.meta)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         #example page https://www.skyscanner.com/trip/london/things-to-do/tower-bridge
         self.incrementRequestCount()
         breadcrumbs = response.css('div.placeInfoColumn > ul > li > a > span::text').extract()
         countryName = breadcrumbs[0]
-        cityName = breadcrumbs[1]
+        cityName = breadcrumbs[-2]
         pointName = response.css('div.placeInfoColumn > ul > li >span::text').extract()[-1]
 
         self.log("visiting " + countryName + " " + cityName + " " + pointName)

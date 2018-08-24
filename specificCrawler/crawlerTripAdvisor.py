@@ -17,9 +17,9 @@ def getStartingUrls(filePath = "Crawler/POI_Access_Data/tripadvisor_cities_acces
 
     startingUrls = []
     for cityAndUrl in citiesAndUrls:
-        [city, urlForcity] = cityAndUrl.split("\t")
+        [country, city, urlForcity] = cityAndUrl.split("\t")
         print("processing:", urlForcity)
-        startingUrls.append(urlForcity)
+        startingUrls.append([country, city, urlForcity])
     urlsDetailFile.close()
     return startingUrls
 
@@ -32,12 +32,33 @@ def removeComa(reviewCount: str):
     return temp
 
 
+durationRegex = re.compile('suggested duration: (.*?) hours?')
+
 class CrawlerTripAdvisor(scrapy.Spider):
     name = 'tripAdvisor'
 
-    start_urls = getStartingUrls()
+    start_urls = ['https://www.google.com/']
+
+    requestCount = 0
+    def incrementRequestCount(self):
+        self.requestCount += 1
+        if self.requestCount % 10 == 0:
+            time.sleep(4)
+        if self.requestCount % 100 == 0:
+            time.sleep(40)
+        if self.requestCount % 1000 == 0:
+            time.sleep(400)
 
     def parse(self, response: scrapy.http.Response):
+        for url in getStartingUrls():
+             yield scrapy.Request(url[2], callback=self.parseCity, meta={
+                    'rank': 0,
+                    'cityName': url[1],
+                    'countryName': url[0]
+                })
+
+
+    def parseCity(self, response: scrapy.http.Response):
         #example https://www.tripadvisor.in/Attractions-g186338-Activities-London_England.html#FILTERED_LIST
 
         attractionBoxs = response.css('div.attraction_list.attraction_list_short > div.attraction_element > div > div > div > div > div.listing_title')
@@ -45,79 +66,103 @@ class CrawlerTripAdvisor(scrapy.Spider):
         tourSetRegex = ".+([0-9]+).*"
         tourSetRegChecker = re.compile(tourSetRegex)
 
-        attractionNumber = 1
         for attraction in attractionBoxs:
             pointName = attraction.css('a::text').extract_first()
             if not tourSetRegChecker.match(pointName):
                 attractionUrl = response.urljoin(attraction.css('a::attr(href)').extract_first())
-                meta = {'rank' : attractionNumber }
-                yield response.follow(url = attractionUrl, callback=self.parseAttractionsPage, meta = meta)
-                attractionNumber += 1
+                response.meta['rank'] += 1
+                yield response.follow(url = attractionUrl, callback=self.parseAttractionsPage, meta = response.meta)
 
 
         nextPageLink = response.css('div.al_border.deckTools.btm > div > div.unified.pagination > a.nav.next.rndBtn.ui_button.primary.taLnk::attr(href)')
         if nextPageLink:
             nextPageLink = response.urljoin(nextPageLink.extract_first())
             self.log("nextpage: " + nextPageLink)
-            yield response.follow(nextPageLink, callback=self.parse)
+            if response.meta['rank'] < 100:
+                yield response.follow(nextPageLink, callback=self.parseCity, meta = response.meta)
 
     def parseAttractionsPage(self, response: scrapy.http.Response):
         #https://www.tripadvisor.in/Attraction_Review-g186338-d188862-Reviews-National_Gallery-London_England.html
-        breadcrumbs = response.css('ul.breadcrumbs > li > a > span::text').extract()
-        countryName = breadcrumbs[-3]
-        cityName = breadcrumbs[-2]
+        #breadcrumbs = #response.css('ul.breadcrumbs > li > a > span::text').extract()
+        countryName = response.meta['countryName']#breadcrumbs[-3]
+        cityName = response.meta['cityName']#breadcrumbs[-2]
         # -2 is the word 'attractions'
         pointName = response.css('ul.breadcrumbs > li::text').extract()[-1]
         # we don't really care about the region once we have the city?
 
         self.log("visiting " + countryName + " " + cityName + " " + pointName)
-        data = []#response.css('div.text::text').extract()[1]
+        data = response.css('div.text::text').extract()
         description, notes = None, None
         if len(data) > 0:
-            description = data[0]
-            description = '\n'.join(description.css('div::text').extract())
-        if len(data) > 1:
-            notes = data[1].css('::text').extract_first()
+            description = data[-1]
+            description = ''.join(data[-1])
 
-        address = response.css('span.street-address::text').extract_first()
+
+        addressBlock = response.css('div.detail_section.address > span::text')
+        address = ''.join(addressBlock.extract())
+
+        if(len(address) == 0):
+            address = None
         
-        ratingBox = response.css('span.header_rating > div.rs.rating') 
+        ratingBox = response.css('div.rating')
 
         avgRating, ratingCount = None, None
         if ratingBox:
             bestRating = 5 #int(ratingAndCountBox.css('div.avgRatingDetail > meta[itemprop="bestRating"]::attr(content)').extract_first())
             worstRating = 1 #int(ratingAndCountBox.css('div.avgRatingDetail > meta[itemprop="worstRating"]::attr(content)').extract_first())
-            givenRating = int(ratingBox.css('div > span::attr(class)').extract_first().split('_')[-1])/10
-            ratingCount = int(removeComa(ratingBox.css('a.more > span::text').extract_first()))
+            givenRating = float(ratingBox.css('span.overallRating::text').extract_first().strip())
+            ratingCount = int(removeComa(ratingBox.css('a.seeAllReviews::text').extract_first().split(' ')[0]))
             avgRating = scaleRating(givenRating=givenRating, worstRating=worstRating, bestRating=bestRating)
             self.log("ratings: "+ str(avgRating))        
 
-        durationBox = response.css('div.AttractionDetailAboutCard__section--13L6a > div::text')
-
+        durationBox = durationRegex.findall(response.text.lower())
         duration = None
         if durationBox:
-            duration = durationBox.extract_first().split(':')[-1].strip()
+            duration = durationBox[0]
+            # duration = duration.split(';')[-1]
+            # duration = duration.split('>')[-1]
+            # duration = duration.split('>')[-1]
+            # duration = duration.split('-')[-1]
 
+            if(len(duration) == 0):
+                duration = None
+
+        phoneBox = response.css('div.detail_section.phone::text')
+        phone = None 
+        if phoneBox:
+            phone = phoneBox.extract_first()
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
-                                    description=description, notes=notes, address=address, rank = response.meta['rank'],
+                                    description=description, notes=notes, address=address, rank = response.meta['rank'],contact = phone,
                                     avgRating=avgRating, ratingCount=ratingCount, recommendedNumHours = duration)
 
         yield pointListing.jsonify()
 
-        yield response.follow(url = response.url, callback=self.getReviews, meta = {
-                            'countryName': countryName,
-                            'cityName': cityName,
-                            'pointName': pointName
-                            })
         Image = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
-
         if Image:
             pointImage = Image.extract_first()
             self.log("imageURL " + pointImage)
             yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                 countryName=countryName, cityName=cityName, pointName=pointName,
                                 imageURL=pointImage).jsonify()
+
+        # reviewsBox = response.css('div.wrap')
+        # ratings = []
+        # for reviewBox in reviewsBox:
+        #     ratingBox = reviewBox.css('div.rating.reviewItemInline')
+        #     rating = ratingBox.css('span::attr(class)').extract_first()
+        #     if rating is not None and len(rating) > 0:
+        #         rating = int(rating.split('_')[-1])/10
+        #         ratings.append(rating)
+
+        # for i in range(len(reviewsBox)):
+        #     ratingDateBox = reviewsBox[i].css('div.rating.reviewItemInline')
+
+        #     reviewDate = ratingDateBox.css('span::attr(title)').extract_first()
+        #     description = reviewsBox[i].css('div.entry > p::text').extract_first()
+        #     yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+        #      countryName=countryName, cityName=cityName, pointName=pointName,
+        #      content=description, rating=rating, date=reviewDate).jsonify()
 
 
     def getReviews(self, response: scrapy.http.Response):

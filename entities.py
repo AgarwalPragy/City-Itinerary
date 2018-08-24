@@ -99,6 +99,8 @@ class Point:
     avgRating: Optional[float] = None  # Ratings must be scaled to out-of-10 before logging
     ratingCount: Optional[int] = None
     rank: Optional[int] = None
+    priceLevel: Optional[str] = None
+    contact: Optional[str] = None 
     recommendedNumHours: Optional[int] = None
 
 

@@ -61,6 +61,41 @@ requiredCities = [
     "Calcutta"
 ]
 
+cityMappingForRequiredCities = {
+    "bangkok": "bangkok",
+    "seoul": "seoul",
+    "london": "london",
+    "milan": "milan",
+    "paris": "paris",
+    "rome": "rome",
+    "singapore": "singapore",
+    "shanghai": "shanghai",
+    "new-york": "new-york",
+    "new-york-city": "new-york",
+    "amsterdam": "amsterdam",
+    "istanbul": "istanbul",
+    "tokyo": 'tokyo',
+    "dubai": "dubai",
+    "vienna": "vienna",
+    "kuala-lumpur": "kuala-lumpur",
+    "taipei": "taipei",
+    "hong-kong": "hong-kong",
+    "hong-kong-sar": "hong-kong",
+    "riyadh": "riyadh",
+    "barcelona": "barcelona",
+    "los-angeles": "los-angeles",
+    "mumbai": "mumbai",
+    "new-delhi": "new-delhi",
+    "pune": "pune",
+    "kolkata": "kolkata",
+    "calcutta": "kolkata",
+    "kolkata-calcutta": "kolkata",
+    "agra": "agra",
+    "bengaluru": "bangalore",
+    "bangalore": "bangalore",
+    "bengaluru-bangalore": "bangalore",
+    "jaipur": "jaipur"
+}
 
 processedRequiredCities = set(list(map(processName, requiredCities)))
 processedRequiredCountries = set(list(map(processName, requiredCountries)))

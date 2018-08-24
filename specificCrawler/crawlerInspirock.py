@@ -36,6 +36,16 @@ class CrawlerInspirock(scrapy.Spider):
 
     start_urls = getStartingUrls()
 
+    requestCount = 0
+    def incrementRequestCount(self):
+        self.requestCount += 1
+        if self.requestCount % 10 == 0:
+            time.sleep(4)
+        if self.requestCount % 100 == 0:
+            time.sleep(40)
+        if self.requestCount % 1000 == 0:
+            time.sleep(400)
+
     def parse(self, response: scrapy.http.Response):
         hrefs = response.css('div.tours > a::attr(href)').extract()
         attractionNumber = 1
@@ -63,11 +73,10 @@ class CrawlerInspirock(scrapy.Spider):
         self.log("visiting " + countryName + " " + cityName + " " + pointName)
         data = response.css('div.description.itemDescription.attraction.desc')
         description, notes = None, None
-        if len(data) > 0:
-            description = data[0]
-            description = '\n'.join(description.css('div::text').extract())
-        if len(data) > 1:
-            notes = data[1].css('::text').extract_first()
+        descriptionBox = response.css('div.desc-in>*::text')
+        if descriptionBox:
+            descriptionList = descriptionBox.extract()
+            description = ''.join(descriptionList)
 
         ratingAndCountBox = response.css('div.rating > div.ins-rating')
         # ratingBox = sideBox.css('p[itemprop="aggregateRating"]')
@@ -105,9 +114,24 @@ class CrawlerInspirock(scrapy.Spider):
             openingsHour = openingsHour[:-1]
             closingsHour = closingsHour[:-1]
 
+        contactBox = response.css('p.phone > a > span::text')
+        contact = None
+        if contactBox:
+            contact = contactBox.extract_first()
+
+        priceBox = response.css('div.attraction-metadata > aside')[-1]
+
+        priceLevel = None 
+        if priceBox:
+            titleChecker = priceBox.css('div.cat-title::text')
+            if titleChecker and titleChecker.extract_first().lower() == "price range":
+                priceLevel = priceBox.css('p::text').extract_first()
+
+
+
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
-                                    description=description, notes=notes, address=address, 
+                                    description=description, notes=notes, address=address,priceLevel = priceLevel, contact = contact, 
                                     openingHour=openingsHour, closingHour=closingsHour, recommendedNumHours=duration,
                                     avgRating=avgRating, ratingCount=ratingCount, rank=response.meta['rank'])
 
@@ -116,8 +140,9 @@ class CrawlerInspirock(scrapy.Spider):
         pics = response.css('div.photos > div > ul > li > a > img::attr(src)')
     
         if pics:
-            pointImage = pics.extract_first()
-            self.log("imageURL " + pointImage)
-            yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
-                                countryName=countryName, cityName=cityName, pointName=pointName,
-                                imageURL=pointImage).jsonify()
+            pointImages = pics.extract()
+            for pointImage in pointImages:
+                self.log("imageURL " + pointImage)
+                yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                    countryName=countryName, cityName=cityName, pointName=pointName,
+                                    imageURL=pointImage).jsonify()
