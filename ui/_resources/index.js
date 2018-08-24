@@ -71,4 +71,15 @@ $(function () {
         $("#datetimepicker2").on("dp.change", function (e) {
             $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
         });
+
+
+        // $('.typeahead').typeahead({
+        //     source: [
+        //     'afwfewf',
+        //     'aefwerwewer',
+        //     'brhegerghreg',
+        //     'fhbrtybr'
+        //     ]
+        // });
     });
+
