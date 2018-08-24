@@ -1,13 +1,20 @@
+from typing import List
 from unidecode import unidecode
 import datetime
 import json
 import string
 import math
 from urllib.parse import unquote
+from fuzzywuzzy import fuzz
 
 __all__ = ['processName', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urldecode']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
+
+
+def getBestCityName(allAliasesForCity: List[str]) -> str:
+    return sorted(allAliasesForCity, key=len, reverse=True)[0] # returning the longest name
+    # TODO: improve this to make it more intelligent
 
 
 def processName(name: str) -> str:
@@ -17,6 +24,10 @@ def processName(name: str) -> str:
     lowercase = nohyphen.lower()
     nospecial = ''.join(c for c in lowercase if c in allowedChars)
     return nospecial
+
+
+def doesFuzzyMatch(name1: str, name2: str, threshold: int=90) -> bool:
+    return fuzz.partial_ratio(processName(name1), processName(name2)) > threshold
 
 
 def getCurrentTime() -> str:
