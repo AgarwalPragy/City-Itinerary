@@ -93,8 +93,12 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
     print('Collecting all aliases')
     allPointAliases: t.Set[PointID] = set(pointIDs) | set(map(itemgetter(0), injectedPointAliases)) | set(map(itemgetter(1), injectedPointAliases))
     allCityAliases: t.Set[CityID] = set(cityIDs) | set(map(extractCityID, allPointAliases)) | set(map(itemgetter(0), injectedCityAliases)) | set(map(itemgetter(1), injectedCityAliases))
-    allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
+    allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(extractCountryID, allCityAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
     pointIDs = list(allPointAliases)
+
+    print('Found {} country aliases'.format(len(allCountryAliases)))
+    print('Found {} city aliases'.format(len(allCityAliases)))
+    print('Found {} point aliases'.format(len(allPointAliases)))
 
     # if 2 names match, club them
     print('Matching point identifiers')
@@ -198,13 +202,13 @@ def collectAllListings(listings: t.List[JEL],
         if datum['_listingType'] == 'country':
             countryName = bestCountryIDMap[getCountryID(datum)].countryName
             safeAppend(data[countryName], 'listings', datum)
-        if datum['_listingType'] == 'city':
+        elif datum['_listingType'] == 'city':
             countryName, cityName = bestCityIDMap[getCityID(datum)]
             safeAppend(data[countryName]['cities'][cityName], 'listings', datum)
-        if datum['_listingType'] == 'point':
+        elif datum['_listingType'] == 'point':
             countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
             safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'listings', datum)
-        if datum['_listingType'] == 'imageResource':
+        elif datum['_listingType'] == 'imageResource':
             if forPoint(datum):
                 countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
                 datum = fixEntityNames(datum, countryName=countryName, cityName=cityName, pointName=pointName)
@@ -217,7 +221,7 @@ def collectAllListings(listings: t.List[JEL],
                 countryName = bestCountryIDMap[getCountryID(datum)].countryName
                 datum = fixEntityNames(datum, countryName=countryName)
                 safeAppend(data[countryName], 'images', datum)
-        if datum['_listingType'] == 'review':
+        elif datum['_listingType'] == 'review':
             if forPoint(datum):
                 countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
                 datum = fixEntityNames(datum, countryName=countryName, cityName=cityName, pointName=pointName)
@@ -265,14 +269,24 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
 def aggregateAllData(data: J) -> J:
     print('Aggregating data')
     aggregated = tree()
+    countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     for countryName, country in data.items():
+        countryCount += 1
+        imageCount += len(country['images'])
+        reviewCount += len(country['reviews'])
         if not country['cities']:
             aggregated[countryName]['cities'] = {}
         for cityName, city in country['cities'].items():
+            cityCount += 1
+            imageCount += len(city['images'])
+            reviewCount += len(city['reviews'])
             if not city['points']:
                 aggregated[countryName][cityName]['points'] = {}
             points = []
             for pointName, point in city['points'].items():
+                pointCount += 1
+                imageCount += len(point['images'])
+                reviewCount += len(point['reviews'])
                 aggregated[countryName]['cities'][cityName]['points'][pointName]['images'] = orderImages(point['images'])
                 aggregated[countryName]['cities'][cityName]['points'][pointName]['reviews'] = orderReviews(point['reviews'])
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
@@ -293,11 +307,19 @@ def aggregateAllData(data: J) -> J:
         finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
         for attrib, val in finalCountry.jsonify().items():
             aggregated[countryName][attrib] = val
+
+    print('Finally extracted {} countries'.format(countryCount))
+    print('Finally extracted {} cities'.format(cityCount))
+    print('Finally extracted {} points'.format(pointCount))
+    print('Finally extracted {} images'.format(imageCount))
+    print('Finally extracted {} reviews'.format(reviewCount))
     return aggregated
 
 
 def processAll():
     listings: t.List[JEL] = readListingsFromFiles([
+        'injectedData/countryFlags.json',
+        'tripexpertData/cities.json',
         'tripexpertData/tripexpert_requiredcities.json',
         'viatorData/viator_requiredcities.json'
     ])
@@ -312,9 +334,14 @@ def processAll():
     cityIDs: t.List[CityID] = [getCityID(city) for city in cityListings]
     countryIDs: t.List[CountryID] = [getCountryID(country) for country in countryListings]
 
-    allIDs: t.List[ID] = [t.cast(ID, pointID) for pointID in pointIDs]
-    allIDs.extend([getCityID(city) for city in cityListings])
-    allIDs.extend([getCountryID(country) for country in countryListings])
+    for listing in listings:
+        if listing['_listingType'] in ['review', 'imageResource']:
+            if forCountry(listing):
+                countryIDs.append(getCountryID(listing))
+            elif forCity(listing):
+                cityIDs.append(getCityID(listing))
+            elif forPoint(listing):
+                pointIDs.append(getPointID(listing))
 
     bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
 
