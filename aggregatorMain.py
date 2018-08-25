@@ -281,7 +281,7 @@ def aggregateAllData(data: J) -> J:
                     aggregated[countryName]['cities'][cityName]['points'][pointName][attrib] = val
 
             orderedPoints = orderPointsOfCity(points)
-            aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('_uuid'), orderedPoints))
+            aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
             aggregated[countryName]['cities'][cityName]['images'] = orderImages(city['images'])
             aggregated[countryName]['cities'][cityName]['reviews'] = orderReviews(city['reviews'])
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
