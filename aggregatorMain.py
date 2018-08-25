@@ -266,7 +266,11 @@ def aggregateAllData(data: J) -> J:
     print('Aggregating data')
     aggregated = tree()
     for countryName, country in data.items():
+        if not country['cities']:
+            aggregated[countryName]['cities'] = {}
         for cityName, city in country['cities'].items():
+            if not city['points']:
+                aggregated[countryName][cityName]['points'] = {}
             points = []
             for pointName, point in city['points'].items():
                 aggregated[countryName]['cities'][cityName]['points'][pointName]['images'] = orderImages(point['images'])
