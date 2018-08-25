@@ -49,7 +49,7 @@
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Begin your journey!</button>
+                <button type="submit" class="btn btn-primary">Journey to {{cities[selectedCity].fullName}}</button>
             </div>
         </div>
 
@@ -57,7 +57,7 @@
         <div class="popular-plans-box">
             <div class="plan-card"
                  v-for="plan in recentPlans">
-                <img class="city-image" :src="getCityImage(plan)"></img>
+                <img class="city-image" :src="getCityImage(plan)"/>
                 <span class="city-prompt">
                     {{getRandomVisitText()}}
                     <div class="city-name">{{getCityName(plan)}}</div>
