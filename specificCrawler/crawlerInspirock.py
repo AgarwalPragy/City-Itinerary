@@ -33,7 +33,9 @@ def getStartingUrls(filePath = "Crawler/POI_Access_Data/inspirock_cities_access_
 
 class CrawlerInspirock(scrapy.Spider):
     name = 'inspirock'
-
+    custom_settings = {
+        'Accept-Language': 'en'
+    }
     start_urls = getStartingUrls()
 
     requestCount = 0
@@ -73,10 +75,18 @@ class CrawlerInspirock(scrapy.Spider):
         self.log("visiting " + countryName + " " + cityName + " " + pointName)
         data = response.css('div.description.itemDescription.attraction.desc')
         description, notes = None, None
-        descriptionBox = response.css('div.desc-in>*::text')
+        descriptionBox = response.css('div.desc-in *::text')
         if descriptionBox:
             descriptionList = descriptionBox.extract()
-            description = ''.join(descriptionList)
+            description = ""
+            for desc in descriptionList:
+                splited = desc.split("\n")
+
+                for splitedDes in splited:
+                    if len(splitedDes.strip()) > 0:
+                        description += splitedDes.strip()
+            if len(description) == 0:
+                description = None 
 
         ratingAndCountBox = response.css('div.rating > div.ins-rating')
         # ratingBox = sideBox.css('p[itemprop="aggregateRating"]')
@@ -86,14 +96,40 @@ class CrawlerInspirock(scrapy.Spider):
             bestRating = 5
             worstRating = 1
             givenRating = float(ratingAndCountBox.css('span::text').extract_first())
-            # ratingCount = int(ratingAndCountBox.css('div.countAndTotal > span[itemprop="ratingCount"]::text').extract_first())
             avgRating = scaleRating(givenRating=givenRating, worstRating=worstRating, bestRating=bestRating)
 
         rightBox = response.css('div.attraction-metadata > aside')
         duration, address = None, None
         if rightBox:
             duration = rightBox.css('div::text').extract()[1]
-            address = rightBox.css('p::text').extract_first()
+            addressData = rightBox.css('p::text').extract_first().strip()
+            if len(addressData) > 0:
+                address = addressData + response.meta['city'] + ", " + response.meta['country'] 
+
+        rankBox = response.css('div.rating-count > b::text')
+        rank = None
+
+        if rankBox:
+            rank = rankBox.extract_first()[1:].strip()
+            rank = int(rank)
+
+        self.log('rank: ' + str(rank))
+
+        tagBox = response.css('div.tags-attractions > a::text')
+
+        types = None 
+        if tagBox:
+            tags = tagBox.extract()
+            types = ""
+            for tag in tags:
+                tag = tag.split('#')[-1]
+                if len(tag) > 0:
+                    types += tag + ","
+
+            types = types[:-1]
+            if len(types) == 0:
+                types = None 
+            self.log("types: " + types)
 
         openingsHour, closingsHour = None, None
         openCloseBox = response.css('div.attraction-metadata > aside.opening-hours > div.clearfix > table > tr > td.time::text')
@@ -119,11 +155,11 @@ class CrawlerInspirock(scrapy.Spider):
         if contactBox:
             contact = contactBox.extract_first()
 
-        priceBox = response.css('div.attraction-metadata > aside')[-1]
+        priceBox = response.css('div.attraction-metadata > aside')
 
         priceLevel = None 
         if priceBox:
-            titleChecker = priceBox.css('div.cat-title::text')
+            titleChecker = priceBox[-1].css('div.cat-title::text')
             if titleChecker and titleChecker.extract_first().lower() == "price range":
                 priceLevel = priceBox.css('p::text').extract_first()
 
@@ -132,8 +168,8 @@ class CrawlerInspirock(scrapy.Spider):
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
                                     description=description, notes=notes, address=address,priceLevel = priceLevel, contact = contact, 
-                                    openingHour=openingsHour, closingHour=closingsHour, recommendedNumHours=duration,
-                                    avgRating=avgRating, ratingCount=ratingCount, rank=response.meta['rank'])
+                                    openingHour=openingsHour, closingHour=closingsHour, recommendedNumHours=duration,category = types,
+                                    avgRating=avgRating, ratingCount=ratingCount, rank=rank)
 
         yield pointListing.jsonify()
         # some problem with loading pics
@@ -146,3 +182,47 @@ class CrawlerInspirock(scrapy.Spider):
                 yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
                                     imageURL=pointImage).jsonify()
+
+        googleReviewsBox = response.css('div.reviews > ul > li.greview')
+
+        for googleReviewBox in googleReviewsBox:
+            ratingAndDate = googleReviewBox.css('div.review-metadata.clearfix')
+            rating = ratingAndDate.css('div.rating-stars.google > span::attr(style)').extract_first().split(':')[-1].strip()[:-2]
+            rating = float(rating)/20
+            ratingDate = ratingAndDate.css('span.review-date::text').extract_first().split('On')[-1].strip()
+            scaledRating = scaleRating(rating, 1, 5)
+            description = googleReviewBox.css('div.desc > *::text').extract()
+            description = ''.join(description)
+
+            yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+             countryName=countryName, cityName=cityName, pointName=pointName,
+             content=description, rating=scaledRating, date=ratingDate).jsonify()
+
+        #tripadvisor reviews (only 3 are there) are shown in local language so we are not considering these 3 reviews 
+        # tripAdvisorReviewsBox = response.css('div#attractionTripReviews.reviews > ul > li')
+        # for reviewBox in tripAdvisorReviewsBox:
+        #     ratingAndDate = reviewBox.css('div.review-metadata.clearfix')
+
+        #     rating = ratingAndDate.css('div > span::attr(style)').extract_first().split(':')[-1].strip()[:-2]
+        #     rating = float(rating)/20
+        #     scaledRating = scaleRating(rating, 1, 5)
+
+        #     ratingDate = ratingAndDate.css('span.review-date::text').extract_first().split('On')[-1].strip()
+
+        #     descriptionData = reviewBox.css('blockquote::text').extract_first().split('. ')
+        #     description = ""
+        #     if(len(descriptionData) == 1):
+        #         description = descriptionData[0] + "."
+        #     else:
+        #         for i in range(len(descriptionData)-1):
+        #             if len(descriptionData[i].strip()) > 0:
+        #                 description += descriptionData[i] + ". "
+        #         description = description[:-2].strip()
+    
+
+        #     if(len(description) > 0):
+        #         yield Review(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+        #         countryName=countryName, cityName=cityName, pointName=pointName,
+        #         content=description, rating=scaledRating, date=ratingDate).jsonify()
+
+
