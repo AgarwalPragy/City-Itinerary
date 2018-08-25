@@ -285,7 +285,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
             imageCount += len(city['images'])
             reviewCount += len(city['reviews'])
             if not city['points']:
-                aggregated[countryName][cityName]['points'] = {}
+                aggregated[countryName]['cities'][cityName]['points'] = {}
             points = []
             for pointName, point in city['points'].items():
                 pointCount += 1
