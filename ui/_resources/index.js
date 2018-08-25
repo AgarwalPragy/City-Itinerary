@@ -43,14 +43,15 @@ var registerCitiesDependents = function(cities) {
 var fuzzyMatcher = function(cities) {
   return function findMatches(query, callback) {
     // TODO: Fix the NYC on top instead of Agra when querying "a" bug
+    console.log('query ' + query);
+    var sanitized = query.replace(/\s/g, '')
+
     var matches = [];
-    var results = fuse.search(query);
-    console.log(query);
+    var results = fuse.search(sanitized);
     console.log(results);
     $.each(results, function(index, obj) {
         matches.push(obj.item);
     });
-    // console.log(matches)
     callback(matches);
   };
 };
