@@ -25,9 +25,10 @@ def saveData(filename, data: t.Any) -> None:
 def readListingsFromFiles(filenames: t.List[str]) -> t.List[JEL]:
     data: t.List[JEL] = []
     print('Reading files.')
-    for filename in tqdm(filenames):
+    for filename in filenames:
         with open(filename, 'r') as f:
             data += json.loads(f.read())
+        print('Read:', filename)
     return data
 
 
@@ -116,7 +117,7 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
 
     print('Matching city identifiers')
     cityIDUnions: UnionFind[CityID] = UnionFind()
-    for pointAlias in tqdm(pointIDs):
+    for pointAlias in pointIDs:
         root = pointIDUnions[pointAlias]
         rootCity = extractCityID(root)
         cityAlias = extractCityID(pointAlias)
@@ -129,7 +130,7 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
 
     print('Matching country identifiers')
     countryIDUnions: UnionFind[CountryID] = UnionFind()
-    for pointAlias in tqdm(pointIDs):
+    for pointAlias in pointIDs:
         root = pointIDUnions[pointAlias]
         countryAlias = extractCountryID(pointAlias)
         rootCountry = extractCountryID(root)
@@ -193,7 +194,7 @@ def collectAllListings(listings: t.List[JEL],
                        bestCountryIDMap: t.Dict[CountryID, CountryID]) -> J:
     print('Collecting all listings')
     data: J = tree()
-    for datum in tqdm(listings):
+    for datum in listings:
         if datum['_listingType'] == 'country':
             countryName = bestCountryIDMap[getCountryID(datum)].countryName
             safeAppend(data[countryName], 'listings', datum)
@@ -231,14 +232,18 @@ def collectAllListings(listings: t.List[JEL],
                 safeAppend(data[countryName], 'reviews', datum)
 
     print('Sanitizing all listings')
-    for countryName, country in tqdm(data.items()):
+    for countryName, country in data.items():
         safeAppend(data[countryName], 'images', None)
         safeAppend(data[countryName], 'reviews', None)
         safeAppend(data[countryName], 'listings', None)
+        if 'cities' not in data[countryName]:
+            data[countryName]['cities'] = {}
         for cityName, city in country['cities'].items():
             safeAppend(data[countryName]['cities'][cityName], 'images', None)
             safeAppend(data[countryName]['cities'][cityName], 'reviews', None)
             safeAppend(data[countryName]['cities'][cityName], 'listings', None)
+            if 'points' not in data[countryName][cityName]:
+                data[countryName][cityName]['points'] = {}
             for pointName, point in city['points'].items():
                 safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'images', None)
                 safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'reviews', None)
@@ -260,7 +265,7 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
 def aggregateAllData(data: J) -> J:
     print('Aggregating data')
     aggregated = tree()
-    for countryName, country in tqdm(data.items()):
+    for countryName, country in data.items():
         for cityName, city in country['cities'].items():
             points = []
             for pointName, point in city['points'].items():
