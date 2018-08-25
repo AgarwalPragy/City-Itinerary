@@ -15,7 +15,7 @@ allowedChars = set(string.ascii_lowercase + string.digits + '-')
 @lru_cache(None)
 def sanitizeName(name: str) -> str:
     # TODO: improve this
-    return name.strip()
+    return name.strip().replace('|', '').replace('/', '')
 
 
 @lru_cache(None)
