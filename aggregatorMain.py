@@ -266,6 +266,10 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
     return entity
 
 
+def frontAndBack(items):
+    return [', '.join(alias) for alias in items] + [', '.join(alias[::-1]) for alias in items]
+
+
 def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     print('Aggregating data')
     aggregated = tree()
@@ -293,9 +297,10 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
                     aggregated[countryName]['cities'][cityName]['points'][pointName][attrib] = val
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['pointAliases'] = revPoint[PointID(countryName, cityName, pointName)]
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['cityAliases'] = revCity[CityID(countryName, cityName)]
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['countryAliases'] = revCountry[CountryID(countryName)]
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['pointAliases'] = frontAndBack(revPoint[PointID(countryName, cityName, pointName)])
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['fullName'] = ', '.join([pointName, cityName, countryName])
 
             orderedPoints = orderPointsOfCity(points)
             aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
@@ -304,15 +309,16 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
             for attrib, val in finalCity.jsonify().items():
                 aggregated[countryName]['cities'][cityName][attrib] = val
-            aggregated[countryName]['cities'][cityName]['cityAliases'] = revCity[CityID(countryName, cityName)]
-            aggregated[countryName]['cities'][cityName]['countryAliases'] = revCountry[CountryID(countryName)]
+            aggregated[countryName]['cities'][cityName]['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
+            aggregated[countryName]['cities'][cityName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+            aggregated[countryName]['cities'][cityName]['fullName'] = ', '.join([cityName, countryName])
 
         aggregated[countryName]['images'] = orderImages(country['images'])
         aggregated[countryName]['reviews'] = orderReviews(country['reviews'])
         finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
         for attrib, val in finalCountry.jsonify().items():
             aggregated[countryName][attrib] = val
-        aggregated[countryName]['countryAliases'] = revCountry[CountryID(countryName)]
+        aggregated[countryName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
 
     print('Finally extracted {} countries'.format(countryCount))
     print('Finally extracted {} cities'.format(cityCount))
@@ -325,7 +331,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
 def makeReverseMap(mapping):
     revMapping = defaultdict(list)
     for alias, best in mapping.items():
-        revMapping[best].append(', '.join(alias[::-1]))
+        revMapping[best].append(alias)
     return revMapping
 
 

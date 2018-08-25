@@ -12,18 +12,25 @@ var getData = function(url, callback) {
 
 window.fuse = null;
 
+var chooseRandomElement = function(items) {
+    var rindex = Math.floor(Math.random() * items.length);
+    return items[rindex];
+}
+
 var registerCitiesDependents = function(cities) {
     var options = {
         shouldSort: true,
         includeScore: true,
-        threshold: 0.1,
+        threshold: 0.2,
         location: 0,
         distance: 100,
         maxPatternLength: 32,
         minMatchCharLength: 1,
         keys: [
-            "countryName",
-            "cityName"
+            {name: 'cityName', weight: 0.3},
+            {name: 'cityAliases', weight: 0.1},
+            {name: 'countryName', weight: 0.1},
+            {name: 'countryAliases', weight: 0.1},
         ]
     };
     console.log(cities)
@@ -50,7 +57,7 @@ var fuzzyMatcher = function(cities) {
 
 var getEncodedCityImageURL = function (city) {
     var images = city.images;
-    if(images && images.length > 0) return images[0]['imageURL'];
+    if(images && images.length > 0) return chooseRandomElement(images)['imageURL'];
     return encodeURIComponent(cityImageUnavailable);
 }
 
@@ -68,7 +75,10 @@ var registerVue = function() {
     window.app = new Vue({
         el: '#container',
         data: {
-            cities: [],
+            cities: {'England/London': {
+                'cityName': 'London',
+                'countryName': 'England'
+            }},
             recentPlans: [],
             selectedCity: 'England/London'
         },
@@ -106,8 +116,7 @@ var registerVue = function() {
             },
             getRandomVisitText: function() {
                 var texts = ['Visit', 'Tour', 'Explore', 'Experience'];
-                var rindex = Math.floor(Math.random() * texts.length);
-                return texts[rindex];
+                return chooseRandomElement(texts);
             }
         }
     });
@@ -140,7 +149,7 @@ var registerSearch = function () {
         },
         {
             name: 'city-searchbar',
-            display: 'cityName',
+            display: 'fullName',
             source: fuzzyMatcher(window.app.cities),
             templates: {
                 empty: [
