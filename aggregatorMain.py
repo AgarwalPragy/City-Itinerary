@@ -266,7 +266,7 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
     return entity
 
 
-def aggregateAllData(data: J) -> J:
+def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     print('Aggregating data')
     aggregated = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
@@ -293,6 +293,9 @@ def aggregateAllData(data: J) -> J:
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
                     aggregated[countryName]['cities'][cityName]['points'][pointName][attrib] = val
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['pointAliases'] = revPoint[PointID(countryName, cityName, pointName)]
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['cityAliases'] = revCity[CityID(countryName, cityName)]
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['countryAliases'] = revCountry[CountryID(countryName)]
 
             orderedPoints = orderPointsOfCity(points)
             aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
@@ -301,12 +304,15 @@ def aggregateAllData(data: J) -> J:
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
             for attrib, val in finalCity.jsonify().items():
                 aggregated[countryName]['cities'][cityName][attrib] = val
+            aggregated[countryName]['cities'][cityName]['cityAliases'] = revCity[CityID(countryName, cityName)]
+            aggregated[countryName]['cities'][cityName]['countryAliases'] = revCountry[CountryID(countryName)]
 
         aggregated[countryName]['images'] = orderImages(country['images'])
         aggregated[countryName]['reviews'] = orderReviews(country['reviews'])
         finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
         for attrib, val in finalCountry.jsonify().items():
             aggregated[countryName][attrib] = val
+        aggregated[countryName]['countryAliases'] = revCountry[CountryID(countryName)]
 
     print('Finally extracted {} countries'.format(countryCount))
     print('Finally extracted {} cities'.format(cityCount))
@@ -314,6 +320,13 @@ def aggregateAllData(data: J) -> J:
     print('Finally extracted {} images'.format(imageCount))
     print('Finally extracted {} reviews'.format(reviewCount))
     return aggregated
+
+
+def makeReverseMap(mapping):
+    revMapping = defaultdict(list)
+    for alias, best in mapping.items():
+        revMapping[best].append(', '.join(alias[::-1]))
+    return revMapping
 
 
 def processAll():
@@ -343,13 +356,24 @@ def processAll():
             elif forPoint(listing):
                 pointIDs.append(getPointID(listing))
 
+    # TODO: save these mappings so that fuzzy search queries can be answered
+    # TODO: check why Amsterdam, Milan don't show up
     bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
+    revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
     saveData('toAggregate.json', toAggregatedData)
 
-    aggregated = aggregateAllData(toAggregatedData)
-    saveData('aggregatedData.json', aggregated)
+    aggregatedListings = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
+    saveData('aggregatedData.json', aggregatedListings)
+
+    print('Saving debug info')
+    debugInfo = {
+        'bestPointIDMap': {str(key): str(val) for key, val in bestPointIDMap.items()},
+        'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
+        'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()}
+    }
+    saveData('aggregatorDebugInfo.json', debugInfo)
 
     print('All done. Exit')
 
