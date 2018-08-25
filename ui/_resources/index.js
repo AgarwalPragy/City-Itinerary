@@ -1,3 +1,5 @@
+var cityImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png'
+
 var getData = function(url, callback) {
     console.log(url);
     console.log('getting data...');
@@ -20,8 +22,8 @@ var registerCitiesDependents = function(cities) {
         maxPatternLength: 32,
         minMatchCharLength: 1,
         keys: [
-            "cityName",
-            "countryName"
+            "countryName",
+            "cityName"
         ]
     };
     console.log(cities)
@@ -46,10 +48,16 @@ var fuzzyMatcher = function(cities) {
   };
 };
 
+var getEncodedCityImageURL = function (city) {
+    var images = city.images;
+    if(images && images.length > 0) return images[0]['imageURL'];
+    return encodeURIComponent(cityImageUnavailable);
+}
+
 
 var renderResult = function(item) {
     return '<div class="search-result">' + 
-                '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(item.cityImage) + '&width=160&height=90">' +
+                '<img class="search-result-cityimage" src="/fetch-image?url=' + getEncodedCityImageURL(item) + '&width=160&height=90">' +
                 '<div class="search-result-cityname">' + item.cityName + '</div>' +
                 '<div class="search-result-countryname">' + item.countryName + '</div>' +
             '</div>';
@@ -77,8 +85,7 @@ var registerVue = function() {
         methods: {
             getCityImage: function(plan) {
                 var city = this.cities[plan.city]
-                var url = city.cityImage;
-                return '/fetch-image?url=' + encodeURIComponent(url) + '&width=320&height=180';
+                return '/fetch-image?url=' + getEncodedCityImageURL(city) + '&width=320&height=180';
             },
             getCityName: function(plan) {
                 var city = this.cities[plan.city];
@@ -138,7 +145,7 @@ var registerSearch = function () {
             templates: {
                 empty: [
                     '<div class="search-result tt-suggestion">' + 
-                        '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent('http://getdrawings.com/img/gotham-city-silhouette-14.png') + '&width=160&height=90">' +
+                        '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
                         '<div class="search-result-cityname">That city sucks!</div>' +
                         '<div class="search-result-countryname">Don\'t go there ..</div>' +
                     '</div>'
