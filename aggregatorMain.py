@@ -321,7 +321,9 @@ def processAll():
         'injectedData/countryFlags.json',
         'tripexpertData/cities.json',
         'tripexpertData/tripexpert_requiredcities.json',
-        'viatorData/viator_requiredcities.json'
+        'viatorData/viator_requiredcities.json',
+        'inspirockData/finalInspirock.json',
+        'skyscannerData/finalSkyscanner.json'
     ])
 
     print('Processing.')
