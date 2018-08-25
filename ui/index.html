@@ -27,8 +27,7 @@
         <div class="top-box">
             <div class="input-box">
                 <div class="search-box">
-                    <div class="search-prompt">What's your destination?</div>
-                    <input type="text" data-provide="typeahead" class="city-searchbar">
+                    <input id="city-searchbar" type="text" class="city-searchbar"  placeholder="What's your destination?">
                 </div>
                 <div class="date-box">  
                     <div class="datepicker-box">
@@ -73,6 +72,9 @@
     <!-- Vue JS -->
     <script src="_resources/vue-2.5.17/vue.min.js"></script>
     <script src="_resources/axios-0.18.0/axios.min.js"></script>
+
+    <script type="text/javascript" src="_resources/typeahead.js-0.11.1/typeahead.bundle.min.js"></script>
+    <script type="text/javascript" src="_resources/fuse-3.0.4/fuse.min.js"></script>
     <!-- App JS -->
     <script src="_resources/index.js"></script>
 
