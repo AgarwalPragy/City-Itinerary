@@ -1,14 +1,70 @@
-function getData(url, attrib) {
+var cityImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png'
+
+var getData = function(url, callback) {
     console.log(url);
     console.log('getting data...');
     axios.get(url).then(function(response) {
-            console.log('Request for ' + url + ' resulted in:');
-            console.log(response.data);
-            window.app[attrib] = response.data;
+        console.log('Request for ' + url + ' resulted in:');
+        console.log(response.data);
+        callback(response);
     });
 }
 
-window.registerVue = function() {
+window.fuse = null;
+
+var registerCitiesDependents = function(cities) {
+    var options = {
+        shouldSort: true,
+        includeScore: true,
+        threshold: 0.1,
+        location: 0,
+        distance: 100,
+        maxPatternLength: 32,
+        minMatchCharLength: 1,
+        keys: [
+            "countryName",
+            "cityName"
+        ]
+    };
+    console.log(cities)
+    var items = Object.values(cities);
+    console.log(items)
+    window.fuse = new Fuse(items, options);
+    registerSearch();
+}
+
+var fuzzyMatcher = function(cities) {
+  return function findMatches(query, callback) {
+    // TODO: Fix the NYC on top instead of Agra when querying "a" bug
+    var matches = [];
+    var results = fuse.search(query);
+    console.log(query);
+    console.log(results);
+    $.each(results, function(index, obj) {
+        matches.push(obj.item);
+    });
+    // console.log(matches)
+    callback(matches);
+  };
+};
+
+var getEncodedCityImageURL = function (city) {
+    var images = city.images;
+    if(images && images.length > 0) return images[0]['imageURL'];
+    return encodeURIComponent(cityImageUnavailable);
+}
+
+
+var renderResult = function(item) {
+    return '<div class="search-result">' + 
+                '<img class="search-result-cityimage" src="/fetch-image?url=' + getEncodedCityImageURL(item) + '&width=160&height=90">' +
+                '<div class="search-result-cityname">' + item.cityName + '</div>' +
+                '<div class="search-result-countryname">' + item.countryName + '</div>' +
+            '</div>';
+};
+
+
+var registerVue = function() {
     window.app = new Vue({
         el: '#container',
         data: {
@@ -17,14 +73,19 @@ window.registerVue = function() {
             selectedCity: 'England/London'
         },
         mounted: function() {
-            getData('/cities', 'cities');
-            getData('/recent-plans', 'recentPlans');
+            getData('/cities', function (response) {
+                cities = response.data;
+                window.app['cities'] = cities;
+                registerCitiesDependents(cities);
+            });
+            getData('/recent-plans', function (response) {
+                window.app['recentPlans'] = response.data;
+            });
         },
         methods: {
             getCityImage: function(plan) {
                 var city = this.cities[plan.city]
-                var url = city.cityImage;
-                return '/fetch-image?url=' + encodeURIComponent(url) + '&width=320&height=180';
+                return '/fetch-image?url=' + getEncodedCityImageURL(city) + '&width=320&height=180';
             },
             getCityName: function(plan) {
                 var city = this.cities[plan.city];
@@ -52,34 +113,52 @@ window.registerVue = function() {
     });
 }
 
-window.registerVue();
-
-
-$(function () {
-        $('#datetimepicker1').datetimepicker({
-                inline: true,
-                sideBySide: true
-            });
-        $('#datetimepicker2').datetimepicker({
-                inline: true,
-                sideBySide: true,
-                useCurrent: false //Important! See issue #1075
-            });
-        $("#datetimepicker1").on("dp.change", function (e) {
-            $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+var registerDateTime = function () {
+    $('#datetimepicker1').datetimepicker({
+            inline: true,
+            sideBySide: true
         });
-        $("#datetimepicker2").on("dp.change", function (e) {
-            $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+    $('#datetimepicker2').datetimepicker({
+            inline: true,
+            sideBySide: true,
+            useCurrent: false //Important! See issue #1075
         });
-
-
-        // $('.typeahead').typeahead({
-        //     source: [
-        //     'afwfewf',
-        //     'aefwerwewer',
-        //     'brhegerghreg',
-        //     'fhbrtybr'
-        //     ]
-        // });
+    $("#datetimepicker1").on("dp.change", function (e) {
+        $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
     });
+    $("#datetimepicker2").on("dp.change", function (e) {
+        $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+    });
+}
+
+
+var registerSearch = function () {
+    $('#city-searchbar').typeahead(
+        {
+            minLength: 1,
+            hint: false
+        },
+        {
+            name: 'city-searchbar',
+            display: 'cityName',
+            source: fuzzyMatcher(window.app.cities),
+            templates: {
+                empty: [
+                    '<div class="search-result tt-suggestion">' + 
+                        '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
+                        '<div class="search-result-cityname">That city sucks!</div>' +
+                        '<div class="search-result-countryname">Don\'t go there ..</div>' +
+                    '</div>'
+                ].join('\n'),
+                suggestion: renderResult
+            }
+        }
+    );
+}
+
+registerVue();
+registerDateTime();
+
+
+
 

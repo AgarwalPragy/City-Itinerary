@@ -21,4 +21,3 @@ injectedCountryAliases = [
     (CountryID('USA'), CountryID('US')),
     (CountryID('UAE'), CountryID('United Arab Emirates'))
 ]
-

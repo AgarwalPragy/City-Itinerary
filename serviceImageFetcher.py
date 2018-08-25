@@ -8,7 +8,7 @@ import io
 from PIL import Image
 import urllib.request
 
-from utilities import urldecode
+from utilities import urlDecode
 
 imageFetcher = Blueprint('imageFetcher', __name__)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -65,14 +65,13 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
 @imageFetcher.route('/fetch-image')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def fetchImage():
-    # TODO: get this image, resize it, and send it
     url = request.args.get('url')
     width = request.args.get('width')
     height = request.args.get('height')
 
     print('Requested image-fetch', url, width, height)
 
-    url = urldecode(url)
+    url = urlDecode(url)
     size = int(width), int(height)
 
     image = getImageFromMemcache(url, size)
