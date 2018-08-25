@@ -6,7 +6,7 @@ from operator import attrgetter, itemgetter
 import json
 
 
-from jsonUtils import J
+from jsonUtils import J, EnhancedJSONEncoder
 from aggregatorLogic import *
 from utilities import doesFuzzyMatch, UnionFind, tree
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
@@ -17,8 +17,9 @@ ID = t.Union[CountryID, CityID, PointID]
 
 
 def saveData(filename, data: t.Any) -> None:
+    print('saving to', filename)
     with open(filename, 'w') as f:
-        f.write(json.dumps(data))
+        f.write(json.dumps(data, cls=EnhancedJSONEncoder))
 
 
 def readListingsFromFiles(filenames: t.List[str]) -> t.List[JEL]:
@@ -88,17 +89,16 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
     # Usecase:
     #     India/Raipur vs India/Rampur
     #     can be Identified by the POIs that are present in the two cities
-
+    print('Collecting all aliases')
     allPointAliases: t.Set[PointID] = set(pointIDs) | set(map(itemgetter(0), injectedPointAliases)) | set(map(itemgetter(1), injectedPointAliases))
     allCityAliases: t.Set[CityID] = set(cityIDs) | set(map(extractCityID, allPointAliases)) | set(map(itemgetter(0), injectedCityAliases)) | set(map(itemgetter(1), injectedCityAliases))
     allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
-
     pointIDs = list(allPointAliases)
 
+    # if 2 names match, club them
+    print('Matching point identifiers')
     chosenAlready = [False] * len(pointIDs)
     pointIDUnions: UnionFind[PointID] = UnionFind()
-
-    # if 2 names match, club them
     for index1, alias1 in enumerate(tqdm(pointIDs)):
         if chosenAlready[index1]:
             continue
@@ -110,35 +110,38 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
             if matchPointIDs(alias1, alias2):
                 pointIDUnions.union(alias1, alias2)
                 chosenAlready[index2] = True
-    # inject injectedPointAliases
+    print('Injecting point aliases')
     for alias1, alias2 in injectedPointAliases:
         pointIDUnions.union(alias1, alias2)
 
+    print('Matching city identifiers')
     cityIDUnions: UnionFind[CityID] = UnionFind()
-    for pointAlias in pointIDs:
+    for pointAlias in tqdm(pointIDs):
         root = pointIDUnions[pointAlias]
         rootCity = extractCityID(root)
         cityAlias = extractCityID(pointAlias)
         if rootCity == cityAlias:
             continue
         cityIDUnions.union(rootCity, cityAlias)
-    # inject injectedCityAliases
+    print('Injecting city aliases')
     for cityAlias1, cityAlias2 in injectedCityAliases:
         cityIDUnions.union(cityAlias1, cityAlias2)
 
+    print('Matching country identifiers')
     countryIDUnions: UnionFind[CountryID] = UnionFind()
-    for pointAlias in pointIDs:
+    for pointAlias in tqdm(pointIDs):
         root = pointIDUnions[pointAlias]
         countryAlias = extractCountryID(pointAlias)
         rootCountry = extractCountryID(root)
         if rootCountry == countryAlias:
             continue
         countryIDUnions.union(rootCountry, countryAlias)
-    # inject injectedCountryAliases
+    print('Injecting country aliases')
     for countryAlias1, countryAlias2 in injectedCountryAliases:
         countryIDUnions.union(countryAlias1, countryAlias2)
     # -----------------------------------------------------------------------------
 
+    print('Building alias to bestName maps')
     countryAliasMap: t.Dict[CountryID, t.List[CountryID]] = defaultdict(list)
     for countryAlias in allCountryAliases:
         countryAliasMap[countryIDUnions[countryAlias]].append(countryAlias)
@@ -188,6 +191,7 @@ def collectAllListings(listings: t.List[JEL],
                        bestPointIDMap: t.Dict[PointID, PointID],
                        bestCityIDMap: t.Dict[CityID, CityID],
                        bestCountryIDMap: t.Dict[CountryID, CountryID]) -> J:
+    print('Collecting all listings')
     data: J = tree()
     for datum in tqdm(listings):
         if datum['_listingType'] == 'country':
@@ -226,17 +230,15 @@ def collectAllListings(listings: t.List[JEL],
                 datum = fixEntityNames(datum, countryName=countryName)
                 safeAppend(data[countryName], 'reviews', datum)
 
-    # Make data safe. Fill all attribs
-    for countryName, country in data.items():
+    print('Sanitizing all listings')
+    for countryName, country in tqdm(data.items()):
         safeAppend(data[countryName], 'images', None)
         safeAppend(data[countryName], 'reviews', None)
         safeAppend(data[countryName], 'listings', None)
-        safeAppend(data[countryName], 'cities', None)
         for cityName, city in country['cities'].items():
             safeAppend(data[countryName]['cities'][cityName], 'images', None)
             safeAppend(data[countryName]['cities'][cityName], 'reviews', None)
             safeAppend(data[countryName]['cities'][cityName], 'listings', None)
-            safeAppend(data[countryName]['cities'][cityName], 'points', None)
             for pointName, point in city['points'].items():
                 safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'images', None)
                 safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'reviews', None)
@@ -256,8 +258,9 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
 
 
 def aggregateAllData(data: J) -> J:
+    print('Aggregating data')
     aggregated = tree()
-    for countryName, country in data.items():
+    for countryName, country in tqdm(data.items()):
         for cityName, city in country['cities'].items():
             points = []
             for pointName, point in city['points'].items():
@@ -265,19 +268,22 @@ def aggregateAllData(data: J) -> J:
                 aggregated[countryName]['cities'][cityName]['points'][pointName]['reviews'] = orderReviews(point['reviews'])
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
                 points.append(finalPoint)
-                aggregated[countryName]['cities'][cityName]['points'][pointName] = finalPoint
+                for attrib, val in finalPoint.jsonify().items():
+                    aggregated[countryName]['cities'][cityName]['points'][pointName][attrib] = val
 
             orderedPoints = orderPointsOfCity(points)
             aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('_uuid'), orderedPoints))
             aggregated[countryName]['cities'][cityName]['images'] = orderImages(city['images'])
             aggregated[countryName]['cities'][cityName]['reviews'] = orderReviews(city['reviews'])
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
-            aggregated[countryName]['cities'][cityName] = finalCity
+            for attrib, val in finalCity.jsonify().items():
+                aggregated[countryName]['cities'][cityName][attrib] = val
 
         aggregated[countryName]['images'] = orderImages(country['images'])
         aggregated[countryName]['reviews'] = orderReviews(country['reviews'])
         finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
-        aggregated[countryName] = finalCountry
+        for attrib, val in finalCountry.jsonify().items():
+            aggregated[countryName][attrib] = val
     return aggregated
 
 
@@ -301,8 +307,6 @@ def processAll():
     allIDs.extend([getCityID(city) for city in cityListings])
     allIDs.extend([getCountryID(country) for country in countryListings])
 
-    print('Processing done.')
-
     bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
@@ -311,7 +315,7 @@ def processAll():
     aggregated = aggregateAllData(toAggregatedData)
     saveData('aggregatedData.json', aggregated)
 
-    print('All done')
+    print('All done. Exit')
 
 
 if __name__ == '__main__':
