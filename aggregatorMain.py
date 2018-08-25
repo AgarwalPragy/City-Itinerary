@@ -8,7 +8,7 @@ import json
 
 from jsonUtils import J, EnhancedJSONEncoder
 from aggregatorLogic import *
-from utilities import doesFuzzyMatch, UnionFind, tree
+from utilities import doesFuzzyMatch, UnionFind, tree, processName
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
 from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases
 
@@ -267,7 +267,7 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
 
 
 def frontAndBack(items):
-    return [', '.join(alias) for alias in items] + [', '.join(alias[::-1]) for alias in items]
+    return [processName(''.join(alias)) for alias in items] + [processName(''.join(alias[::-1])) for alias in items]
 
 
 def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:

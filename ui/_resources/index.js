@@ -27,8 +27,8 @@ var registerCitiesDependents = function(cities) {
         maxPatternLength: 32,
         minMatchCharLength: 1,
         keys: [
-            {name: 'cityName', weight: 0.3},
-            {name: 'cityAliases', weight: 0.1},
+            {name: 'cityName', weight: 0.4},
+            {name: 'cityAliases', weight: 0.4},
             {name: 'countryName', weight: 0.1},
             {name: 'countryAliases', weight: 0.1},
         ]
@@ -44,7 +44,7 @@ var fuzzyMatcher = function(cities) {
   return function findMatches(query, callback) {
     // TODO: Fix the NYC on top instead of Agra when querying "a" bug
     console.log('query ' + query);
-    var sanitized = query.replace(/\s/g, '')
+    var sanitized = query.toLowerCase().replace(/[^a-z]/g, '')
 
     var matches = [];
     var results = fuse.search(sanitized);

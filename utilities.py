@@ -20,9 +20,9 @@ def sanitizeName(name: str) -> str:
 
 @lru_cache(None)
 def processName(name: str) -> str:
-    """Replaces spaces with hyphens, normalize unicode data, convert to lowercase, remove special chars"""
+    """Removes spaces, normalize unicode data, convert to lowercase, remove special chars"""
     normalized: str = unidecode(name.strip())
-    nohyphen = normalized.replace(' ', '-')
+    nohyphen = normalized.replace(' ', '')
     lowercase = nohyphen.lower()
     nospecial = ''.join(c for c in lowercase if c in allowedChars)
     return nospecial
