@@ -1,112 +1,318 @@
-from typing import List, TypeVar, Any, Dict, Tuple
+import typing as t
 
 from collections import defaultdict
-from utilities import processName
-
-from pointAggregator import aggregateAllPointsOfCity
-from utilities import getBestCityName, doesFuzzyMatch
-
-
-def readListingsFromFile() -> List[Any]:
-	# TODO
-	###################################
-	###################################
-	###################################
-	###################################
-	###################################
-	###################################
-	###################################
-	return []
+from tqdm import tqdm
+from operator import attrgetter, itemgetter
+import json
 
 
-def getCityIdentifier(listing: Any) -> str:
-	return '{}/{}'.format(listing["countryName"], listing["cityName"])
+from jsonUtils import J
+from aggregatorLogic import *
+from utilities import doesFuzzyMatch, UnionFind, tree
+from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
+from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases
 
 
-def getCityClusters(listings: List[Any]) -> Dict[str, List[str]]:
-	"""Given all listings, returns a clustering of city names. {mainAlias -> [alias]}"""
-	allCitiesAliases: List[str] = [
-		getCityIdentifier(listing)
-		for listing in listings
-		if listing['_listingType'] in ['point']
-	]
-	chosenAlready = [False] * len(allCitiesAliases)
-
-	cityClusters: Dict[str, List[str]] = defaultdict(list) # final city name -> list of city aliases
+ID = t.Union[CountryID, CityID, PointID]
 
 
-	for index1, cityAlias1 in enumerate(allCitiesAliases):
-		if chosenAlready[index1]:
-			continue
-
-		for index2, cityAlias2 in enumerate(allCitiesAliases[index1+1:], index1+1):
-			if doesFuzzyMatch(cityAlias1, cityAlias2):
-				cityClusters[cityAlias1].append(cityAlias2)
-				chosenAlready[index2] = True
-
-	return cityClusters
+def saveData(filename, data: t.Any) -> None:
+    with open(filename, 'w') as f:
+        f.write(json.dumps(data))
 
 
-
-def makeReverseCityIndex(cityClusters: Dict[str, List[str]]) -> Dict[str, str]:
-	"""Retuns a mapping from an arbitrary city alias to its corresponding main alias"""
-	cityAliasToMainalais: Dict[str, str] = {}
-	for mainAlias, cluster in cityClusters.items():
-		for alias in cluster:
-			cityAliasToMainalais[alias] = mainAlias
-	return cityAliasToMainalais
-
-
-def getPointsForEachCity(cityAliasToMainalais: Dict[str, str], listings: List[Any]):
-	"""Returns a mapping from cityMainAlias to list of points in all aliases of that city"""
-	pointsOfEachCity: Dict[str, List[Any]] = defaultdict(list)
-
-	for listing in listings:
-		if listing['_listingType'] != 'point':
-			continue
-
-		cityAlias = getCityIdentifier(listing)
-		mainAlias = cityAliasToMainalais[cityAlias]
-
-		pointsOfEachCity[mainAlias].append(listing)
-
-	return pointsOfEachCity
+def readListingsFromFiles(filenames: t.List[str]) -> t.List[JEL]:
+    data: t.List[JEL] = []
+    print('Reading files.')
+    for filename in tqdm(filenames):
+        with open(filename, 'r') as f:
+            data += json.loads(f.read())
+    return data
 
 
-def getPointClusters(pointsOfOneCity: List[Any]):
-	"""Returns a mapping from pointMainAlias to list of all points that match"""
-	chosenAlready = [False] * len(pointsOfOneCity)
-	pointClusters: Dict[str, List[Any]] = defaultdict(list) # final city name -> list of city aliases
+def extractPointID(identifier: t.Union[PointID]) -> PointID:
+    return PointID(identifier.countryName, identifier.cityName, identifier.pointName)
 
-	for index1, point1 in enumerate(pointsOfOneCity):
-		if chosenAlready[index1]:
-			continue
 
-		for index2, point2 in enumerate(pointsOfOneCity[index1+1:], index1+1):
-			if doesFuzzyMatch(point1['pointName'], point2['pointName']):
-				pointClusters[point1['pointName']].append(point2)
-				chosenAlready[index2] = True
-	return pointClusters
+def extractCityID(identifier: t.Union[PointID, CityID]) -> CityID:
+    return CityID(identifier.countryName, identifier.cityName)
 
+
+def extractCountryID(identifier: t.Union[PointID, CityID, CountryID]) -> CountryID:
+    return CountryID(identifier.countryName)
+
+
+def getPointID(point: t.Union[JPL]) -> PointID:
+    return PointID(point['countryName'], point['cityName'], point['pointName'])
+
+
+def getCityID(city: t.Union[JCL, JPL]) -> CityID:
+    return CityID(city['countryName'], city['cityName'])
+
+
+def getCountryID(country: t.Union[JKL, JCL, JPL]) -> CountryID:
+    return CountryID(country['countryName'])
+
+
+def getID(entity: JEL) -> ID:
+    myID: ID
+    if entity['_listingType'] == 'point': myID = getPointID(JPL(entity))
+    if entity['_listingType'] == 'city': myID = getCityID(JCL(entity))
+    if entity['_listingType'] == 'country': myID = getCountryID(JKL(entity))
+    return myID
+
+
+def forPoint(entity: JEL) -> bool:
+    return entity['countryName'] and entity['cityName'] and entity['pointName']
+
+
+def forCity(entity: JEL) -> bool:
+    return entity['countryName'] and entity['cityName'] and not entity['pointName']
+
+
+def forCountry(entity: JEL) -> bool:
+    return entity['countryName'] and not entity['cityName'] and not entity['pointName']
+
+
+def matchPointIDs(pointID1: PointID, pointID2: PointID) -> bool:
+    # TODO: tune this
+    if doesFuzzyMatch(pointID1.countryName, pointID2.countryName, matchPointID_countryThreshold):
+        if doesFuzzyMatch(pointID1.cityName, pointID2.cityName, matchPointID_cityThreshold):
+            if doesFuzzyMatch(pointID1.pointName, pointID2.pointName, matchPointID_pointThreshold):
+                return True
+    return False
+
+
+def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs: t.List[CountryID]) -> t.Tuple[t.Dict[PointID, PointID], t.Dict[CityID, CityID], t.Dict[CountryID, CountryID]]:
+    """Intelligently Identifies NameClusterMaps for countries, cities and points considered together"""
+    # Usecase:
+    #     India/Raipur vs India/Rampur
+    #     can be Identified by the POIs that are present in the two cities
+
+    allPointAliases: t.Set[PointID] = set(pointIDs) | set(map(itemgetter(0), injectedPointAliases)) | set(map(itemgetter(1), injectedPointAliases))
+    allCityAliases: t.Set[CityID] = set(cityIDs) | set(map(extractCityID, allPointAliases)) | set(map(itemgetter(0), injectedCityAliases)) | set(map(itemgetter(1), injectedCityAliases))
+    allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
+
+    pointIDs = list(allPointAliases)
+
+    chosenAlready = [False] * len(pointIDs)
+    pointIDUnions: UnionFind[PointID] = UnionFind()
+
+    # if 2 names match, club them
+    for index1, alias1 in enumerate(tqdm(pointIDs)):
+        if chosenAlready[index1]:
+            continue
+        chosenAlready[index1] = True
+        for index2, alias2 in enumerate(pointIDs[index1 + 1:], index1 + 1):
+            if chosenAlready[index2]:
+                continue
+
+            if matchPointIDs(alias1, alias2):
+                pointIDUnions.union(alias1, alias2)
+                chosenAlready[index2] = True
+    # inject injectedPointAliases
+    for alias1, alias2 in injectedPointAliases:
+        pointIDUnions.union(alias1, alias2)
+
+    cityIDUnions: UnionFind[CityID] = UnionFind()
+    for pointAlias in pointIDs:
+        root = pointIDUnions[pointAlias]
+        rootCity = extractCityID(root)
+        cityAlias = extractCityID(pointAlias)
+        if rootCity == cityAlias:
+            continue
+        cityIDUnions.union(rootCity, cityAlias)
+    # inject injectedCityAliases
+    for cityAlias1, cityAlias2 in injectedCityAliases:
+        cityIDUnions.union(cityAlias1, cityAlias2)
+
+    countryIDUnions: UnionFind[CountryID] = UnionFind()
+    for pointAlias in pointIDs:
+        root = pointIDUnions[pointAlias]
+        countryAlias = extractCountryID(pointAlias)
+        rootCountry = extractCountryID(root)
+        if rootCountry == countryAlias:
+            continue
+        countryIDUnions.union(rootCountry, countryAlias)
+    # inject injectedCountryAliases
+    for countryAlias1, countryAlias2 in injectedCountryAliases:
+        countryIDUnions.union(countryAlias1, countryAlias2)
+    # -----------------------------------------------------------------------------
+
+    countryAliasMap: t.Dict[CountryID, t.List[CountryID]] = defaultdict(list)
+    for countryAlias in allCountryAliases:
+        countryAliasMap[countryIDUnions[countryAlias]].append(countryAlias)
+
+    bestCountryIDMap: t.Dict[CountryID, CountryID] = {}
+    for clubbedCountryAliases in countryAliasMap.values():
+        countryNames = list(map(attrgetter('countryName'), clubbedCountryAliases))
+        bestCountryID = CountryID(getBestName(countryNames))
+        for countryAlias in clubbedCountryAliases:
+            bestCountryIDMap[countryAlias] = bestCountryID
+
+    cityAliasMap: t.Dict[CityID, t.List[CityID]] = defaultdict(list)
+    for cityAlias in allCityAliases:
+        cityAliasMap[cityIDUnions[cityAlias]].append(cityAlias)
+
+    bestCityIDMap: t.Dict[CityID, CityID] = {}
+    for clubbedCityAliases in cityAliasMap.values():
+        bestCountryName = bestCountryIDMap[extractCountryID(clubbedCityAliases[0])].countryName
+        cityNames = list(map(attrgetter('cityName'), clubbedCityAliases))
+        bestCityID = CityID(bestCountryName, getBestName(cityNames))
+        for cityAlias in clubbedCityAliases:
+            bestCityIDMap[cityAlias] = bestCityID
+
+    pointAliasMap: t.Dict[PointID, t.List[PointID]] = defaultdict(list)
+    for pointAlias in allPointAliases:
+        pointAliasMap[pointIDUnions[pointAlias]].append(pointAlias)
+
+    bestPointIDMap: t.Dict[PointID, PointID] = {}
+    for clubbedPointAliases in pointAliasMap.values():
+        bestCityID = bestCityIDMap[extractCityID(clubbedPointAliases[0])]
+        pointNames = list(map(attrgetter('pointName'), clubbedPointAliases))
+        bestPointID = PointID(bestCityID.countryName, bestCityID.cityName, getBestName(pointNames))
+        for pointAlias in clubbedPointAliases:
+            bestPointIDMap[pointAlias] = bestPointID
+
+    return bestPointIDMap, bestCityIDMap, bestCountryIDMap
+
+
+def safeAppend(dataset, location, value):
+    if location not in dataset:
+        dataset[location] = []
+    if value:
+        dataset[location].append(value)
+
+
+def collectAllListings(listings: t.List[JEL],
+                       bestPointIDMap: t.Dict[PointID, PointID],
+                       bestCityIDMap: t.Dict[CityID, CityID],
+                       bestCountryIDMap: t.Dict[CountryID, CountryID]) -> J:
+    data: J = tree()
+    for datum in tqdm(listings):
+        if datum['_listingType'] == 'country':
+            countryName = bestCountryIDMap[getCountryID(datum)].countryName
+            safeAppend(data[countryName], 'listings', datum)
+        if datum['_listingType'] == 'city':
+            countryName, cityName = bestCityIDMap[getCityID(datum)]
+            safeAppend(data[countryName]['cities'][cityName], 'listings', datum)
+        if datum['_listingType'] == 'point':
+            countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
+            safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'listings', datum)
+        if datum['_listingType'] == 'imageResource':
+            if forPoint(datum):
+                countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
+                datum = fixEntityNames(datum, countryName=countryName, cityName=cityName, pointName=pointName)
+                safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'images', datum)
+            elif forCity(datum):
+                countryName, cityName = bestCityIDMap[getCityID(datum)]
+                datum = fixEntityNames(datum, countryName=countryName, cityName=cityName)
+                safeAppend(data[countryName]['cities'][cityName], 'images', datum)
+            elif forCountry(datum):
+                countryName = bestCountryIDMap[getCountryID(datum)].countryName
+                datum = fixEntityNames(datum, countryName=countryName)
+                safeAppend(data[countryName], 'images', datum)
+        if datum['_listingType'] == 'review':
+            if forPoint(datum):
+                countryName, cityName, pointName = bestPointIDMap[getPointID(datum)]
+                datum = fixEntityNames(datum, countryName=countryName, cityName=cityName, pointName=pointName)
+                safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'reviews', datum)
+            elif forCity(datum):
+                countryName, cityName = bestCityIDMap[getCityID(datum)]
+                datum = fixEntityNames(datum, countryName=countryName, cityName=cityName)
+                safeAppend(data[countryName]['cities'][cityName], 'reviews', datum)
+            elif forCountry(datum):
+                countryName = bestCountryIDMap[getCountryID(datum)].countryName
+                datum = fixEntityNames(datum, countryName=countryName)
+                safeAppend(data[countryName], 'reviews', datum)
+
+    # Make data safe. Fill all attribs
+    for countryName, country in data.items():
+        safeAppend(data[countryName], 'images', None)
+        safeAppend(data[countryName], 'reviews', None)
+        safeAppend(data[countryName], 'listings', None)
+        safeAppend(data[countryName], 'cities', None)
+        for cityName, city in country['cities'].items():
+            safeAppend(data[countryName]['cities'][cityName], 'images', None)
+            safeAppend(data[countryName]['cities'][cityName], 'reviews', None)
+            safeAppend(data[countryName]['cities'][cityName], 'listings', None)
+            safeAppend(data[countryName]['cities'][cityName], 'points', None)
+            for pointName, point in city['points'].items():
+                safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'images', None)
+                safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'reviews', None)
+                safeAppend(data[countryName]['cities'][cityName]['points'][pointName], 'listings', None)
+
+    return data
+
+
+def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
+    if countryName:
+        entity['countryName'] = countryName
+    if cityName:
+        entity['cityName'] = cityName
+    if pointName:
+        entity['pointName'] = pointName
+    return entity
+
+
+def aggregateAllData(data: J) -> J:
+    aggregated = tree()
+    for countryName, country in data.items():
+        for cityName, city in country['cities'].items():
+            points = []
+            for pointName, point in city['points'].items():
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['images'] = orderImages(point['images'])
+                aggregated[countryName]['cities'][cityName]['points'][pointName]['reviews'] = orderReviews(point['reviews'])
+                finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
+                points.append(finalPoint)
+                aggregated[countryName]['cities'][cityName]['points'][pointName] = finalPoint
+
+            orderedPoints = orderPointsOfCity(points)
+            aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('_uuid'), orderedPoints))
+            aggregated[countryName]['cities'][cityName]['images'] = orderImages(city['images'])
+            aggregated[countryName]['cities'][cityName]['reviews'] = orderReviews(city['reviews'])
+            finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
+            aggregated[countryName]['cities'][cityName] = finalCity
+
+        aggregated[countryName]['images'] = orderImages(country['images'])
+        aggregated[countryName]['reviews'] = orderReviews(country['reviews'])
+        finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
+        aggregated[countryName] = finalCountry
+    return aggregated
+
+
+def processAll():
+    listings: t.List[JEL] = readListingsFromFiles([
+        'tripexpertData/tripexpert_requiredcities.json',
+        'viatorData/viator_requiredcities.json'
+    ])
+
+    print('Processing.')
+
+    countryListings: t.List[JKL] = [JKL(listing) for listing in listings if listing['_listingType'] == 'country']
+    cityListings: t.List[JCL] = [JCL(listing) for listing in listings if listing['_listingType'] == 'city']
+    pointListings: t.List[JPL] = [JPL(listing) for listing in listings if listing['_listingType'] == 'point']
+
+    pointIDs: t.List[PointID] = [getPointID(point) for point in pointListings]
+    cityIDs: t.List[CityID] = [getCityID(city) for city in cityListings]
+    countryIDs: t.List[CountryID] = [getCountryID(country) for country in countryListings]
+
+    allIDs: t.List[ID] = [t.cast(ID, pointID) for pointID in pointIDs]
+    allIDs.extend([getCityID(city) for city in cityListings])
+    allIDs.extend([getCountryID(country) for country in countryListings])
+
+    print('Processing done.')
+
+    bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
+
+    toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
+    saveData('toAggregate.json', toAggregatedData)
+
+    aggregated = aggregateAllData(toAggregatedData)
+    saveData('aggregatedData.json', aggregated)
+
+    print('All done')
 
 
 if __name__ == '__main__':
-	listings: List[Any] = readListingsFromFile()
-	cityClusters = getCityClusters(listings)
-	cityAliasToMainalais = makeReverseCityIndex(cityClusters)
-	pointsOfEachCity = getPointsForEachCity(cityAliasToMainalais, listings)
-
-	for cityMainAlias, pointsInThisCity in pointsOfEachCity.items():
-		pointClusters = getPointClusters(pointsInThisCity)
-
-		countryName, cityName = getBestCityName(cityClusters[cityMainAlias])
-
-		aggregatedPointsOfCity = aggregateAllPointsOfCity(pointClusters, countryName, cityName)
-
-
-
-
-
-
-
-
+    processAll()
