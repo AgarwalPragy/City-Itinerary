@@ -193,9 +193,9 @@ def freqWithWeightedDomainRankingComparator(pointAggregated1: PointAggregated, p
 
 
 def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
-    if pointAggregated1.avgRating > pointAggregated2.rank:
+    if pointAggregated1.avgRating > pointAggregated2.avgRating:
         return 1
-    elif pointAggregated1.avgRating < pointAggregated2.rank:
+    elif pointAggregated1.avgRating < pointAggregated2.avgRating:
         return -1
     else:
         return 0
