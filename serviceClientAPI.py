@@ -19,6 +19,7 @@ def loadData():
         for attrib, value in city.items():
             if attrib == 'points': continue
             if attrib == 'sources': continue
+            if attrib == 'pointsOrder': continue
             citiesNoPoints[cityIdentifier][attrib] = value
 
     return countries, cities, citiesNoPoints
@@ -28,10 +29,10 @@ countries, cities, citiesNoPoints = loadData()
 
 
 recentPlans = [
-    {'city': 'England/London', 'duration': '48'},
-    {'city': 'India/Agra', 'duration': '168'},
-    {'city': 'India/New Delhi', 'duration': '72'},
-    {'city': 'Singapore/Singapore', 'duration': '6'}
+    # {'city': 'United Kingdom/London', 'duration': '48'},
+    # {'city': 'India/Agra', 'duration': '168'},
+    # {'city': 'India/New Delhi', 'duration': '72'},
+    # {'city': 'Singapore/Singapore', 'duration': '6'}
 ]
 
 
