@@ -94,7 +94,7 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
     allPointAliases: t.Set[PointID] = set(pointIDs) | set(map(itemgetter(0), injectedPointAliases)) | set(map(itemgetter(1), injectedPointAliases))
     allCityAliases: t.Set[CityID] = set(cityIDs) | set(map(extractCityID, allPointAliases)) | set(map(itemgetter(0), injectedCityAliases)) | set(map(itemgetter(1), injectedCityAliases))
     allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(extractCountryID, allCityAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
-    pointIDs = list(allPointAliases)
+    pointIDs = sorted(list(allPointAliases))
 
     print('Found {} country aliases'.format(len(allCountryAliases)))
     print('Found {} city aliases'.format(len(allCityAliases)))
