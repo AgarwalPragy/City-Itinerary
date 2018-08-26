@@ -303,6 +303,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
                 aggregated[countryName]['cities'][cityName]['points'][pointName]['fullName'] = ', '.join([pointName, cityName, countryName])
 
             orderedPoints = orderPointsOfCity(points)
+
             aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
             aggregated[countryName]['cities'][cityName]['images'] = orderImages(city['images'])
             aggregated[countryName]['cities'][cityName]['reviews'] = orderReviews(city['reviews'])
@@ -341,7 +342,6 @@ def processAll():
         'tripexpertData/cities.json',
         'tripexpertData/tripexpert_requiredcities.json',
         'viatorData/viator_requiredcities.json',
-        'inspirockData/finalInspirock.json',
         'skyscannerData/finalSkyscanner.json'
     ])
 
