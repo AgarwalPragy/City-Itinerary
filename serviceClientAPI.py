@@ -9,7 +9,7 @@ def loadData():
     with open('aggregatedData.json', 'r') as f:
         countries = json.loads(f.read())
 
-    cities = {'{}/{}'.format(city['countryName'], city['cityName']): city
+    cities = {city['fullName']: city
               for country in countries.values()
               for city in country['cities'].values()}
 

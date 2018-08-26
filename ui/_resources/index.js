@@ -33,9 +33,7 @@ var registerFuse = function(cities) {
             {name: 'countryAliases', weight: 0.1},
         ]
     };
-    console.log(cities)
     var items = Object.values(cities);
-    console.log(items)
     window.fuse = new Fuse(items, options);
     registerSearch();
 }
@@ -48,7 +46,6 @@ var fuzzyMatcher = function(cities) {
 
     var matches = [];
     var results = fuse.search(sanitized);
-    console.log(results);
     $.each(results, function(index, obj) {
         matches.push(obj.item);
     });
@@ -70,6 +67,22 @@ var renderResult = function(item) {
                 '<div class="search-result-countryname">' + item.countryName + '</div>' +
             '</div>';
 };
+
+var renderEmpty = function(context) {
+    var randomSuggestion = chooseRandomElement([
+        '&#10075;' + context.query + '&#10076; sucks lmao.',
+        'They won\'t let me in',
+        'Shoo .. Don\'t go there!',
+        'There be <s>dragons</s> nothing?',
+        'Come again?'
+    ]);
+    var randomPerson = chooseRandomElement(['Albert Einstein', 'Nikola Tesla', 'Charles Darwin', 'Carl Sagan', 'Charles Babbage', 'Aristotle']);
+    return '<div class="search-result tt-suggestion">' +
+                '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
+                '<div class="search-result-cityname">' + randomSuggestion + '</div>' +
+                '<div class="search-result-countryname">- ' + randomPerson + '</div>' +
+            '</div>';
+}
 
 
 var registerVue = function() {
@@ -137,21 +150,18 @@ var registerSearch = function () {
             hint: false
         },
         {
-            name: 'city-searchbar',
+            name: 'fuzzySearchOnCities',
             display: 'fullName',
+            limit: 6,
             source: fuzzyMatcher(window.app.cities),
             templates: {
-                empty: [
-                    '<div class="search-result tt-suggestion">' + 
-                        '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
-                        '<div class="search-result-cityname">That city sucks!</div>' +
-                        '<div class="search-result-countryname">Don\'t go there ..</div>' +
-                    '</div>'
-                ].join('\n'),
+                empty: renderEmpty,
                 suggestion: renderResult
             }
         }
-    );
+    ).on('typeahead:selected', function (e, item) {
+        window.app.selectedCity = item;
+    });
 }
 
 var registerDataDependents = function() {
@@ -173,11 +183,3 @@ getData('/recent-plans', function (response) {
     window.hasRecentPlans = true;
     registerDataDependents();
 });
-
-
-                
-
-
-
-
-
