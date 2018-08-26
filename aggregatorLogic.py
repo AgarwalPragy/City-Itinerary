@@ -3,10 +3,12 @@ from collections import Counter
 from collections import defaultdict
 from jsonUtils import J
 import json
+import random
 
 from entities import *
 from utilities import *
-from siteRankings import alexa_ranking_orderedList
+from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
+from tunable import pointAttributeWeights, orderWeightOfPolicies
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 
@@ -54,21 +56,39 @@ def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
 
 def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: str, bestCityName: str, bestPointName: str) -> PointAggregated:
     finalPoint = PointAggregated(bestCountryName, bestCityName, bestPointName)
+    if len(jsonPointListings) == 0:
+        return finalPoint
 
-    ignoreAttributes = ['countryName', 'cityName', 'pointName', 'crawler','avgRating', 'ratingCount', 'sourceURL', 'crawlTimestamp', '_uuid', '_listingType']
+    ignoreAttributes = ['countryName', 'cityName', 'pointName', 'crawler','avgRating', 'ratingCount', 'rank', 'sourceURL', 'crawlTimestamp', '_uuid', '_listingType']
     attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
 
     avgRating, ratingCount = 0, 0
+    avgRankNumerator, avgRankDenominator = 0, 0
     for listing in jsonPointListings:
         finalPoint.sources.append(listing['_uuid'])
 
+        currentRating, currentRatingCount = 0, 0
         if listing['avgRating'] is not None:
             if listing['ratingCount'] is not None:
-                avgRating += listing['avgRating'] * listing['ratingCount']
-                ratingCount += listing['ratingCount']
+                currentRating = listing['avgRating']
+                currentRatingCount = listing['ratingCount']
+                avgRating += currentRating * currentRatingCount
+                ratingCount += currentRatingCount
             else:
-                avgRating += listing['avgRating'] # considered at least one person reviewed this listing
-                ratingCount += 1
+                currentRating = listing['avgRating']
+                currentRatingCount = 1
+                avgRating += currentRating # considered at least one person reviewed this listing
+                ratingCount += currentRatingCount
+
+
+        if listing['rank'] is not None:
+            avgRankNumerator += listing['rank'] * (1.0/ domain_avg_ranking[listing['crawler']])
+        else:
+            #decide rank based on wilson score: higher wilson score => lower rank
+            currentPointWilsonScore = getWilsonScore(currentRating/10.0, currentRatingCount)
+            siteRankOfPoint = random.randint(50, 200)*(1.0 - currentPointWilsonScore)
+            avgRankNumerator += siteRankOfPoint*(1.0/domain_avg_ranking[listing['crawler']])
+        avgRankDenominator += 1.0/domain_avg_ranking[listing['crawler']]
 
         for attr in listing:
             if attr not in ignoreAttributes:
@@ -82,6 +102,8 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     else:
         finalPoint.avgRating = 0
     finalPoint.ratingCount = ratingCount
+
+    finalPoint.rank = avgRankNumerator / avgRankDenominator
     # get best props value
     address = getBestAttributeValue(attributesValueListByCrawler['address'])
     coordinates = getBestAttributeValue(attributesValueListByCrawler['coordinates'])
@@ -111,10 +133,8 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     tripexpertScore = getBestAttributeValue(attributesValueListByCrawler['tripexpertScore'])
     website = getBestAttributeValue(attributesValueListByCrawler['website'])
-    rank = getBestAttributeValue(attributesValueListByCrawler['rank'])
     finalPoint.tripexpertScore = tripexpertScore
     finalPoint.website = website
-    finalPoint.rank = rank
 
     priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
     contact = getBestAttributeValue(attributesValueListByCrawler['contact'])
@@ -123,11 +143,69 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     return finalPoint
 
+def cmp_to_key(comparator):
+    'Convert a cmp= function into a key= function'
+    class K:
+        def __init__(self, obj, *args):
+            self.obj = obj
+        def __lt__(self, other):
+            return comparator(self.obj, other.obj) < 0
+        def __gt__(self, other):
+            return comparator(self.obj, other.obj) > 0
+        def __eq__(self, other):
+            return comparator(self.obj, other.obj) == 0
+        def __le__(self, other):
+            return comparator(self.obj, other.obj) <= 0
+        def __ge__(self, other):
+            return comparator(self.obj, other.obj) >= 0
+        def __ne__(self, other):
+            return comparator(self.obj, other.obj) != 0
+    return K
+
+
+def freqComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
+    if len(pointAggregated1.sources) > len(pointAggregated2.sources):
+        return 1
+    elif len(pointAggregated1.sources) < len(pointAggregated2.sources):
+        return -1
+    else:
+        return 0
+
+def wilsonScoreLBComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
+    wilsonScore1 = getWilsonScore(pointAggregated1['avgRating'], pointAggregated2['ratingCount'])
+    wilsonScore2 = getWilsonScore(pointAggregated2['avgRating'], pointAggregated2['ratingCount'])
+
+    if wilsonScore1 > wilsonScore2:
+        return 1
+    elif wilsonScore1 < wilsonScore2:
+        return -1
+    else:
+        return 0
+
+def freqWithWeightedDomainRankingComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
+    if len(pointAggregated1.sources) > len(pointAggregated2.sources):
+        return 1
+    elif len(pointAggregated1.sources) < len(pointAggregated2.sources):
+        return -1
+    elif pointAggregated1.rank <= pointAggregated2.rank:
+        return 1
+    else:
+        return -1
+
+def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
+    if pointAggregated1.avgRating > pointAggregated2.rank:
+        return 1
+    elif pointAggregated1.avgRating < pointAggregated2.rank:
+        return -1
+    else:
+        return 0
+
 
 def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregated]:
     # DEEPAK: You have a list of PointAggregated objects.
     # You need to sort this based on your logic
-    return pointsOfCity
+    sortedPointsOfCity = sorted(pointsOfCity, key=cmp_to_key(freqComparator), reverse=True)
+    return sortedPointsOfCity
 
 
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:
