@@ -8,7 +8,7 @@ import random
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies
+from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 
@@ -174,7 +174,6 @@ def freqComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAg
 def wilsonScoreLBComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
     wilsonScore1 = getWilsonScore(pointAggregated1['avgRating'], pointAggregated2['ratingCount'])
     wilsonScore2 = getWilsonScore(pointAggregated2['avgRating'], pointAggregated2['ratingCount'])
-
     if wilsonScore1 > wilsonScore2:
         return 1
     elif wilsonScore1 < wilsonScore2:
@@ -192,6 +191,7 @@ def freqWithWeightedDomainRankingComparator(pointAggregated1: PointAggregated, p
     else:
         return -1
 
+
 def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
     if pointAggregated1.avgRating > pointAggregated2.rank:
         return 1
@@ -200,12 +200,64 @@ def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated
     else:
         return 0
 
+def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
+    result = 0
+
+    if 'frequency' in orderWeightOfPolicies:
+        result += len(pointAggregated.sources) * orderWeightOfPolicies['frequency']
+
+    if 'rank' in orderWeightOfPolicies:
+        if pointAggregated['rank'] is not None:
+            result -= pointAggregated.rank * orderWeightOfPolicies['rank']
+
+    if 'wilsonScore' in orderWeightOfPolicies:
+        result += getWilsonScore(pointAggregated.avgRating/10, pointAggregated.ratingCount) * orderWeightOfPolicies['wilsonScore']
+
+    if 'pointAttributes' in orderWeightOfPolicies:
+        pointAttrValue = 0
+        for pointAttr in pointAttributeWeights:
+            if pointAggregated[pointAttr] is not None:
+                pointAttrValue += pointAttributeWeights[pointAttr]
+        result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
+
+    if 'tripexpertScore' in orderWeightOfPolicies:
+        if pointAggregated['tripexpertScore'] is not None:
+            result += pointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
+
+    return result
+
+
+def weightedOverDiffPoliciesComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
+    value1 = getWeightedOrderValueOverDiffPolices(pointAggregated1)
+    value2 = getWeightedOrderValueOverDiffPolices(pointAggregated2)
+
+    if value1 > value2:
+        return 1
+    elif value1 < value2:
+        return -1
+    else:
+        return 0
+
+
+
 
 def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregated]:
-    # DEEPAK: You have a list of PointAggregated objects.
-    # You need to sort this based on your logic
-    sortedPointsOfCity = sorted(pointsOfCity, key=cmp_to_key(freqComparator), reverse=True)
-    return sortedPointsOfCity
+    if orderBasedOn == 'frequency':
+        return sorted(pointsOfCity, key=cmp_to_key(freqComparator), reverse=True)
+
+    elif orderBasedOn == 'wilsonScore':
+        return sorted(pointsOfCity, key=cmp_to_key(wilsonScoreLBComparator), reverse=True)
+
+    elif orderBasedOn == 'weightedAvgRating':
+        return sorted(pointsOfCity, key=cmp_to_key(weightAvgRatingComparator), reverse=True)
+
+    elif orderBasedOn == 'frequencyWithWDomainRanking':
+        return sorted(pointsOfCity, key=cmp_to_key(freqWithWeightedDomainRankingComparator), reverse=True)
+
+    elif orderBasedOn == 'weightedOverDiffPolicies':
+        return sorted(pointsOfCity, key=cmp_to_key(weightedOverDiffPoliciesComparator), reverse=True)
+
+    return pointsOfCity
 
 
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:

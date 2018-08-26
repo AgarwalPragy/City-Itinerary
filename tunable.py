@@ -1,8 +1,35 @@
-from entities import CityID, CountryID, PointID
+from entities import CityID, CountryID, PointID, PointListing
+from collections import defaultdict
 
 matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
 matchPointID_pointThreshold = 95
+
+pointAttributeWeights = {
+    'coordinates': 0.35,
+    'address': 0.25,
+    'openingHour': 0.15,
+    'closingHour': 0.15,
+    'category': 0.1
+}
+
+indexToOrderPolicy = {
+    0: 'frequency',
+    1: 'weightedAvgRating',
+    2: 'wilsonScore',
+    3: 'frequencyWithWDomainRanking',
+    4: 'weightedOverDiffPolicies'
+}
+
+orderWeightOfPolicies = {
+    'frequency': 0.2,
+    'rank': 0.3,
+    'wilsonScore': 0.2,
+    'pointAttributes': 0.2,
+    'tripexpertScore': 0.1
+}
+
+orderBasedOn = indexToOrderPolicy[0]
 
 injectedPointAliases = [
     (PointID('India', 'Mumbai', 'Indian Institute of Technology Bombay'), PointID('India', 'Mumbai', 'IIT Bombay')),

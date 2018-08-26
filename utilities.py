@@ -45,8 +45,11 @@ def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
 
 
 def getWilsonScore(p, n) -> float:
-    z = 1.96 # consider 95% confidence interval 
-    lower_bound = (p + z*z/(2*n) - z*math.sqrt((p*(1-p) + z*z/(4*n) )/n) )/ (1 + z*z/n)
+    z = 1.96 # consider 95% confidence interval
+    if n > 0:
+        lower_bound = (p + z*z/(2*n) - z*math.sqrt((p*(1-p) + z*z/(4*n) )/n) )/ (1 + z*z/n)
+    else:
+        lower_bound = 0
     return lower_bound
 
 

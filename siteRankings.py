@@ -1,4 +1,4 @@
-__all__ = ['alexa_ranking', 'similar_web_ranking', 'alexa_ranking_orderedList']
+__all__ = ['alexa_ranking', 'similar_web_ranking', 'alexa_ranking_orderedList', 'domain_avg_ranking']
 
 alexa_score = {
     'tripexpert' : 100,
@@ -22,7 +22,7 @@ alexa_ranking = {
     'tripexpert' : 1,
     'tripAdvisor': 2,
     'skyscanner':  30,
-    'viator_v2':   40,
+    'viator_v2':   39,
     'inspirock':   120
 }
 
@@ -30,8 +30,16 @@ alexa_ranking_orderedList = ['tripexpert', 'tripAdvisor', 'skyscanner', 'viator_
 
 similar_web_ranking = {
     'tripexpert' : 1,
-    'tripAdvisor': 2,
+    'tripAdvisor': 1,
     'skyscanner':  39,
-    'viator_v2':   51,
-    'inspirock':   200
+    'viator_v2':   52,
+    'inspirock':   203
+}
+
+domain_avg_ranking = {
+    'tripexpert': 1,
+    'tripAdvisor': 2,
+    'skyscanner': 35,
+    'viator_v2': 46,
+    'inspirock': 162
 }
