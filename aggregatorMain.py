@@ -267,7 +267,7 @@ def fixEntityNames(entity, countryName=None, cityName=None, pointName=None):
 
 
 def frontAndBack(items):
-    return [processName(''.join(alias)) for alias in items] + [processName(''.join(alias[::-1])) for alias in items]
+    return list(set(processName(''.join(alias)) for alias in items) | set(processName(''.join(alias[::-1])) for alias in items))
 
 
 def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
@@ -275,51 +275,53 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     aggregated = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     for countryName, country in data.items():
-        countryCount += 1
-        imageCount += len(country['images'])
-        reviewCount += len(country['reviews'])
+        aggregatedCountry = aggregated[countryName]
         if not country['cities']:
-            aggregated[countryName]['cities'] = {}
+            aggregatedCountry['cities'] = {}
         for cityName, city in country['cities'].items():
-            cityCount += 1
-            imageCount += len(city['images'])
-            reviewCount += len(city['reviews'])
+            aggregatedCity = aggregatedCountry['cities'][cityName]
             if not city['points']:
-                aggregated[countryName]['cities'][cityName]['points'] = {}
+                aggregatedCity['points'] = {}
             points = []
             for pointName, point in city['points'].items():
-                pointCount += 1
-                imageCount += len(point['images'])
-                reviewCount += len(point['reviews'])
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['images'] = orderImages(point['images'])
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['reviews'] = orderReviews(point['reviews'])
+                aggregatedPoint = aggregatedCity['points'][pointName]
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
-                    aggregated[countryName]['cities'][cityName]['points'][pointName][attrib] = val
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['pointAliases'] = frontAndBack(revPoint[PointID(countryName, cityName, pointName)])
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
-                aggregated[countryName]['cities'][cityName]['points'][pointName]['fullName'] = ', '.join([pointName, cityName, countryName])
+                    aggregatedPoint[attrib] = val
+                aggregatedPoint['images'] = orderImages(point['images'])
+                aggregatedPoint['reviews'] = orderReviews(point['reviews'])
+                aggregatedPoint['pointAliases'] = frontAndBack(revPoint[PointID(countryName, cityName, pointName)])
+                aggregatedPoint['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
+                aggregatedPoint['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+                aggregatedPoint['fullName'] = ', '.join([pointName, cityName, countryName])
+                pointCount += 1
+                imageCount += len(point['images'])
+                reviewCount += len(point['reviews'])
 
-            orderedPoints = orderPointsOfCity(points)
-
-            aggregated[countryName]['cities'][cityName]['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
-            aggregated[countryName]['cities'][cityName]['images'] = orderImages(city['images'])
-            aggregated[countryName]['cities'][cityName]['reviews'] = orderReviews(city['reviews'])
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
             for attrib, val in finalCity.jsonify().items():
-                aggregated[countryName]['cities'][cityName][attrib] = val
-            aggregated[countryName]['cities'][cityName]['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
-            aggregated[countryName]['cities'][cityName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
-            aggregated[countryName]['cities'][cityName]['fullName'] = ', '.join([cityName, countryName])
+                aggregatedCity[attrib] = val
+            orderedPoints = orderPointsOfCity(points)
+            aggregatedCity['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
+            aggregatedCity['images'] = orderImages(city['images'])
+            aggregatedCity['reviews'] = orderReviews(city['reviews'])
+            aggregatedCity['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
+            aggregatedCity['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+            aggregatedCity['fullName'] = ', '.join([cityName, countryName])
+            cityCount += 1
+            imageCount += len(city['images'])
+            reviewCount += len(city['reviews'])
 
-        aggregated[countryName]['images'] = orderImages(country['images'])
-        aggregated[countryName]['reviews'] = orderReviews(country['reviews'])
         finalCountry = aggregateOneCountryFromListings(country['listings'], countryName)
         for attrib, val in finalCountry.jsonify().items():
-            aggregated[countryName][attrib] = val
-        aggregated[countryName]['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+            aggregatedCountry[attrib] = val
+        aggregatedCountry['images'] = orderImages(country['images'])
+        aggregatedCountry['reviews'] = orderReviews(country['reviews'])
+        aggregatedCountry['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
+        countryCount += 1
+        imageCount += len(country['images'])
+        reviewCount += len(country['reviews'])
 
     print('Finally extracted {} countries'.format(countryCount))
     print('Finally extracted {} cities'.format(cityCount))
@@ -342,6 +344,7 @@ def processAll():
         'tripexpertData/cities.json',
         'tripexpertData/tripexpert_requiredcities.json',
         'viatorData/viator_requiredcities.json',
+        'inspirockData/finalInspirock.json',
         'skyscannerData/finalSkyscanner.json'
     ])
 
