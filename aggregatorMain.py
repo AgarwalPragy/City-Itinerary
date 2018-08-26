@@ -276,25 +276,38 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     for countryName, country in data.items():
         aggregatedCountry = aggregated[countryName]
+        bestCountryID = CountryID(countryName)
+        aggregatedCountry['countryAliases'] = frontAndBack(revCountry[bestCountryID] + [bestCountryID])
+
         if not country['cities']:
             aggregatedCountry['cities'] = {}
         for cityName, city in country['cities'].items():
             aggregatedCity = aggregatedCountry['cities'][cityName]
+            bestCityID = CityID(countryName, cityName)
+            aggregatedCity['fullName'] = ', '.join(bestCityID[::-1])
+            aggregatedCity['cityAliases'] = frontAndBack(revCity[bestCityID] + [bestCityID])
+            aggregatedCity['countryAliases'] = aggregatedCountry['countryAliases']
+
             if not city['points']:
                 aggregatedCity['points'] = {}
             points = []
             for pointName, point in city['points'].items():
                 aggregatedPoint = aggregatedCity['points'][pointName]
+                bestPointID = PointID(countryName, cityName, pointName)
+                aggregatedPoint['fullName'] = ', '.join(bestPointID[::-1])
+                aggregatedPoint['pointAliases'] = frontAndBack(revPoint[bestPointID] + [bestPointID])
+                aggregatedPoint['cityAliases'] = aggregatedCity['cityAliases']
+                aggregatedPoint['countryAliases'] = aggregatedCountry['countryAliases']
+
+                if not point['listings']:
+                    print('No listings found, but reviews/images exist for the following point')
+                    print(point)
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
                     aggregatedPoint[attrib] = val
                 aggregatedPoint['images'] = orderImages(point['images'])
                 aggregatedPoint['reviews'] = orderReviews(point['reviews'])
-                aggregatedPoint['pointAliases'] = frontAndBack(revPoint[PointID(countryName, cityName, pointName)])
-                aggregatedPoint['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
-                aggregatedPoint['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
-                aggregatedPoint['fullName'] = ', '.join([pointName, cityName, countryName])
                 pointCount += 1
                 imageCount += len(point['images'])
                 reviewCount += len(point['reviews'])
@@ -306,9 +319,6 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
             aggregatedCity['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
             aggregatedCity['images'] = orderImages(city['images'])
             aggregatedCity['reviews'] = orderReviews(city['reviews'])
-            aggregatedCity['cityAliases'] = frontAndBack(revCity[CityID(countryName, cityName)])
-            aggregatedCity['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
-            aggregatedCity['fullName'] = ', '.join([cityName, countryName])
             cityCount += 1
             imageCount += len(city['images'])
             reviewCount += len(city['reviews'])
@@ -318,7 +328,6 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
             aggregatedCountry[attrib] = val
         aggregatedCountry['images'] = orderImages(country['images'])
         aggregatedCountry['reviews'] = orderReviews(country['reviews'])
-        aggregatedCountry['countryAliases'] = frontAndBack(revCountry[CountryID(countryName)])
         countryCount += 1
         imageCount += len(country['images'])
         reviewCount += len(country['reviews'])
