@@ -174,8 +174,8 @@ def freqComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAg
         return 0
 
 def wilsonScoreLBComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
-    wilsonScore1 = getWilsonScore(pointAggregated1['avgRating'], pointAggregated2['ratingCount'])
-    wilsonScore2 = getWilsonScore(pointAggregated2['avgRating'], pointAggregated2['ratingCount'])
+    wilsonScore1 = getWilsonScore(pointAggregated1.avgRating/10, pointAggregated2.ratingCount)
+    wilsonScore2 = getWilsonScore(pointAggregated2.avgRating/10, pointAggregated2.ratingCount)
     if wilsonScore1 > wilsonScore2:
         return 1
     elif wilsonScore1 < wilsonScore2:
@@ -188,11 +188,13 @@ def freqWithWeightedDomainRankingComparator(pointAggregated1: PointAggregated, p
         return 1
     elif len(pointAggregated1.sources) < len(pointAggregated2.sources):
         return -1
-    elif pointAggregated1.rank <= pointAggregated2.rank:
-        return 1
+    elif pointAggregated1.rank is not None and pointAggregated2.rank is not None:
+        if pointAggregated1.rank <= pointAggregated2.rank:
+            return 1
+        else:
+            return -1
     else:
-        return -1
-
+        return 0
 
 def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
     if pointAggregated1.avgRating > pointAggregated2.avgRating:
@@ -204,27 +206,27 @@ def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated
 
 def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
     result = 0
-
+    jsonPointAggregated = pointAggregated.jsonify()
     if 'frequency' in orderWeightOfPolicies:
-        result += len(pointAggregated.sources) * orderWeightOfPolicies['frequency']
+        result += len(jsonPointAggregated['sources']) * orderWeightOfPolicies['frequency']
 
     if 'rank' in orderWeightOfPolicies:
-        if pointAggregated['rank'] is not None:
-            result -= pointAggregated.rank * orderWeightOfPolicies['rank']
+        if jsonPointAggregated['rank'] is not None:
+            result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
 
     if 'wilsonScore' in orderWeightOfPolicies:
-        result += getWilsonScore(pointAggregated.avgRating/10, pointAggregated.ratingCount) * orderWeightOfPolicies['wilsonScore']
+        result += getWilsonScore(jsonPointAggregated['avgRating']/10, jsonPointAggregated['ratingCount']) * orderWeightOfPolicies['wilsonScore']
 
     if 'pointAttributes' in orderWeightOfPolicies:
         pointAttrValue = 0
         for pointAttr in pointAttributeWeights:
-            if pointAggregated[pointAttr] is not None:
+            if jsonPointAggregated[pointAttr] is not None:
                 pointAttrValue += pointAttributeWeights[pointAttr]
         result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
 
     if 'tripexpertScore' in orderWeightOfPolicies:
-        if pointAggregated['tripexpertScore'] is not None:
-            result += pointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
+        if jsonPointAggregated['tripexpertScore'] is not None:
+            result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
 
     return result
 
