@@ -10,7 +10,7 @@ from jsonUtils import J, EnhancedJSONEncoder
 from aggregatorLogic import *
 from utilities import doesFuzzyMatch, UnionFind, tree, processName
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
-from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases
+from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, orderBasedOn
 
 
 ID = t.Union[CountryID, CityID, PointID]
@@ -376,7 +376,7 @@ def processAll():
     saveData('toAggregate.json', toAggregatedData)
 
     aggregatedListings = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
-    saveData('aggregatedData.json', aggregatedListings)
+    saveData('aggregatedData' + orderBasedOn + '.json', aggregatedListings)
 
     print('Saving debug info')
     debugInfo = {
