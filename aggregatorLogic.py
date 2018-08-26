@@ -44,6 +44,7 @@ def orderReviews(jsonReviewListings: List[J]) -> List[J]:
     # return as is for now
     return jsonReviewListings
 
+
 def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
     result = None
     for crawler in alexa_ranking_orderedList:
@@ -61,7 +62,11 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
         finalPoint.ratingCount = 0
         return finalPoint
 
-    ignoreAttributes = ['countryName', 'cityName', 'pointName', 'crawler','avgRating', 'ratingCount', 'rank', 'sourceURL', 'crawlTimestamp', '_uuid', '_listingType']
+    ignoreAttributes = ['countryName', 'cityName', 'pointName',
+                        'crawler', 'sourceURL', 'crawlTimestamp',
+                        'avgRating', 'ratingCount', 'rank',
+                        '_uuid', '_listingType']
+
     attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
 
     avgRating, ratingCount = 0, 0
@@ -82,11 +87,10 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                 avgRating += currentRating # considered at least one person reviewed this listing
                 ratingCount += currentRatingCount
 
-
         if listing['rank'] is not None:
-            avgRankNumerator += listing['rank'] * (1.0/ domain_avg_ranking[listing['crawler']])
+            avgRankNumerator += listing['rank'] * (1.0 / domain_avg_ranking[listing['crawler']])
         else:
-            #decide rank based on wilson score: higher wilson score => lower rank
+            # decide rank based on wilson score: higher wilson score => lower rank
             currentPointWilsonScore = getWilsonScore(currentRating/10.0, currentRatingCount)
             siteRankOfPoint = random.randint(50, 200)*(1.0 - currentPointWilsonScore)
             avgRankNumerator += siteRankOfPoint*(1.0/domain_avg_ranking[listing['crawler']])
@@ -145,64 +149,40 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     return finalPoint
 
-def cmp_to_key(comparator):
-    'Convert a cmp= function into a key= function'
-    class K:
-        def __init__(self, obj, *args):
-            self.obj = obj
-        def __lt__(self, other):
-            return comparator(self.obj, other.obj) < 0
-        def __gt__(self, other):
-            return comparator(self.obj, other.obj) > 0
-        def __eq__(self, other):
-            return comparator(self.obj, other.obj) == 0
-        def __le__(self, other):
-            return comparator(self.obj, other.obj) <= 0
-        def __ge__(self, other):
-            return comparator(self.obj, other.obj) >= 0
-        def __ne__(self, other):
-            return comparator(self.obj, other.obj) != 0
-    return K
+
+#######################################################################################################################
+#######################################################################################################################
+
+def pointFrequency(point):
+    return len(point.sources)
 
 
-def freqComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
-    if len(pointAggregated1.sources) > len(pointAggregated2.sources):
-        return 1
-    elif len(pointAggregated1.sources) < len(pointAggregated2.sources):
-        return -1
-    else:
-        return 0
+def wilsonScoreLB(point):
+    return getWilsonScore(point.avgRating/10, point.ratingCount)
 
-def wilsonScoreLBComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
-    wilsonScore1 = getWilsonScore(pointAggregated1.avgRating/10, pointAggregated2.ratingCount)
-    wilsonScore2 = getWilsonScore(pointAggregated2.avgRating/10, pointAggregated2.ratingCount)
-    if wilsonScore1 > wilsonScore2:
-        return 1
-    elif wilsonScore1 < wilsonScore2:
-        return -1
-    else:
-        return 0
 
-def freqWithWeightedDomainRankingComparator(pointAggregated1: PointAggregated, pointAggregated2:  PointAggregated):
-    if len(pointAggregated1.sources) > len(pointAggregated2.sources):
-        return 1
-    elif len(pointAggregated1.sources) < len(pointAggregated2.sources):
-        return -1
-    elif pointAggregated1.rank is not None and pointAggregated2.rank is not None:
-        if pointAggregated1.rank <= pointAggregated2.rank:
-            return 1
-        else:
-            return -1
-    else:
-        return 0
+def freqWithWeightedDomainRanking(point):
+    rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
+    return len(point.sources), rank                        # first sort on len, then on rank
 
-def weightAvgRatingComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
-    if pointAggregated1.avgRating > pointAggregated2.avgRating:
-        return 1
-    elif pointAggregated1.avgRating < pointAggregated2.avgRating:
-        return -1
-    else:
-        return 0
+
+def weightAvgRating(point):
+    return point.avgRating
+
+
+def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregated]:
+    keyFunction = {
+        'frequency': pointFrequency,
+        'wilsonScore': wilsonScoreLB,
+        'weightedAvgRating': weightAvgRating,
+        'frequencyWithWDomainRanking': freqWithWeightedDomainRanking,
+        'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
+    }
+    return sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True)
+
+
+#######################################################################################################################
+#######################################################################################################################
 
 def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
     result = 0
@@ -231,43 +211,14 @@ def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
     return result
 
 
-def weightedOverDiffPoliciesComparator(pointAggregated1: PointAggregated, pointAggregated2: PointAggregated):
-    value1 = getWeightedOrderValueOverDiffPolices(pointAggregated1)
-    value2 = getWeightedOrderValueOverDiffPolices(pointAggregated2)
-
-    if value1 > value2:
-        return 1
-    elif value1 < value2:
-        return -1
-    else:
-        return 0
-
-
-
-
-def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregated]:
-    if orderBasedOn == 'frequency':
-        return sorted(pointsOfCity, key=cmp_to_key(freqComparator), reverse=True)
-
-    elif orderBasedOn == 'wilsonScore':
-        return sorted(pointsOfCity, key=cmp_to_key(wilsonScoreLBComparator), reverse=True)
-
-    elif orderBasedOn == 'weightedAvgRating':
-        return sorted(pointsOfCity, key=cmp_to_key(weightAvgRatingComparator), reverse=True)
-
-    elif orderBasedOn == 'frequencyWithWDomainRanking':
-        return sorted(pointsOfCity, key=cmp_to_key(freqWithWeightedDomainRankingComparator), reverse=True)
-
-    elif orderBasedOn == 'weightedOverDiffPolicies':
-        return sorted(pointsOfCity, key=cmp_to_key(weightedOverDiffPoliciesComparator), reverse=True)
-
-    return pointsOfCity
-
-
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:
     finalCity = CityAggregated(bestCountryName, bestCityName)
 
-    ignoreAttributes = ['countryName', 'cityName', 'crawler','avgRating', 'ratingCount', 'sourceURL', 'crawlTimestamp', '_uuid', '_listingType']
+    ignoreAttributes = ['countryName', 'cityName',
+                        'crawler', 'sourceURL', 'crawlTimestamp',
+                        'avgRating', 'ratingCount',
+                        '_uuid', '_listingType']
+
     attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
 
     avgRating, ratingCount = 0, 0
@@ -288,7 +239,6 @@ def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str
                     attributesValueListByCrawler[attr][listing['crawler']].append(listing[attr])
                 else:
                     attributesValueListByCrawler[attr][listing['crawler']] = [listing[attr]]
-
 
     regionName = getBestAttributeValue(attributesValueListByCrawler['regionName'])
     coordinates = getBestAttributeValue(attributesValueListByCrawler['coordinates'])
