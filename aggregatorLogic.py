@@ -62,15 +62,18 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
         finalPoint.ratingCount = 0
         return finalPoint
 
-    ignoreAttributes = ['countryName', 'cityName', 'pointName',
-                        'crawler', 'sourceURL', 'crawlTimestamp',
-                        'avgRating', 'ratingCount', 'rank',
-                        '_uuid', '_listingType']
+    ignoreAttributes = ['countryName', 'cityName', 'pointName', 'canStay',
+                        'canEat', 'canTour', 'crawler', 'sourceURL', 'crawlTimestamp',
+                        'avgRating', 'ratingCount', 'rank', 'notes', 'category',
+                        '_uuid', '_listingType', 'website']
 
     attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
 
     avgRating, ratingCount = 0, 0
     avgRankNumerator, avgRankDenominator = 0, 0
+    canStay, canTour, canEat = None, None, None
+    notesData, contactData, websites = "", "", ""
+    categoryData = []
     for listing in jsonPointListings:
         finalPoint.sources.append(listing['_uuid'])
 
@@ -96,6 +99,37 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
             avgRankNumerator += siteRankOfPoint*(1.0/domain_avg_ranking[listing['crawler']])
         avgRankDenominator += 1.0/domain_avg_ranking[listing['crawler']]
 
+
+        if listing['canStay'] is not None:
+            if canStay is None:
+                canStay = listing['canStay']
+            else:
+                canStay = canStay or listing['canStay']
+
+        if listing['canEat'] is not None:
+            if canEat is None:
+                canEat = listing['canEat']
+            else:
+                canEat = canEat or listing['canEat']
+
+        if listing['canTour'] is not None:
+            if canTour is None:
+                canTour = listing['canTour']
+            else:
+                canTour = canTour or listing['canTour']
+
+        if listing['notes'] is not None:
+            notesData += listing['notes']
+
+        if listing['category'] is not None:
+            categoryData.append(listing['category'])
+
+        if "contact" in listing and listing['contact'] is not None:
+            contactData += listing['contact'] + ","
+
+        if listing['website'] is not None:
+            websites += listing['website'] + ","
+
         for attr in listing:
             if attr not in ignoreAttributes:
                 if listing['crawler'] in attributesValueListByCrawler[attr]:
@@ -110,6 +144,26 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     finalPoint.ratingCount = ratingCount
 
     finalPoint.rank = avgRankNumerator / avgRankDenominator
+
+    if len(notesData) > 0:
+        finalPoint.notes = notesData
+
+    if len(categoryData) > 0:
+        mergedCategory = ', '.join(set((', '.join(categoryData)).split(',')))
+        finalPoint.category = mergedCategory
+
+    if len(contactData) > 0:
+        contactData = contactData[:-1]
+        finalPoint.contact = contactData
+
+    if len(websites) > 0:
+        websites = websites[:-1]
+        finalPoint.website = websites
+
+    finalPoint.canEat = canEat
+    finalPoint.canStay = canStay
+    finalPoint.canTour = canTour
+
     # get best props value
     address = getBestAttributeValue(attributesValueListByCrawler['address'])
     coordinates = getBestAttributeValue(attributesValueListByCrawler['coordinates'])
@@ -124,28 +178,13 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     finalPoint.recommendedNumHours = recommendedNumHours
 
     description = getBestAttributeValue(attributesValueListByCrawler['description'])
-    notes = getBestAttributeValue(attributesValueListByCrawler['notes'])
     finalPoint.description = description
-    finalPoint.notes = notes
-
-    canEat = getBestAttributeValue(attributesValueListByCrawler['canEat'])
-    canStay = getBestAttributeValue(attributesValueListByCrawler['canStay'])
-    canTour = getBestAttributeValue(attributesValueListByCrawler['canTour'])
-    category = getBestAttributeValue(attributesValueListByCrawler['category'])
-    finalPoint.canEat = canEat
-    finalPoint.canStay = canStay
-    finalPoint.canTour = canTour
-    finalPoint.category = category
 
     tripexpertScore = getBestAttributeValue(attributesValueListByCrawler['tripexpertScore'])
-    website = getBestAttributeValue(attributesValueListByCrawler['website'])
     finalPoint.tripexpertScore = tripexpertScore
-    finalPoint.website = website
 
     priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
-    contact = getBestAttributeValue(attributesValueListByCrawler['contact'])
     finalPoint.priceLevel = priceLevel
-    finalPoint.contact = contact
 
     return finalPoint
 
@@ -214,14 +253,11 @@ def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:
     finalCity = CityAggregated(bestCountryName, bestCityName)
 
-    ignoreAttributes = ['countryName', 'cityName',
-                        'crawler', 'sourceURL', 'crawlTimestamp',
-                        'avgRating', 'ratingCount',
-                        '_uuid', '_listingType']
-
-    attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
+    coordinatesValuesListByCrawler = defaultdict(list)
 
     avgRating, ratingCount = 0, 0
+    daysNumerator, daysDenominator = 0, 0
+    regionNameData = ""
     for listing in jsonCityListings:
         finalCity.sources.append(listing['_uuid'])
 
@@ -233,25 +269,30 @@ def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str
                 avgRating += listing['avgRating'] # considered at least one person reviewed this listing
                 ratingCount += 1
 
-        for attr in listing:
-            if attr not in ignoreAttributes:
-                if listing['crawler'] in attributesValueListByCrawler[attr]:
-                    attributesValueListByCrawler[attr][listing['crawler']].append(listing[attr])
-                else:
-                    attributesValueListByCrawler[attr][listing['crawler']] = [listing[attr]]
+        if listing['recommendedNumDays'] is not None:
+            daysNumerator += listing['recommendedNumDays'] * (1.0/domain_avg_ranking[listing['crawler']])
+            daysDenominator += 1.0/domain_avg_ranking[listing['crawler']]
 
-    regionName = getBestAttributeValue(attributesValueListByCrawler['regionName'])
-    coordinates = getBestAttributeValue(attributesValueListByCrawler['coordinates'])
-    recommendedNumDays = getBestAttributeValue(attributesValueListByCrawler['recommendedNumDays'])
+        if listing['regionName'] is not None:
+            regionNameData += listing['regionName'] + ", "
+
 
     if ratingCount != 0:
         finalCity.avgRating = avgRating/ratingCount
     else:
         finalCity.avgRating = 0
+
+    if daysDenominator != 0:
+        finalCity.recommendedNumDays = daysNumerator/daysDenominator
+
+    if len(regionNameData) > 0:
+        regionNameData = regionNameData[:-1]
+        finalCity.regionName = regionNameData
+
     finalCity.ratingCount = ratingCount
-    finalCity.regionName = regionName
+
+    coordinates = getBestAttributeValue(coordinatesValuesListByCrawler)
     finalCity.coordinates = coordinates
-    finalCity.recommendedNumDays = recommendedNumDays
 
     return finalCity
 
