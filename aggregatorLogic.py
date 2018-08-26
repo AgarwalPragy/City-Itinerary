@@ -57,6 +57,8 @@ def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
 def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: str, bestCityName: str, bestPointName: str) -> PointAggregated:
     finalPoint = PointAggregated(bestCountryName, bestCityName, bestPointName)
     if len(jsonPointListings) == 0:
+        finalPoint.avgRating = 0
+        finalPoint.ratingCount = 0
         return finalPoint
 
     ignoreAttributes = ['countryName', 'cityName', 'pointName', 'crawler','avgRating', 'ratingCount', 'rank', 'sourceURL', 'crawlTimestamp', '_uuid', '_listingType']
