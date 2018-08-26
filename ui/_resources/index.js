@@ -1,4 +1,5 @@
 var cityImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png'
+window.fuse = null;
 
 var getData = function(url, callback) {
     console.log(url);
@@ -10,14 +11,13 @@ var getData = function(url, callback) {
     });
 }
 
-window.fuse = null;
 
 var chooseRandomElement = function(items) {
     var rindex = Math.floor(Math.random() * items.length);
     return items[rindex];
 }
 
-var registerCitiesDependents = function(cities) {
+var registerFuse = function(cities) {
     var options = {
         shouldSort: true,
         includeScore: true,
@@ -28,7 +28,7 @@ var registerCitiesDependents = function(cities) {
         minMatchCharLength: 1,
         keys: [
             {name: 'cityName', weight: 0.4},
-            {name: 'cityAliases', weight: 0.4},
+            {name: 'cityAliases', weight: 0.2},
             {name: 'countryName', weight: 0.1},
             {name: 'countryAliases', weight: 0.1},
         ]
@@ -76,23 +76,11 @@ var registerVue = function() {
     window.app = new Vue({
         el: '#container',
         data: {
-            cities: {'England/London': {
-                'cityName': 'London',
-                'countryName': 'England'
-            }},
+            cities: {},
             recentPlans: [],
-            selectedCity: 'England/London'
+            selectedCity: false
         },
-        mounted: function() {
-            getData('/cities', function (response) {
-                cities = response.data;
-                window.app['cities'] = cities;
-                registerCitiesDependents(cities);
-            });
-            getData('/recent-plans', function (response) {
-                window.app['recentPlans'] = response.data;
-            });
-        },
+        mounted: function() {},
         methods: {
             getCityImage: function(plan) {
                 var city = this.cities[plan.city]
@@ -166,8 +154,29 @@ var registerSearch = function () {
     );
 }
 
-registerVue();
-registerDateTime();
+var registerDataDependents = function() {
+    if(!window.hasCities || !window.hasRecentPlans) return;
+    registerVue();
+    registerFuse(window.cities);
+    registerDateTime();
+    window.app['cities'] = window.cities;
+    window.app['recentPlans'] = window.recentPlans;
+}
+
+getData('/cities', function (response) {
+    window.cities = response.data;
+    window.hasCities = true;
+    registerDataDependents();
+});
+getData('/recent-plans', function (response) {
+    window.recentPlans = response.data;
+    window.hasRecentPlans = true;
+    registerDataDependents();
+});
+
+
+                
+
 
 
 
