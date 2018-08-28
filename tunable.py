@@ -5,6 +5,10 @@ matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
 matchPointID_pointThreshold = 95
 
+avgRecommendedNumHours = 2
+avgOpenTime = '9:00 am'
+avgCloseTime = '10:00 pm'
+
 pointAttributeWeights = {
     'coordinates': 0.35,
     'address': 0.25,
@@ -29,7 +33,7 @@ orderWeightOfPolicies = {
     'tripexpertScore': 0.1
 }
 
-orderBasedOn = indexToOrderPolicy[0]
+orderBasedOn = indexToOrderPolicy[2]
 
 injectedPointAliases = [
     (PointID('India', 'Mumbai', 'Indian Institute of Technology Bombay'), PointID('India', 'Mumbai', 'IIT Bombay')),

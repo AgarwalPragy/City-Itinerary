@@ -3,12 +3,13 @@ from collections import Counter
 from collections import defaultdict
 from jsonUtils import J
 import json
+import re
 import random
 
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn
+from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 
@@ -53,6 +54,96 @@ def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
                 result = value
                 return result
     return result
+
+# to convert time in only hours for example 2h 30 min => 2.5
+def getRecommendedNumHoursInHour(pointAggregated):
+    if pointAggregated.recommendedNumHours is None:
+        return avgRecommendedNumHours
+    else:
+        result = 0
+        timeString = pointAggregated.recommendedNumHours.strip().lower()
+
+        hourRegex = re.compile('^([0-9]+)(h|h | hours| hour)+')
+
+        hour = hourRegex.findall(timeString)
+        if len(hour) > 0:
+            result += int(hour[0][0])
+
+        minutesRegex = re.compile('([0-9]+) min')
+        minutes = minutesRegex.findall(timeString)
+
+        if len(minutes) > 0:
+            result += int(minutes[0]) / 60.0
+        return result
+
+
+# convert time in 24 hour format
+def formatTime(timeString):
+    if timeString == 'closed':
+        return '$'
+
+    amFormatData = timeString.split('am')
+
+    if len(amFormatData) == 2:
+        hourAndMinutes = amFormatData[0].split(':')
+        hour = int(hourAndMinutes[0])
+        minutes = 0
+        if len(hourAndMinutes) == 2:
+            minutes = int(hourAndMinutes[1])
+
+        if hour == 12:
+            result = minutes / 60.0
+        else:
+            result = hour + minutes / 60.0
+
+        return result
+    pmFormatData = timeString.split('pm')
+
+    if len(pmFormatData) == 2:
+        hourAndMinutes = pmFormatData[0].split(':')
+        hour = int(hourAndMinutes[0])
+        minutes = 0
+        if len(hourAndMinutes) == 2:
+            minutes = int(hourAndMinutes[1])
+
+        if hour == 12:
+            result = hour + minutes / 60.0
+        else:
+            result = 12 + hour + minutes / 60.0
+
+        return result
+
+
+def processPointAggregated(pointAggregated):
+    hours = getRecommendedNumHoursInHour(pointAggregated)
+    pointAggregated.recommendedNumHours = str(hours)
+
+    # convert opening closing in 0-24 format
+
+    formatedOpeningHour = ''
+    formatedClosingHour = ''
+    if pointAggregated.openingHour is not None:
+        openingHourDayWiseData = pointAggregated.openingHour.split(',')
+        closingHourDayWiseData = pointAggregated.closingHour.split(',')
+
+        for openTime in openingHourDayWiseData:
+            formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+
+        for closeTime in closingHourDayWiseData:
+            formatedClosingHour += str(formatTime(closeTime.lower())) + ","
+
+    else:  # if opening closing not given consider 8:00 AM to 6:00 PM
+        openTime = avgOpenTime
+        closeTime = avgCloseTime
+        for i in range(7):
+            formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+            formatedClosingHour += str(formatTime(closeTime.lower())) + ","
+
+    pointAggregated.openingHour = formatedOpeningHour[:-1]
+    pointAggregated.closingHour = formatedClosingHour[:-1]
+
+    return pointAggregated
+
 
 
 def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: str, bestCityName: str, bestPointName: str) -> PointAggregated:
@@ -186,7 +277,8 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
     finalPoint.priceLevel = priceLevel
 
-    return finalPoint
+    processedPointAggregated = processPointAggregated(finalPoint)
+    return processedPointAggregated
 
 
 #######################################################################################################################
@@ -274,7 +366,7 @@ def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str
             daysDenominator += 1.0/domain_avg_ranking[listing['crawler']]
 
         if listing['regionName'] is not None:
-            regionNameData += listing['regionName'] + ", "
+            regionNameData += listing['regionName'] + ","
 
 
     if ratingCount != 0:
@@ -299,9 +391,8 @@ def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str
 
 def aggregateOneCountryFromListings(jsonCountryListings: List[J], bestCountryName: str) -> CountryAggregated:
     finalCountry = CountryAggregated(bestCountryName)
-    
-    coordinatesListByCrawler = defaultdict(list)
 
+    coordinatesListByCrawler = defaultdict(list)
     for listing in jsonCountryListings:
         finalCountry.sources.append(listing['_uuid'])
         coordinatesListByCrawler[listing['crawler']].append(listing['coordinates'])
