@@ -5,6 +5,9 @@ from math import radians, sin, cos, atan2, sqrt
 import re
 from collections import defaultdict
 from sklearn.cluster import KMeans
+import matplotlib
+matplotlib.use('TkAgg')
+import matplotlib.pyplot as plt
 import numpy as np
 
 sys.path.append('.')
@@ -171,6 +174,7 @@ def getTravelTime(point1, point2):
 
 def gratificationScoreOfSeq(sequenceOfPoints, totalTime):
     gScore = 0
+    travelTime = 0
     for index, seqData in enumerate(sequenceOfPoints):
 
         gScore += getWilsonScore(seqData['point']['avgRating'] / 10,
@@ -179,10 +183,9 @@ def gratificationScoreOfSeq(sequenceOfPoints, totalTime):
         gScore -= seqData['point']['rank'] / 5  # normalize between 0-10
 
         if index < len(sequenceOfPoints) - 1:
-            travelTime = sequenceOfPoints[index+1]['enterTime'] - seqData['exitTime']
+            travelTime += sequenceOfPoints[index+1]['enterTime'] - seqData['exitTime']
 
-            gScore -= (travelTime / totalTime) * 10  # normalize between 0-10
-
+    gScore -= (travelTime / totalTime) * 10  # normalize between 0-10
     # want more number of attraction
     gScore += len(sequenceOfPoints)  #normalize bw 1-10 since each we are considering max 10 points
 
@@ -216,6 +219,8 @@ def getDayWiseClusteredListOfPoints(pointsOfCity, numDays: int):
         coordinatesData.append([lat, lng])
 
     coordinatesInArrayFormat = np.array(coordinatesData)
+
+    #
     kMeans = KMeans(n_clusters=numDays, max_iter=500).fit(coordinatesInArrayFormat)
 
     predictedClusters = kMeans.predict(coordinatesInArrayFormat)
@@ -224,6 +229,17 @@ def getDayWiseClusteredListOfPoints(pointsOfCity, numDays: int):
         [lat, lng] = value
         key = str(lat) + ", " + str(lng)
         dayWiseClusteredData[predictedClusters[index]].append(latLngToPoint[key])
+
+
+    for day in dayWiseClusteredData:
+        print(day)
+        for point in dayWiseClusteredData[day]:
+            print(point['pointName'])
+        print('\n\n')
+
+    print(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1])
+    plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
+    plt.show()
 
     return dayWiseClusteredData
 
@@ -299,7 +315,7 @@ def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint,
 
 
 # it will add only endpoint always and other point only when possible
-def possibleSequencesBWStartTimeAndEndPoint(listofPoints, visitedPoints, currentSequence, endPoint, startTime,
+def possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, currentSequence, endPoint, startTime,
                                             endPointEnterTime, endPointExitTime, dayNum):
     possibleSequences = []
     for index, startPoint in enumerate(listOfPoints):
@@ -338,7 +354,7 @@ def possibleSequencesBWStartTimeAndEndPoint(listofPoints, visitedPoints, current
     return possibleSequences
 
 
-def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, mustNotVisitPoints, dayStartTime,
+def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, mustNotVisitPoints, dayStartTime,
                     dayEndTime, dayNum):
     possibleSequences = []
     visitedPoints = [False] * len(listOfPoints)
@@ -449,8 +465,17 @@ if __name__ == '__main__':
     cityName = 'London'
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
     cityTopPoints = preprocessPoints(cityTopPoints)
-
+    #
     # dayWiseClusteredData = getDayWiseClusteredListOfPoints(cityTopPoints, 5)
+    #
+    #
+    # for day in dayWiseClusteredData:
+    #     print(day)
+    #     for point in dayWiseClusteredData[day]:
+    #         print(point['pointName'])
+    #     print('\n\n')
+    #
+    # exit(0)
 
     numPoints = 10
     listOfPoints = cityTopPoints[:numPoints]
