@@ -25,10 +25,10 @@ print('RequiredCities', requiredCities)
 print('RequiredCountries', requiredCountries)
 
 
-with open('tripexpertData/countries.json', 'r') as f:
+with open('../data/tripexpertData/raw/countries.json', 'r') as f:
     availableCountries = json.loads(f.read())['response']['countries']
 
-with open('tripexpertData/destinations.json', 'r') as f:
+with open('../data/tripexpertData/raw/destinations.json', 'r') as f:
     availableCities = json.loads(f.read())['response']['destinations']
 
 

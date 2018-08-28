@@ -8,7 +8,7 @@ from utilities import getCurrentTime
 
 
 def process():
-    with open('tripexpertData/destinations.json', 'r') as f:
+    with open('../data/tripexpertData/raw/destinations.json', 'r') as f:
         availableCities = json.loads(f.read())['response']['destinations']
 
     listings = []
@@ -34,7 +34,7 @@ def process():
         listings.append(cityListing)
         listings.append(imageListing)
 
-    with open('tripexpertData/cities.json', 'w') as f:
+    with open('../data/tripexpertData/cities.json', 'w') as f:
         f.write(json.dumps(listings, cls=EnhancedJSONEncoder))
 
 

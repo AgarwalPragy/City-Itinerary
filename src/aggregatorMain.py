@@ -357,12 +357,12 @@ def makeReverseMap(mapping):
 
 def processAll():
     listings: t.List[JEL] = readListingsFromFiles([
-        'data/injectedData/countryFlags.json',
-        'data/tripexpertData/cities.json',
-        'data/tripexpertData/tripexpert_requiredcities.json',
-        'data/viatorData/viator_requiredcities.json',
-        'data/inspirockData/finalInspirock.json',
-        'data/skyscannerData/finalSkyscanner.json'
+        '../data/injectedData/countryFlags.json',
+        '../data/tripexpertData/cities.json',
+        '../data/tripexpertData/tripexpert_requiredcities.json',
+        '../data/viatorData/viator_requiredcities.json',
+        '../data/inspirockData/finalInspirock.json',
+        '../data/skyscannerData/finalSkyscanner.json'
     ])
 
     print('Processing.')
@@ -394,9 +394,9 @@ def processAll():
 
     for timestamp in [getCurrentTime(), 'latest']:
         print('Saving results')
-        saveData('aggregatedData/{}/data.json'.format(timestamp), aggregatedListings)
+        saveData('../aggregatedData/{}/data.json'.format(timestamp), aggregatedListings)
         print('Saving config')
-        saveData('aggregatedData/{}/config.json'.format(timestamp), fullConfig)
+        saveData('../aggregatedData/{}/config.json'.format(timestamp), fullConfig)
 
         print('Saving debug info')
         debugInfo = {
@@ -406,7 +406,7 @@ def processAll():
             'toAggregatedData': toAggregatedData
         }
         for key, val in debugInfo.items():
-            saveData('aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)
+            saveData('../aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)
 
     print('All done. Exit')
 
