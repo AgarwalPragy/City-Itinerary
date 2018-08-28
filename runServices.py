@@ -1,5 +1,5 @@
 from flask import Flask
-from flask import send_file, send_from_directory
+from flask import send_file, send_from_directory, render_template
 from flask_cors import CORS, cross_origin
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
@@ -19,19 +19,25 @@ app.register_blueprint(clientAPI)
 @app.route('/')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def index():
-    return send_file('ui/index.html')
+    return send_file('templates/index.html')
 
 
-@app.route('/<cityName>/')
+@app.route('/planner')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def planner():
+    return render_template('planner.html', context={'initialConstraints': 'haha'})
+
+
+@app.route('/city/<cityName>/')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def cityAttractions(cityName: str):
-    return send_file('ui/city.html')
+    return send_file('templates/city.html')
 
 
-@app.route('/_resources/<path:path>')
+@app.route('/resources/<path:path>')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def resources(path):
-    return send_from_directory('ui/_resources/', path)
+    return send_from_directory('templates/resources/', path)
 
 
 @app.after_request

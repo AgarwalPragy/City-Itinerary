@@ -1,6 +1,8 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_cors import cross_origin
 import json
+from utilities import urlDecode
+
 
 clientAPI = Blueprint('clientAPI', __name__)
 
@@ -36,14 +38,42 @@ recentPlans = [
 ]
 
 
-@clientAPI.route('/cities')
+@clientAPI.route('/api/cities')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getCities():
     return jsonify(citiesNoPoints)
 
 
+@clientAPI.route('/api/attractions')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def getAttractions():
+    cityName = request.args.get('city', None)
+    amount = int(request.args.get('amount', 50))
+    if cityName:
+        cityName = urlDecode(cityName)
+        city = cities[cityName]
+        topnames = city['pointsOrder'][:amount]
 
-@clientAPI.route('/recent-plans')
+        return jsonify({
+            'points': {fullName: city['points'][fullName] for fullName in topnames},
+            'pointsOrder': topnames
+        })
+    return 'invalid city'
+
+
+@clientAPI.route('/api/itinerary')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def getItinerary():
+    cityName = request.args.get('city', None)
+    startTime = request.args.get('startTime', None)
+    endTime = request.args.get('endTime', None)
+
+    if cityName and startTime and endTime:
+        cityName = urlDecode(cityName)
+        city = cities[cityName]
+
+
+@clientAPI.route('/api/recent-plans')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getRecentPlans():
     return jsonify(recentPlans)
