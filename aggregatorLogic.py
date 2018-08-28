@@ -92,13 +92,15 @@ def formatTime(timeString):
             minutes = int(hourAndMinutes[1])
 
         if hour == 12:
-            result = minutes / 60.0
+            if minutes == 0:
+                result = 24
+            else:
+                result = minutes / 60.0
         else:
             result = hour + minutes / 60.0
 
         return result
     pmFormatData = timeString.split('pm')
-
     if len(pmFormatData) == 2:
         hourAndMinutes = pmFormatData[0].split(':')
         hour = int(hourAndMinutes[0])
@@ -122,21 +124,30 @@ def processPointAggregated(pointAggregated):
 
     formatedOpeningHour = ''
     formatedClosingHour = ''
+
     if pointAggregated.openingHour is not None:
         openingHourDayWiseData = pointAggregated.openingHour.split(',')
-        closingHourDayWiseData = pointAggregated.closingHour.split(',')
-
         for openTime in openingHourDayWiseData:
-            formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+            processedOpenTime = formatTime(openTime.lower())
+            if processedOpenTime is None:
+                processedOpenTime = formatTime(avgOpenTime.lower())
 
-        for closeTime in closingHourDayWiseData:
-            formatedClosingHour += str(formatTime(closeTime.lower())) + ","
-
-    else:  # if opening closing not given consider 8:00 AM to 6:00 PM
+            formatedOpeningHour += str(processedOpenTime) + ","
+    else:
         openTime = avgOpenTime
-        closeTime = avgCloseTime
         for i in range(7):
             formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+
+    if pointAggregated.closingHour is not None:
+        closingHourDayWiseData = pointAggregated.closingHour.split(',')
+        for closeTime in closingHourDayWiseData:
+            processedCloseTime = formatTime(closeTime)
+            if processedCloseTime is None:
+                processedCloseTime = formatTime(closeTime.lower())
+            formatedClosingHour += str(processedCloseTime) + ","
+    else:
+        closeTime = avgCloseTime
+        for i in range(7):
             formatedClosingHour += str(formatTime(closeTime.lower())) + ","
 
     pointAggregated.openingHour = formatedOpeningHour[:-1]
