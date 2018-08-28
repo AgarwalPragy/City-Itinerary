@@ -199,28 +199,17 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     for listing in jsonPointListings:
         finalPoint.sources.append(listing['_uuid'])
 
-        currentRating, currentRatingCount = 0, 0
         if listing['avgRating'] is not None:
             if listing['ratingCount'] is not None:
-                currentRating = listing['avgRating']
-                currentRatingCount = listing['ratingCount']
-                avgRating += currentRating * currentRatingCount
-                ratingCount += currentRatingCount
+                avgRating += listing['avgRating'] * listing['ratingCount']
+                ratingCount += listing['ratingCount']
             else:
-                currentRating = listing['avgRating']
-                currentRatingCount = 1
-                avgRating += currentRating # considered at least one person reviewed this listing
-                ratingCount += currentRatingCount
+                avgRating += listing['avgRating'] # considered at least one person reviewed this listing
+                ratingCount += 1
 
         if listing['rank'] is not None:
             avgRankNumerator += listing['rank'] * (1.0 / domain_avg_ranking[listing['crawler']])
-        else:
-            # decide rank based on wilson score: higher wilson score => lower rank
-            currentPointWilsonScore = getWilsonScore(currentRating/10.0, currentRatingCount)
-            siteRankOfPoint = 100*(1.0 - currentPointWilsonScore)
-            avgRankNumerator += siteRankOfPoint*(1.0/domain_avg_ranking[listing['crawler']])
-        avgRankDenominator += 1.0/domain_avg_ranking[listing['crawler']]
-
+            avgRankDenominator += 1.0 / domain_avg_ranking[listing['crawler']]
 
         if listing['canStay'] is not None:
             if canStay is None:
@@ -263,24 +252,23 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
         finalPoint.avgRating = avgRating/ratingCount
     else:
         finalPoint.avgRating = 0
+
     finalPoint.ratingCount = ratingCount
 
-    finalPoint.rank = avgRankNumerator / avgRankDenominator
+    if avgRankDenominator != 0:
+        finalPoint.rank = avgRankNumerator / avgRankDenominator
 
     if len(notesData) > 0:
         finalPoint.notes = notesData
 
     if len(categoryData) > 0:
-        mergedCategory = ', '.join(set((', '.join(categoryData)).split(',')))
-        finalPoint.category = mergedCategory
+        finalPoint.category = ', '.join(set((', '.join(categoryData)).split(',')))
 
     if len(contactData) > 0:
-        contactData = contactData[:-1]
-        finalPoint.contact = contactData
+        finalPoint.contact = contactData[:-1]
 
     if len(websites) > 0:
-        websites = websites[:-1]
-        finalPoint.website = websites
+        finalPoint.website = websites[:-1]
 
     finalPoint.canEat = canEat
     finalPoint.canStay = canStay
