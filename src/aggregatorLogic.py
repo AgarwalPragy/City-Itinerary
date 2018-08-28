@@ -333,7 +333,7 @@ def weightAvgRating(point):
     return point.avgRating
 
 
-def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregated]:
+def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
     keyFunction = {
         'frequency': pointFrequency,
         'wilsonScore': wilsonScoreLB,
@@ -341,7 +341,9 @@ def orderPointsOfCity(pointsOfCity: List[PointAggregated]) -> List[PointAggregat
         'frequencyWithWDomainRanking': freqWithWeightedDomainRanking,
         'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
     }
-    return sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True)
+
+    scores = list(map(keyFunction[orderBasedOn], pointsOfCity))
+    return sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True), scores
 
 
 #######################################################################################################################
