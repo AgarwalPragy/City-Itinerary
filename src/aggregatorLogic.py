@@ -341,8 +341,9 @@ def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
         'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
     }
 
-    scores = list(map(keyFunction[orderBasedOn], pointsOfCity))
-    return sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True), scores
+    sortedPoints = sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True)
+    scores = list(map(keyFunction[orderBasedOn], sortedPoints))
+    return sortedPoints, scores
 
 
 #######################################################################################################################

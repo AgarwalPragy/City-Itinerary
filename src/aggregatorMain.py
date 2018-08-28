@@ -279,10 +279,11 @@ def frontAndBack(items):
     return list(set(processName(''.join(alias)) for alias in items) | set(processName(''.join(alias[::-1])) for alias in items))
 
 
-def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
+def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t.List[str], J]:
     print('Aggregating data')
     categoriesFound = set()
     aggregated = tree()
+    allPointScores = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     for countryName, country in data.items():
         aggregatedCountry = aggregated[countryName]
@@ -328,8 +329,11 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
             for attrib, val in finalCity.jsonify().items():
                 aggregatedCity[attrib] = val
-            orderedPoints = orderPointsOfCity(points)
-            aggregatedCity['pointsOrder'] = list(map(attrgetter('pointName'), orderedPoints))
+            orderedPoints, pointScores = orderPointsOfCity(points)
+            orderedNames = list(map(attrgetter('pointName'), orderedPoints))
+            allPointScores[countryName][cityName] = list('          '.join(map(str, x)) for x in zip(pointScores, orderedNames))
+            aggregatedCity['pointsOrder'] = orderedNames
+            aggregatedCity['pointScores'] = pointScores
             aggregatedCity['images'] = orderImages(city['images'])
             aggregatedCity['reviews'] = orderReviews(city['reviews'])
             cityCount += 1
@@ -350,7 +354,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     print('Finally extracted {} points'.format(pointCount))
     print('Finally extracted {} images'.format(imageCount))
     print('Finally extracted {} reviews'.format(reviewCount))
-    return aggregated, categoriesFound
+    return aggregated, categoriesFound, allPointScores
 
 
 def makeReverseMap(mapping):
@@ -395,7 +399,7 @@ def processAll():
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
-    aggregatedListings, categoriesFound = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
+    aggregatedListings, categoriesFound, allPointScores = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
 
     for timestamp in [getCurrentTime(), 'latest']:
         print('Saving results')
@@ -409,7 +413,8 @@ def processAll():
             'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
             'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()},
             'toAggregatedData': toAggregatedData,
-            'categoriesFound': list(categoriesFound)
+            'categoriesFound': list(categoriesFound),
+            'allPointScores': allPointScores
         }
         for key, val in debugInfo.items():
             saveData('../aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)

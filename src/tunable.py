@@ -38,7 +38,7 @@ orderBasedOn = indexToOrderPolicy[2]
 
 goodWordWeight = 2
 badWordWeight = 1
-badCategoryTitleWords = set(word.strip().lower() for word in [
+badCategoryTitleWords = list(set(word.strip().lower() for word in [
     'accessories',
     'bar', 'Beer',
     'cafe', 'Casino', 'Clothing', 'club', 'Cocktail', 'company', 'Cosmetics',
@@ -54,8 +54,8 @@ badCategoryTitleWords = set(word.strip().lower() for word in [
     'Salon', 'shop', 'Spa', 'Speakeasy', 'Startup', 'store', 'Supplies',
     'Theater', 'tour', 'Tours',
     'Whisky', 'Wine', 'Workshop'
-])
-goodCategoryTitleWords = set(word.strip().lower() for word in [
+]))
+goodCategoryTitleWords = list(set(word.strip().lower() for word in [
     'Amusement', 'aquarium''Architectural', 'Art', 'attraction', 'Auditorium',
     'beach', 'Boat', 'botanical', 'Bridge',
     'camping', 'Canyon', 'Castle', 'cave', 'Cave', 'Chapel', 'church', 'City', 'Climbing', 'Courthouse',
@@ -77,7 +77,7 @@ goodCategoryTitleWords = set(word.strip().lower() for word in [
     'Valley',
     'Water Body', 'waterfall', 'Wildlife', 'Wildlife',
     'Zoo'
-])
+]))
 
 
 
