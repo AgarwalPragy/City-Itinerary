@@ -9,7 +9,7 @@ import random
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime
+from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime, goodWordWeight, badWordWeight, goodCategoryTitleWords, badCategoryTitleWords
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 
@@ -32,6 +32,27 @@ def getBestName(names: List[str], strictness: int=3) -> str:
     # return longest name as a failsafe
     print('CHECK YOUR LOGIC HERE')
     return sanitizeName(sortedNames[0])
+
+
+def _getCategoryWeight(category):
+    score = sum(goodWordWeight for word in goodCategoryTitleWords if word in category) - sum(badWordWeight for word in badCategoryTitleWords if word in category)
+
+
+def splitWord(word):
+    afterSpaces = word.split()
+    afterCommas = [w.split(',') for w in afterSpaces]
+    return afterCommas
+
+
+def getCategoryTitleWeight(point):
+    titleWords = splitWord(point['pointName'])
+    categoryWords = (point['category'] if point['category'] else '').split(',')
+    allwords = titleWords + categoryWords
+    categoriesFound = set(cat.strip() for cat in allwords)
+    return sum(_getCategoryWeight(cat) for cat in categoriesFound)
+
+
+
 
 
 def orderImages(jsonImageListings: List[J]) -> List[J]:

@@ -281,6 +281,7 @@ def frontAndBack(items):
 
 def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     print('Aggregating data')
+    categoriesFound = set()
     aggregated = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     for countryName, country in data.items():
@@ -316,6 +317,10 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
                     aggregatedPoint[attrib] = val
                 aggregatedPoint['images'] = orderImages(point['images'])
                 aggregatedPoint['reviews'] = orderReviews(point['reviews'])
+                category = aggregatedPoint['category']
+                if category and category.strip():
+                    categoriesFound |= set(cat.strip() for cat in category.split(','))
+
                 pointCount += 1
                 imageCount += len(point['images'])
                 reviewCount += len(point['reviews'])
@@ -345,7 +350,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
     print('Finally extracted {} points'.format(pointCount))
     print('Finally extracted {} images'.format(imageCount))
     print('Finally extracted {} reviews'.format(reviewCount))
-    return aggregated
+    return aggregated, categoriesFound
 
 
 def makeReverseMap(mapping):
@@ -390,7 +395,7 @@ def processAll():
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
-    aggregatedListings = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
+    aggregatedListings, categoriesFound = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
 
     for timestamp in [getCurrentTime(), 'latest']:
         print('Saving results')
@@ -403,7 +408,8 @@ def processAll():
             'bestPointIDMap': {str(key): str(val) for key, val in bestPointIDMap.items()},
             'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
             'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()},
-            'toAggregatedData': toAggregatedData
+            'toAggregatedData': toAggregatedData,
+            'categoriesFound': list(categoriesFound)
         }
         for key, val in debugInfo.items():
             saveData('../aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)

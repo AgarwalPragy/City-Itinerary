@@ -34,6 +34,54 @@ orderWeightOfPolicies = {
 
 orderBasedOn = indexToOrderPolicy[2]
 
+
+
+goodWordWeight = 2
+badWordWeight = 1
+badCategoryTitleWords = set(word.strip().lower() for word in [
+    'accessories',
+    'bar', 'Beer',
+    'cafe', 'Casino', 'Clothing', 'club', 'Cocktail', 'company', 'Cosmetics',
+    'drink', 'Drugstore',
+    'factory', 'food', 'furniture',
+    'Gourmet', 'Grocery', 'gym',
+    'Hair', 'Hospital', 'hotel',
+    'Jewelry', 'Jogging Path',
+    'marijuana',
+    'Office', 'outlet',
+    'Pharmacy', 'Private', 'Pub',
+    'rental', 'restaurant', 'restautrant',
+    'Salon', 'shop', 'Spa', 'Speakeasy', 'Startup', 'store', 'Supplies',
+    'Theater', 'tour', 'Tours',
+    'Whisky', 'Wine', 'Workshop'
+])
+goodCategoryTitleWords = set(word.strip().lower() for word in [
+    'Amusement', 'aquarium''Architectural', 'Art', 'attraction', 'Auditorium',
+    'beach', 'Boat', 'botanical', 'Bridge',
+    'camping', 'Canyon', 'Castle', 'cave', 'Cave', 'Chapel', 'church', 'City', 'Climbing', 'Courthouse',
+    'dam', 'desert', 'Disney', 'Dolphins',
+    'Educational', 'Equestrian',
+    'festival', 'Forest', 'fort', 'Fountain',
+    'gallery', 'garden', 'Geologic', 'Gondolas',
+    'hall', 'Harbor', 'Helicopter', 'Hiking', 'historic', 'history', 'Horse',
+    'Island', 'island',
+    'lake', 'Library', 'lighthouse',
+    'Mall', 'marina', 'market', 'masjidh', 'meuseum', 'Monument', 'monument', 'Mosque', 'Mountain', 'mountain', 'Museum',
+    'national', 'Natural', 'Nature',
+    'observation', 'Observatory', 'Opera',
+    'palace', 'Paragliding', 'park', 'Pier', 'Planetarium', 'Planetarium', 'Popular',
+    'religious', 'river', 'Rock', 'Ruin',
+    'Safari', 'Scenic', 'science', 'Scuba', 'spring', 'stadium', 'state', 'station',
+    'temple', 'Theme', 'tourist', 'tower', 'trekking',
+    'University',
+    'Valley',
+    'Water Body', 'waterfall', 'Wildlife', 'Wildlife',
+    'Zoo'
+])
+
+
+
+
 injectedPointAliases = [
     (PointID('India', 'Mumbai', 'Indian Institute of Technology Bombay'), PointID('India', 'Mumbai', 'IIT Bombay')),
     (PointID('India', 'Mumbai', 'IIT B'), PointID('India', 'Mumbai', 'IIT Bombay'))
