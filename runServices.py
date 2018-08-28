@@ -34,10 +34,10 @@ def cityAttractions(cityName: str):
     return send_file('templates/city.html')
 
 
-@app.route('/_resources/<path:path>')
+@app.route('/resources/<path:path>')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def resources(path):
-    return send_from_directory('templates/_resources/', path)
+    return send_from_directory('templates/resources/', path)
 
 
 @app.after_request
