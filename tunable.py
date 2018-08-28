@@ -1,5 +1,4 @@
-from entities import CityID, CountryID, PointID, PointListing
-from collections import defaultdict
+from entities import CityID, CountryID, PointID
 
 matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
@@ -83,3 +82,4 @@ injectedCountryAliases = [
     # (CountryID('Iran'), CountryID('Islamic Republic of Iran'))
 ]
 
+fullConfig = {item: globals()[item] for item in dir() if not item.startswith("__") and item not in ['CityID', 'CountryID', 'PointID', 'defaultdict', 'json']}

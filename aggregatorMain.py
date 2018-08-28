@@ -1,22 +1,31 @@
 import typing as t
-
 from collections import defaultdict
 from tqdm import tqdm
 from operator import attrgetter, itemgetter
 import json
+import os
+import errno
 
 
 from jsonUtils import J, EnhancedJSONEncoder
 from aggregatorLogic import *
-from utilities import doesFuzzyMatch, UnionFind, tree, processName
+from utilities import doesFuzzyMatch, UnionFind, tree, processName, getCurrentTime
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
-from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, orderBasedOn
+from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, orderBasedOn, fullConfig
 
 
 ID = t.Union[CountryID, CityID, PointID]
 
 
 def saveData(filename, data: t.Any) -> None:
+    # https://stackoverflow.com/questions/12517451/automatically-creating-directories-with-file-output
+    if not os.path.exists(os.path.dirname(filename)):
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except OSError as exc:  # Guard against race condition
+            if exc.errno != errno.EEXIST:
+                raise
+
     print('saving to', filename)
     with open(filename, 'w') as f:
         f.write(json.dumps(data, cls=EnhancedJSONEncoder))
@@ -300,8 +309,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> J:
                 aggregatedPoint['countryAliases'] = aggregatedCountry['countryAliases']
 
                 if not point['listings']:
-                    print('No listings found, but reviews/images exist for the following point')
-                    print(point)
+                    print('No listings found, but reviews/images exist for the point:', bestPointID)
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
@@ -349,12 +357,12 @@ def makeReverseMap(mapping):
 
 def processAll():
     listings: t.List[JEL] = readListingsFromFiles([
-        'injectedData/countryFlags.json',
-        'tripexpertData/cities.json',
-        'tripexpertData/tripexpert_requiredcities.json',
-        'viatorData/viator_requiredcities.json',
-        'inspirockData/finalInspirock.json',
-        'skyscannerData/finalSkyscanner.json'
+        'data/injectedData/countryFlags.json',
+        'data/tripexpertData/cities.json',
+        'data/tripexpertData/tripexpert_requiredcities.json',
+        'data/viatorData/viator_requiredcities.json',
+        'data/inspirockData/finalInspirock.json',
+        'data/skyscannerData/finalSkyscanner.json'
     ])
 
     print('Processing.')
@@ -382,18 +390,23 @@ def processAll():
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
-    saveData('toAggregate.json', toAggregatedData)
-
     aggregatedListings = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
-    saveData('aggregatedData' + orderBasedOn + '.json', aggregatedListings)
 
-    print('Saving debug info')
-    debugInfo = {
-        'bestPointIDMap': {str(key): str(val) for key, val in bestPointIDMap.items()},
-        'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
-        'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()}
-    }
-    saveData('aggregatorDebugInfo.json', debugInfo)
+    for timestamp in [getCurrentTime(), 'latest']:
+        print('Saving results')
+        saveData('aggregatedData/{}/data.json'.format(timestamp), aggregatedListings)
+        print('Saving config')
+        saveData('aggregatedData/{}/config.json'.format(timestamp), fullConfig)
+
+        print('Saving debug info')
+        debugInfo = {
+            'bestPointIDMap': {str(key): str(val) for key, val in bestPointIDMap.items()},
+            'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
+            'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()},
+            'toAggregatedData': toAggregatedData
+        }
+        for key, val in debugInfo.items():
+            saveData('aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)
 
     print('All done. Exit')
 
