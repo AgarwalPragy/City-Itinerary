@@ -39,7 +39,7 @@ similar_web_ranking = {
 domain_avg_ranking = {
     'tripexpert': 1,
     'tripAdvisor': 2,
-    'skyscanner': 35,
-    'viator_v2': 46,
-    'inspirock': 162
+    'skyscanner': 3,
+    'viator_v2': 4,
+    'inspirock': 5
 }

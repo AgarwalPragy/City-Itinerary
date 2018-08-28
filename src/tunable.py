@@ -8,6 +8,7 @@ avgRecommendedNumHours = 2
 avgOpenTime = '9:00 am'
 avgCloseTime = '10:00 pm'
 
+mScoreAvgRatingCount = 10
 pointAttributeWeights = {
     'coordinates': 0.35,
     'address': 0.25,
@@ -21,20 +22,21 @@ indexToOrderPolicy = {
     1: 'weightedAvgRating',
     2: 'wilsonScore',
     3: 'frequencyWithWDomainRanking',
-    4: 'weightedOverDiffPolicies'
+    4: 'mayurScore',
+    5: 'weightedOverDiffPolicies'
 }
 
 orderWeightOfPolicies = {
     'frequency': 0.2,
-    'rank': 0.3,
-    'wilsonScore': 0.2,
-    'pointAttributes': 0.2,
-    'tripexpertScore': 0.1
+    'rank': 0.1,
+    'wilsonScore': 0.1,
+    'mayurScore': 0.1,
+    'pointAttributes': 0.1,
+    'tripexpertScore': 0.1,
+    'category': 0.3
 }
 
-orderBasedOn = indexToOrderPolicy[2]
-
-
+orderBasedOn = indexToOrderPolicy[5]
 
 goodWordWeight = 2
 badWordWeight = 1

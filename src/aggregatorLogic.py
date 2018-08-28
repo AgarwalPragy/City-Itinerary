@@ -8,7 +8,7 @@ import re
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime, goodWordWeight, badWordWeight, goodCategoryTitleWords, badCategoryTitleWords
+from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime, mScoreAvgRatingCount, goodWordWeight, badWordWeight, goodCategoryTitleWords, badCategoryTitleWords
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 
@@ -35,11 +35,14 @@ def getBestName(names: List[str], strictness: int=3) -> str:
 
 def _getCategoryWeight(category):
     score = sum(goodWordWeight for word in goodCategoryTitleWords if word in category) - sum(badWordWeight for word in badCategoryTitleWords if word in category)
-
+    return score
 
 def splitWord(word):
     afterSpaces = word.split()
-    afterCommas = [w.split(',') for w in afterSpaces]
+    afterCommas = []
+    for word in afterSpaces:
+        for wordSplited in word.split(','):
+            afterCommas.append(wordSplited)
     return afterCommas
 
 
@@ -71,8 +74,7 @@ def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
     for crawler in alexa_ranking_orderedList:
         for value in valueListByCrawler[crawler]:
             if value is not None:
-                result = value
-                return result
+                return value
     return result
 
 # to convert time in only hours for example 2h 30 min => 2.5
@@ -108,31 +110,30 @@ def formatTime(timeString):
         hourAndMinutes = amFormatData[0].split(':')
         hour = int(hourAndMinutes[0])
         minutes = 0
-        if len(hourAndMinutes) == 2:
+        if len(hourAndMinutes) == 2:  # think about 8 am
             minutes = int(hourAndMinutes[1])
 
         if hour == 12:
-            if minutes == 0:
+            if minutes == 0:  # 12 am => 24
                 result = 24
-            else:
+            else:   # 12:30 am => 0.5
                 result = minutes / 60.0
-        else:
+        else:  # 3:30 am => 3.5
             result = hour + minutes / 60.0
-
         return result
+
     pmFormatData = timeString.split('pm')
     if len(pmFormatData) == 2:
         hourAndMinutes = pmFormatData[0].split(':')
         hour = int(hourAndMinutes[0])
         minutes = 0
-        if len(hourAndMinutes) == 2:
+        if len(hourAndMinutes) == 2: # think 9 pm
             minutes = int(hourAndMinutes[1])
 
-        if hour == 12:
+        if hour == 12:  # 12;30 pm => 12.5
             result = hour + minutes / 60.0
-        else:
+        else:  # 10:30 pm => 22.5
             result = 12 + hour + minutes / 60.0
-
         return result
 
 
@@ -141,7 +142,6 @@ def processPointAggregated(pointAggregated):
     pointAggregated.recommendedNumHours = str(hours)
 
     # convert opening closing in 0-24 format
-
     formatedOpeningHour = ''
     formatedClosingHour = ''
 
@@ -149,7 +149,7 @@ def processPointAggregated(pointAggregated):
         openingHourDayWiseData = pointAggregated.openingHour.split(',')
         for openTime in openingHourDayWiseData:
             processedOpenTime = formatTime(openTime.lower())
-            if processedOpenTime is None:
+            if processedOpenTime is None: # in case of openTime =  unavailable from tripExpert Data
                 processedOpenTime = formatTime(avgOpenTime.lower())
 
             formatedOpeningHour += str(processedOpenTime) + ","
@@ -204,7 +204,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                 avgRating += listing['avgRating'] * listing['ratingCount']
                 ratingCount += listing['ratingCount']
             else:
-                avgRating += listing['avgRating'] # considered at least one person reviewed this listing
+                avgRating += listing['avgRating']  # considered at least one person reviewed this listing
                 ratingCount += 1
 
         if listing['rank'] is not None:
@@ -319,6 +319,41 @@ def freqWithWeightedDomainRanking(point):
 def weightAvgRating(point):
     return point.avgRating
 
+def mayurScore(point):
+    avgRating = point.avgRating
+    ratingCount = point.ratingCount
+    return (avgRating*ratingCount + 5.0*mScoreAvgRatingCount)/(ratingCount + mScoreAvgRatingCount)
+
+def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
+    result = 0
+    jsonPointAggregated = pointAggregated.jsonify()
+    if 'frequency' in orderWeightOfPolicies:
+        result += len(jsonPointAggregated['sources']) * orderWeightOfPolicies['frequency']
+
+    if 'rank' in orderWeightOfPolicies and jsonPointAggregated['rank'] is not None:
+        result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
+
+    if 'wilsonScore' in orderWeightOfPolicies:
+        result += getWilsonScore(jsonPointAggregated['avgRating']/10, jsonPointAggregated['ratingCount']) * orderWeightOfPolicies['wilsonScore']
+
+    if 'pointAttributes' in orderWeightOfPolicies:
+        pointAttrValue = 0
+        for pointAttr in pointAttributeWeights:
+            if jsonPointAggregated[pointAttr] is not None:
+                pointAttrValue += pointAttributeWeights[pointAttr]
+
+        result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
+
+    if 'tripexpertScore' in orderWeightOfPolicies and jsonPointAggregated['tripexpertScore'] is not None:
+        result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
+
+    if 'category' in orderWeightOfPolicies:
+        result += getCategoryTitleWeight(jsonPointAggregated) * orderWeightOfPolicies['category']
+
+    if 'mayurScore' in orderWeightOfPolicies:
+        result += mayurScore(pointAggregated) * orderWeightOfPolicies['mayurScore']
+
+    return result
 
 def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
     keyFunction = {
@@ -326,6 +361,7 @@ def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
         'wilsonScore': wilsonScoreLB,
         'weightedAvgRating': weightAvgRating,
         'frequencyWithWDomainRanking': freqWithWeightedDomainRanking,
+        'mayurScore': mayurScore,
         'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
     }
 
@@ -337,31 +373,7 @@ def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
 #######################################################################################################################
 #######################################################################################################################
 
-def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
-    result = 0
-    jsonPointAggregated = pointAggregated.jsonify()
-    if 'frequency' in orderWeightOfPolicies:
-        result += len(jsonPointAggregated['sources']) * orderWeightOfPolicies['frequency']
 
-    if 'rank' in orderWeightOfPolicies:
-        if jsonPointAggregated['rank'] is not None:
-            result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
-
-    if 'wilsonScore' in orderWeightOfPolicies:
-        result += getWilsonScore(jsonPointAggregated['avgRating']/10, jsonPointAggregated['ratingCount']) * orderWeightOfPolicies['wilsonScore']
-
-    if 'pointAttributes' in orderWeightOfPolicies:
-        pointAttrValue = 0
-        for pointAttr in pointAttributeWeights:
-            if jsonPointAggregated[pointAttr] is not None:
-                pointAttrValue += pointAttributeWeights[pointAttr]
-        result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
-
-    if 'tripexpertScore' in orderWeightOfPolicies:
-        if jsonPointAggregated['tripexpertScore'] is not None:
-            result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
-
-    return result
 
 
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:
