@@ -27,104 +27,104 @@ def getTopPointsOfCity(allData, countryName, cityName, amount=50):
     topnames = allData[countryName]['cities'][cityName]['pointsOrder'][:amount]
     return [allData[countryName]['cities'][cityName]['points'][name] for name in topnames]
 
-
-# to convert time in only hours for example 2h 30 min => 2.5
-def getRecommendedNumHoursInHour(point):
-    if point['recommendedNumHours'] is None:
-        return 2  # consider 2 hour for visiting point
-    else:
-        result = 0
-        timeString = point['recommendedNumHours'].strip().lower()
-
-        hourRegex = re.compile('^([0-9]+)(h|h | hours| hour)+')
-
-        hour = hourRegex.findall(timeString)
-        if len(hour) > 0:
-            result += int(hour[0][0])
-
-        minutesRegex = re.compile('([0-9]+) min')
-        minutes = minutesRegex.findall(timeString)
-
-        if len(minutes) > 0:
-            result += int(minutes[0]) / 60.0
-        return result
-
-
-# convert time in 24 hour format
-def formatTime(timeString):
-    if timeString == 'closed':
-        return '$'
-
-    amFormatData = timeString.split('am')
-
-    if len(amFormatData) == 2:
-        hourAndMinutes = amFormatData[0].split(':')
-        hour = int(hourAndMinutes[0])
-        minutes = 0
-        if len(hourAndMinutes) == 2:
-            minutes = int(hourAndMinutes[1])
-
-        if hour == 12:
-            result = minutes / 60.0
-        else:
-            result = hour + minutes / 60.0
-
-        return result
-    pmFormatData = timeString.split('pm')
-
-    if len(pmFormatData) == 2:
-        hourAndMinutes = pmFormatData[0].split(':')
-        hour = int(hourAndMinutes[0])
-        minutes = 0
-        if len(hourAndMinutes) == 2:
-            minutes = int(hourAndMinutes[1])
-
-        if hour == 12:
-            result = hour + minutes / 60.0
-        else:
-            result = 12 + hour + minutes / 60.0
-
-        return result
-
-
-def preprocessPoints(listOfPoints):
-    for index, point in enumerate(listOfPoints):
-        hours = getRecommendedNumHoursInHour(point)
-        point['recommendedNumHours'] = str(hours)
-        point['rank'] = index + 1
-
-        # convert opening closing in 0-24 format
-
-        formatedOpeningHour = ''
-        formatedClosingHour = ''
-        if point['openingHour'] is not None:
-            openingHourDayWiseData = point['openingHour'].split(',')
-            closingHourDayWiseData = point['closingHour'].split(',')
-
-            for openTime in openingHourDayWiseData:
-                formatedOpeningHour += str(formatTime(openTime.lower())) + ","
-
-            for closeTime in closingHourDayWiseData:
-                formatedClosingHour += str(formatTime(closeTime.lower())) + ","
-
-        else:  # if opening closing not given consider 8:00 AM to 6:00 PM
-            openTime = '9:00 am'
-            closeTime = '9:00 pm'
-            for i in range(7):
-                formatedOpeningHour += str(formatTime(openTime.lower())) + ","
-                formatedClosingHour += str(formatTime(closeTime.lower())) + ","
-
-        point['openingHour'] = formatedOpeningHour[:-1]
-        point['closingHour'] = formatedClosingHour[:-1]
-
-        if point['coordinates'] is None:
-            lat = random.uniform(51, 51.5)  # london lat range
-            lng = random.uniform(-0.2, 0.2)  # london lng range
-            point['coordinates'] = str(lat) + "," + str(lng)
-
-        listOfPoints[index] = point
-    return listOfPoints
-
+#
+# # to convert time in only hours for example 2h 30 min => 2.5
+# def getRecommendedNumHoursInHour(point):
+#     if point['recommendedNumHours'] is None:
+#         return 2  # consider 2 hour for visiting point
+#     else:
+#         result = 0
+#         timeString = point['recommendedNumHours'].strip().lower()
+#
+#         hourRegex = re.compile('^([0-9]+)(h|h | hours| hour)+')
+#
+#         hour = hourRegex.findall(timeString)
+#         if len(hour) > 0:
+#             result += int(hour[0][0])
+#
+#         minutesRegex = re.compile('([0-9]+) min')
+#         minutes = minutesRegex.findall(timeString)
+#
+#         if len(minutes) > 0:
+#             result += int(minutes[0]) / 60.0
+#         return result
+#
+#
+# # convert time in 24 hour format
+# def formatTime(timeString):
+#     if timeString == 'closed':
+#         return '$'
+#
+#     amFormatData = timeString.split('am')
+#
+#     if len(amFormatData) == 2:
+#         hourAndMinutes = amFormatData[0].split(':')
+#         hour = int(hourAndMinutes[0])
+#         minutes = 0
+#         if len(hourAndMinutes) == 2:
+#             minutes = int(hourAndMinutes[1])
+#
+#         if hour == 12:
+#             result = minutes / 60.0
+#         else:
+#             result = hour + minutes / 60.0
+#
+#         return result
+#     pmFormatData = timeString.split('pm')
+#
+#     if len(pmFormatData) == 2:
+#         hourAndMinutes = pmFormatData[0].split(':')
+#         hour = int(hourAndMinutes[0])
+#         minutes = 0
+#         if len(hourAndMinutes) == 2:
+#             minutes = int(hourAndMinutes[1])
+#
+#         if hour == 12:
+#             result = hour + minutes / 60.0
+#         else:
+#             result = 12 + hour + minutes / 60.0
+#
+#         return result
+#
+#
+# def preprocessPoints(listOfPoints):
+#     for index, point in enumerate(listOfPoints):
+#         hours = getRecommendedNumHoursInHour(point)
+#         point['recommendedNumHours'] = str(hours)
+#         point['rank'] = index + 1
+#
+#         # convert opening closing in 0-24 format
+#
+#         formatedOpeningHour = ''
+#         formatedClosingHour = ''
+#         if point['openingHour'] is not None:
+#             openingHourDayWiseData = point['openingHour'].split(',')
+#             closingHourDayWiseData = point['closingHour'].split(',')
+#
+#             for openTime in openingHourDayWiseData:
+#                 formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+#
+#             for closeTime in closingHourDayWiseData:
+#                 formatedClosingHour += str(formatTime(closeTime.lower())) + ","
+#
+#         else:  # if opening closing not given consider 8:00 AM to 6:00 PM
+#             openTime = '9:00 am'
+#             closeTime = '9:00 pm'
+#             for i in range(7):
+#                 formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+#                 formatedClosingHour += str(formatTime(closeTime.lower())) + ","
+#
+#         point['openingHour'] = formatedOpeningHour[:-1]
+#         point['closingHour'] = formatedClosingHour[:-1]
+#
+#         if point['coordinates'] is None: #TODO
+#             lat = random.uniform(51, 51.5)  # london lat range
+#             lng = random.uniform(-0.2, 0.2)  # london lng range
+#             point['coordinates'] = str(lat) + "," + str(lng)
+#
+#         listOfPoints[index] = point
+#     return listOfPoints
+#
 
 # this will return enterTime of place based on opening and closing hour if possible otherwise it will return -1
 def getEnterTimeBasedOnOpeningHour(point, enterTime, exitTime, dayNum):
@@ -464,8 +464,8 @@ if __name__ == '__main__':
     countryName = "United Kingdom"
     cityName = 'London'
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
-    cityTopPoints = preprocessPoints(cityTopPoints)
-    #
+    #cityTopPoints = preprocessPoints(cityTopPoints)
+
     # dayWiseClusteredData = getDayWiseClusteredListOfPoints(cityTopPoints, 5)
     #
     #
@@ -477,8 +477,16 @@ if __name__ == '__main__':
     #
     # exit(0)
 
+
+
     numPoints = 10
     listOfPoints = cityTopPoints[:numPoints]
+
+    for point in listOfPoints:
+        if point['coordinates'] is None:
+            lat = random.uniform(51, 51.5)  # london lat range
+            lng = random.uniform(-0.2, 0.2)  # london lng range
+            point['coordinates'] = str(lat) + "," + str(lng)
 
     print("points: ")
     for index, point in enumerate(listOfPoints):
