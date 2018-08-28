@@ -4,7 +4,6 @@ from collections import defaultdict
 from jsonUtils import J
 import json
 import re
-import random
 
 from entities import *
 from utilities import *
@@ -164,7 +163,7 @@ def processPointAggregated(pointAggregated):
         for closeTime in closingHourDayWiseData:
             processedCloseTime = formatTime(closeTime)
             if processedCloseTime is None:
-                processedCloseTime = formatTime(closeTime.lower())
+                processedCloseTime = formatTime(avgCloseTime.lower())
             formatedClosingHour += str(processedCloseTime) + ","
     else:
         closeTime = avgCloseTime
@@ -218,7 +217,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
         else:
             # decide rank based on wilson score: higher wilson score => lower rank
             currentPointWilsonScore = getWilsonScore(currentRating/10.0, currentRatingCount)
-            siteRankOfPoint = random.randint(50, 200)*(1.0 - currentPointWilsonScore)
+            siteRankOfPoint = 100*(1.0 - currentPointWilsonScore)
             avgRankNumerator += siteRankOfPoint*(1.0/domain_avg_ranking[listing['crawler']])
         avgRankDenominator += 1.0/domain_avg_ranking[listing['crawler']]
 
