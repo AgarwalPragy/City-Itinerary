@@ -11,7 +11,6 @@ sys.path.append('.')
 from utilities import getWilsonScore
 
 
-
 def readAllData(filePath: str):
     with open(filePath, 'r') as f:
         allData = json.loads(f.read())
@@ -19,15 +18,17 @@ def readAllData(filePath: str):
     # countries = data.values()
     # cities = [city for country in countries for city in country['cities'].values()]
     # points = [point for city in cities for point in city['points'].values()]
+
+
 def getTopPointsOfCity(allData, countryName, cityName, amount=50):
-	topnames = allData[countryName]['cities'][cityName]['pointsOrder'][:amount]
-	return [allData[countryName]['cities'][cityName]['points'][name] for name in topnames]
+    topnames = allData[countryName]['cities'][cityName]['pointsOrder'][:amount]
+    return [allData[countryName]['cities'][cityName]['points'][name] for name in topnames]
 
 
-#to convert time in only hours for example 2h 30 min => 2.5
+# to convert time in only hours for example 2h 30 min => 2.5
 def getRecommendedNumHoursInHour(point):
     if point['recommendedNumHours'] is None:
-        return 2 #consider 2 hour for visiting point
+        return 2  # consider 2 hour for visiting point
     else:
         result = 0
         timeString = point['recommendedNumHours'].strip().lower()
@@ -42,10 +43,11 @@ def getRecommendedNumHoursInHour(point):
         minutes = minutesRegex.findall(timeString)
 
         if len(minutes) > 0:
-            result += int(minutes[0])/60.0
+            result += int(minutes[0]) / 60.0
         return result
 
-#convert time in 24 hour format
+
+# convert time in 24 hour format
 def formatTime(timeString):
     if timeString == 'closed':
         return '$'
@@ -60,9 +62,9 @@ def formatTime(timeString):
             minutes = int(hourAndMinutes[1])
 
         if hour == 12:
-            result = minutes/60.0
+            result = minutes / 60.0
         else:
-            result = hour + minutes/60.0
+            result = hour + minutes / 60.0
 
         return result
     pmFormatData = timeString.split('pm')
@@ -75,11 +77,12 @@ def formatTime(timeString):
             minutes = int(hourAndMinutes[1])
 
         if hour == 12:
-            result = hour + minutes/60.0
+            result = hour + minutes / 60.0
         else:
-            result = 12 + hour + minutes/60.0
+            result = 12 + hour + minutes / 60.0
 
         return result
+
 
 def preprocessPoints(listOfPoints):
     for index, point in enumerate(listOfPoints):
@@ -87,7 +90,7 @@ def preprocessPoints(listOfPoints):
         point['recommendedNumHours'] = str(hours)
         point['rank'] = index + 1
 
-        #convert opening closing in 0-24 format
+        # convert opening closing in 0-24 format
 
         formatedOpeningHour = ''
         formatedClosingHour = ''
@@ -101,34 +104,47 @@ def preprocessPoints(listOfPoints):
             for closeTime in closingHourDayWiseData:
                 formatedClosingHour += str(formatTime(closeTime.lower())) + ","
 
-        else: #if opening closing not given consider 8:00 AM to 6:00 PM
-            openTime = '8:00 am'
-            closeTime = '6:00 pm'
+        else:  # if opening closing not given consider 8:00 AM to 6:00 PM
+            openTime = '9:00 am'
+            closeTime = '9:00 pm'
             for i in range(7):
                 formatedOpeningHour += str(formatTime(openTime.lower())) + ","
                 formatedClosingHour += str(formatTime(closeTime.lower())) + ","
 
         point['openingHour'] = formatedOpeningHour[:-1]
         point['closingHour'] = formatedClosingHour[:-1]
+
+        if point['coordinates'] is None:
+            lat = random.uniform(51, 51.5)  # london lat range
+            lng = random.uniform(-0.2, 0.2)  # london lng range
+            point['coordinates'] = str(lat) + "," + str(lng)
+
         listOfPoints[index] = point
     return listOfPoints
 
 
-# consider sunday as day 0
-def canVisitedPoint(point, enterTime, exitTime, dayNum):
+# this will return enterTime of place based on opening and closing hour if possible otherwise it will return -1
+def getEnterTimeBasedOnOpeningHour(point, enterTime, exitTime, dayNum):
+    openHourOfDay = point['openingHour'].split(',')[dayNum]
 
-    openHourOfDay = float(point['openingHour'].split(',')[dayNum])
+    closeHourOfDay = point['closingHour'].split(',')[dayNum]
 
-    closeHourOfDay = float(point['closingHour'].split(',')[dayNum])
+    if openHourOfDay == '$' or closeHourOfDay == '$': #closed for that day
+        return -1
+    else:
+        openHourOfDay = float(openHourOfDay)
+        closeHourOfDay = float(closeHourOfDay)
 
     if enterTime >= openHourOfDay and exitTime <= closeHourOfDay:
-        return True
+        return enterTime
+    elif enterTime < openHourOfDay and exitTime < closeHourOfDay:
+        return openHourOfDay
     else:
-        return False
+        return -1
 
 
 def getDistance(point1, point2):
-    #approximate radius of earth in km
+    # approximate radius of earth in km
     R = 6373.0
     [lat1, lon1] = point1['coordinates'].split(',')
     [lat2, lon2] = point2['coordinates'].split(',')
@@ -145,32 +161,39 @@ def getDistance(point1, point2):
 
     distance = R * c
 
-    return distance
+    return distance * 2 # to make approximate same as path distance
+
 
 def getTravelTime(point1, point2):
     distance = getDistance(point1, point2)
-    return distance/80 #assumed avg speed 80km/hr
+    return distance / 25  # assumed avg speed 80km/hr
 
 
 def gratificationScoreOfSeq(sequenceOfPoints, totalTime):
     gScore = 0
     for index, seqData in enumerate(sequenceOfPoints):
-        gScore += getWilsonScore(seqData['point']['avgRating']/10, seqData['point']['ratingCount'])*10 #normalize between 0-10
-        gScore -= seqData['point']['rank']/5   # normalize between 0-10
-        if index < len(sequenceOfPoints)-1:
-            travelTime = getTravelTime(seqData['point'], sequenceOfPoints[index+1]['point'])
-            gScore -= (travelTime/totalTime)*10 #noramlize between 0-10
+
+        gScore += getWilsonScore(seqData['point']['avgRating'] / 10,
+                                 seqData['point']['ratingCount']) * 10  # normalize between 0-10
+
+        gScore -= seqData['point']['rank'] / 5  # normalize between 0-10
+
+        if index < len(sequenceOfPoints) - 1:
+            travelTime = sequenceOfPoints[index+1]['enterTime'] - seqData['exitTime']
+
+            gScore -= (travelTime / totalTime) * 10  # normalize between 0-10
 
     # want more number of attraction
-    gScore += len(sequenceOfPoints)
+    gScore += len(sequenceOfPoints)  #normalize bw 1-10 since each we are considering max 10 points
+
     return gScore
+
 
 def getBestSequence(sequences, totalTime):
     maxGScore = -float('inf')
     maxGScoreSequence = []
     for sequence in sequences:
         gScore = gratificationScoreOfSeq(sequence, totalTime)
-        #print("gscore: "+ str(gScore))
         if gScore > maxGScore:
             maxGScore = gScore
             maxGScoreSequence = sequence
@@ -178,68 +201,73 @@ def getBestSequence(sequences, totalTime):
     return maxGScoreSequence, maxGScore
 
 
-
-
 def getDayWiseClusteredListOfPoints(pointsOfCity, numDays: int):
     dayWiseClusteredData = defaultdict(list)
     latLngToPoint = defaultdict()
-    coordinates = []
+    coordinatesData = []
     for point in pointsOfCity:
-        if point['coordinates'] is not None:
-            [lat, lng] = point['coordinates'].split(',')
-        else:
-            lat = random.uniform(51, 51.5) # london lat range
-            lng = random.uniform(-0.2, 0.2) # london lng range
-        coordinates.append([lat, lng])
+
+        coordinates = point['coordinates']
+        [lat, lng] = coordinates.split(',')
 
         key = str(lat) + ", " + str(lng)
-        point['coordinates'] = key
         latLngToPoint[key] = point
 
-    coordinatesInArrayFormat = np.array(coordinates)
+        coordinatesData.append([lat, lng])
+
+    coordinatesInArrayFormat = np.array(coordinatesData)
     kMeans = KMeans(n_clusters=numDays, max_iter=500).fit(coordinatesInArrayFormat)
 
     predictedClusters = kMeans.predict(coordinatesInArrayFormat)
 
-    for index, value in enumerate(coordinates):
+    for index, value in enumerate(coordinatesData):
         [lat, lng] = value
         key = str(lat) + ", " + str(lng)
         dayWiseClusteredData[predictedClusters[index]].append(latLngToPoint[key])
 
     return dayWiseClusteredData
 
+
 # assume start point is already added in currentSequence
-def possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPoints, startPoint, currentSequence, startPointExitTIme, endTime, possibleSequences):
+def possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPoints, startPoint, currentSequence,
+                                            startPointExitTIme, endTime, dayNum, possibleSequences):
     possibleSequences.append(currentSequence)
     for index, point in enumerate(listOfPoints):
         if not visitedPoints[index]:
             travelTime = getTravelTime(startPoint, point)
             visitingTime = float(point['recommendedNumHours'])
             pointEnterTime = startPointExitTIme + travelTime
-            pointExitTime = startPointExitTIme + travelTime + visitingTime
+            pointExitTime = pointEnterTime + visitingTime
+
+            pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(point, pointEnterTime, pointExitTime, dayNum)
+
+            if pointEnterTimeBasedOnOpeningHour < 0:
+                continue
+            else:
+                pointEnterTime = pointEnterTimeBasedOnOpeningHour
+                pointExitTime = pointEnterTime + visitingTime
 
             if pointExitTime < endTime:
-
-
                 newVisitedList = visitedPoints[:]
                 newVisitedList[index] = True
                 newSequence = currentSequence[:]
-                pointInSeqFormat = {'point': point, 'enterTime': pointEnterTime, 'exitTime': pointExitTime }
+                pointInSeqFormat = {'point': point, 'enterTime': pointEnterTime, 'exitTime': pointExitTime}
                 newSequence.append(pointInSeqFormat)
 
-                newStartPointEndTime = startPointExitTIme + travelTime + visitingTime
-                possibleSequencesBWStartPointAndEndTime(listOfPoints, newVisitedList, point, newSequence, newStartPointEndTime, endTime, possibleSequences)
+                possibleSequencesBWStartPointAndEndTime(listOfPoints, newVisitedList, point, newSequence,
+                                                        pointExitTime, endTime, dayNum, possibleSequences)
 
 
-# assume start point is already is added in currentSequence
-def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint, startPointExitTIme, endPoint, endPointEnterTime, endPointExitTime, currentSequence, possibleSequences):
-    #case 1
+# assume start point is already added in currentSequence
+def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint, startPointExitTIme, endPoint,
+                                        endPointEnterTime, endPointExitTime, currentSequence, dayNum, possibleSequences):
+    # case 1
     newSequence = currentSequence[:]
     endPointInSeqFormat = {'point': endPoint, 'enterTime': endPointEnterTime, 'exitTime': endPointExitTime}
     newSequence.append(endPointInSeqFormat)
     possibleSequences.append(newSequence)
 
-    #case 2
+    # case 2
     for index, point in enumerate(listOfPoints):
         if not visitedPoints[index]:
             travelTimeStartPointToPoint = getTravelTime(startPoint, point)
@@ -249,6 +277,15 @@ def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint,
             pointEnterTime = startPointExitTIme + travelTimeStartPointToPoint
             pointExitTime = pointEnterTime + visitingTimeOfPoint
 
+            pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(point, pointEnterTime, pointExitTime, dayNum)
+
+            if pointEnterTimeBasedOnOpeningHour < 0:
+                continue
+            else:
+                pointEnterTime = pointEnterTimeBasedOnOpeningHour
+                pointExitTime = pointEnterTime + visitingTimeOfPoint
+
+
             if pointExitTime + travelTimePointToEndPoint < endPointEnterTime:
                 newVisitedList = visitedPoints[:]
                 newVisitedList[index] = True
@@ -257,45 +294,52 @@ def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint,
                 pointInSeqFormat = {'point': point, 'enterTime': pointEnterTime, 'exitTime': pointExitTime}
                 newSequence.append(pointInSeqFormat)
 
-                endTimeOfPoint = startPointExitTIme + travelTimeStartPointToPoint + visitingTimeOfPoint
-                possibleSequencesBWStartAndEndPoint(listOfPoints, newVisitedList, point, endTimeOfPoint, endPoint, endPointEnterTime,endPointExitTime, newSequence, possibleSequences)
+                possibleSequencesBWStartAndEndPoint(listOfPoints, newVisitedList, point, pointExitTime, endPoint,
+                                                    endPointEnterTime, endPointExitTime, newSequence, dayNum, possibleSequences)
 
 
 # it will add only endpoint always and other point only when possible
-def possibleSequencesBWStartTimeAndEndPoint(listofPoints, visitedPoints, currentSequence, endPoint, startTime, endPointEnterTime, endPointExitTime):
-
+def possibleSequencesBWStartTimeAndEndPoint(listofPoints, visitedPoints, currentSequence, endPoint, startTime,
+                                            endPointEnterTime, endPointExitTime, dayNum):
     possibleSequences = []
     for index, startPoint in enumerate(listOfPoints):
         if not visitedPoints[index]:
             visitingTimeOfPoint = float(startPoint['recommendedNumHours'])
             travelTimeToEndPoint = getTravelTime(startPoint, endPoint)
 
-            if startTime + visitingTimeOfPoint + travelTimeToEndPoint < endPointEnterTime:
+            pointEnterTime = startTime
+            pointExitTime = startTime + visitingTimeOfPoint
 
+            pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(point, pointEnterTime, pointExitTime, dayNum)
+
+            if pointEnterTimeBasedOnOpeningHour < 0:
+                continue
+            else:
+                pointEnterTime = pointEnterTimeBasedOnOpeningHour
+                pointExitTime = pointEnterTime + visitingTimeOfPoint
+
+            if pointExitTime + travelTimeToEndPoint < endPointEnterTime:
                 newVisitedList = visitedPoints[:]
                 newVisitedList[index] = True
 
-                startPointExitTime = startTime + visitingTimeOfPoint
-
                 newSequence = currentSequence[:]
 
-                pointInSeqFormat = {'point': startPoint, 'enterTime': startTime, 'exitTime': startPointExitTime}
+                pointInSeqFormat = {'point': startPoint, 'enterTime': pointEnterTime, 'exitTime': pointExitTime}
                 newSequence.append(pointInSeqFormat)
                 # this will add all possible sequence which end with endPoint and have some points in starting
-                possibleSequencesBWStartAndEndPoint(listOfPoints, newVisitedList, startPoint, startPointExitTime, endPoint, endPointEnterTime, endPointExitTime, newSequence, possibleSequences)
+                possibleSequencesBWStartAndEndPoint(listOfPoints, newVisitedList, startPoint, pointExitTime,
+                                                    endPoint, endPointEnterTime, endPointExitTime, newSequence,
+                                                    dayNum, possibleSequences)
 
-    #we also need to add only endPoint no any other points
-
+    # we also need to add only endPoint no any other points
     pointInSeqFormat = {'point': endPoint, 'enterTime': endPointEnterTime, 'exitTime': endPointExitTime}
     possibleSequences.append([pointInSeqFormat])
 
     return possibleSequences
 
 
-
-
-def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, mustNotVisitPoints, dayStartTime, dayEndTime):
-
+def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, mustNotVisitPoints, dayStartTime,
+                    dayEndTime, dayNum):
     possibleSequences = []
     visitedPoints = [False] * len(listOfPoints)
 
@@ -305,42 +349,56 @@ def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
     if len(mustVisitPoints) == 0:
         # we can choose any start point
         for index, startPoint in enumerate(listOfPoints):
-            startPointExitTime = dayStartTime + float(startPoint['recommendedNumHours'])
+            if not visitedPoints[index]:
+                startPointEnterTime = dayStartTime
+                startPointVisitingTime = float(startPoint['recommendedNumHours'])
+                startPointExitTime = startPointEnterTime + startPointVisitingTime
 
-            visitedPointForStartPoint = visitedPoints[:]
-            visitedPointForStartPoint[index] = True
+                pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(startPoint, startPointEnterTime, startPointExitTime, dayNum)
 
-            currentSequence = [{'point': startPoint, 'enterTime': dayStartTime, 'exitTime': startPointExitTime}]
+                if pointEnterTimeBasedOnOpeningHour < 0:
+                    continue
+                else:
+                    startPointEnterTime = pointEnterTimeBasedOnOpeningHour
+                    startPointExitTime = startPointEnterTime + startPointVisitingTime
 
-            possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointForStartPoint, startPoint, currentSequence, startPointExitTime, dayEndTime, possibleSequences)
+                visitedPointsForStartPoint = visitedPoints[:]
+                visitedPointsForStartPoint[index] = True
 
+                currentSequence = [{'point': startPoint, 'enterTime': startPointEnterTime, 'exitTime': startPointExitTime}]
+
+                possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointsForStartPoint, startPoint,
+                                                        currentSequence, startPointExitTime, dayEndTime, dayNum, possibleSequences)
     else:
         for mustVisitPoint in mustVisitPoints:
             visitedPoints[listOfPoints.index(mustVisitPoint)] = True
 
-        #we can also add point before must visit first point if we can't then this function will add first point in sequence
+        # we can also add point before must visit first point if we can't then this function will add first point in sequence
         firstPointEnterTime = mustVisitPlaceEnterExitTime[0][0]
         firstPointExitTime = mustVisitPlaceEnterExitTime[0][1]
-        possibleSequences = possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints,[], mustVisitPoints[0], dayStartTime, firstPointEnterTime, firstPointExitTime)
-
+        endPoint = mustVisitPoints[0]
+        possibleSequences = possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, [], endPoint,
+                                                                    dayStartTime, firstPointEnterTime,
+                                                                    firstPointExitTime, dayNum)
 
         for index, startPoint in enumerate(mustVisitPoints):
-            startPointExitTime = mustVisitPlaceEnterExitTime[index][1] #end Time will be now start time for sequence
+            startPointExitTime = mustVisitPlaceEnterExitTime[index][1]  # end Time will be now start time for sequence
 
-
-            possibleSequencesAfterIter = [] # each iteration of loop will create new possible sequence based on previous iteration possibleSequences
-            if index < len(mustVisitPoints)-1: # for this we have start point and end point always
+            possibleSequencesAfterIter = []  # each iteration of loop will create new possible sequence based on previous iteration possibleSequences
+            if index < len(mustVisitPoints) - 1:  # for this we have start point and end point always
                 for sequence in possibleSequences:
                     visitedPointsForSeq = visitedPoints[:]
 
                     for seqPointData in sequence:
                         visitedPointsForSeq[listOfPoints.index(seqPointData['point'])] = True
 
-                    endPoint = mustVisitPoints[index+1]
-                    endPointEnterTime = mustVisitPlaceEnterExitTime[index+1][0]
-                    endPointExitTime = mustVisitPlaceEnterExitTime[index+1][1]
+                    endPoint = mustVisitPoints[index + 1]
+                    endPointEnterTime = mustVisitPlaceEnterExitTime[index + 1][0]
+                    endPointExitTime = mustVisitPlaceEnterExitTime[index + 1][1]
 
-                    possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPointsForSeq, startPoint, startPointExitTime, endPoint, endPointEnterTime, endPointExitTime, sequence, possibleSequencesAfterIter)
+                    possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPointsForSeq, startPoint,
+                                                        startPointExitTime, endPoint, endPointEnterTime,
+                                                        endPointExitTime, sequence, dayNum, possibleSequencesAfterIter)
 
             else:
                 for sequence in possibleSequences:
@@ -349,8 +407,8 @@ def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
                     for seqPointData in sequence:
                         visitedPointsForSeq[listOfPoints.index(seqPointData['point'])] = True
 
-                    possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointsForSeq, startPoint, sequence, startPointExitTime, dayEndTime, possibleSequencesAfterIter)
-
+                    possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointsForSeq, startPoint, sequence,
+                                                            startPointExitTime, dayEndTime, dayNum, possibleSequencesAfterIter)
 
             possibleSequences = possibleSequencesAfterIter[:]
 
@@ -359,77 +417,67 @@ def getDayItinerary(listofPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
     return bestSequence
 
 
-
-def printSequence(sequence, startTime, GScore):
+def printSequence(sequence, startTime, GScore, dayNum):
     print("Sequence: Gscore: " + str(GScore))
     print("startTime: " + str(startTime))
     previousPoint = []
     for index, seqData in enumerate(sequence):
-        print(str(index) + "\t" + seqData['point']['pointName'] + "\tEnterTime: "+str(seqData['enterTime'])+"\t" +"ExitTime: "+str(seqData['exitTime']))
+        print(str(index) + "\t" + seqData['point']['pointName'] + "\tEnterTime: " + str(
+            seqData['enterTime']) + "\t" + "ExitTime: " + str(seqData['exitTime']) +
+              "\tOpenHour: "+seqData['point']['openingHour'].split(',')[dayNum] + "\tCloseHour: "+
+              seqData['point']['closingHour'].split(',')[dayNum])
 
         visitingTime = float(seqData['point']['recommendedNumHours'])
         print("visitingTime: " + str(visitingTime))
 
-        endTime = startTime + visitingTime
         if index >= 1:
             distance = getDistance(seqData['point'], previousPoint)
             print("distance: " + str(distance))
             travelTime = getTravelTime(seqData['point'], previousPoint)
-            print("travelling Time: " + str(travelTime))
-            endTime += travelTime
-        print("endTime: " + str(endTime))
+            print("travelling Time: " + str(travelTime) + " hour")
 
         previousPoint = seqData['point']
-        startTime = endTime
         print('\n\n')
 
 
 
-allData = readAllData('aggregatedDatafrequencyWithWDomainRanking.json')
 
-countryName = "United Kingdom"
-cityName = 'London'
+if __name__ == '__main__':
+    allData = readAllData('aggregatedDatafrequencyWithWDomainRanking.json')
 
-cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
+    countryName = "United Kingdom"
+    cityName = 'London'
+    cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
+    cityTopPoints = preprocessPoints(cityTopPoints)
 
-dayWiseClusteredData = getDayWiseClusteredListOfPoints(cityTopPoints, 5)
+    # dayWiseClusteredData = getDayWiseClusteredListOfPoints(cityTopPoints, 5)
 
+    numPoints = 10
+    listOfPoints = cityTopPoints[:numPoints]
 
+    print("points: ")
+    for index, point in enumerate(listOfPoints):
+        print(str(index) + "\t" + point['pointName'])
 
-# for day in dayWiseClusteredData:
-#     listOfPoints = dayWiseClusteredData[day]
-#     print(day)
-#     for point in listOfPoints:
-#         print(point['pointName'])
-#         print(point['recommendedNumHours'])
-#         print(getRecommendedNumHoursInMinutes(point))
-#     print('\n\n')
-numPoints = 10
-listOfPoints = cityTopPoints[:numPoints]
+    startTime = 5
+    endTime = 22
+    dayNum = 0
+    mustVisitPoints = [listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
+    mustVisitPointsTime = [[13, 14], [16, 17]]  # , [16.5, 17.5], [21, 22]]
 
-listOfPoints = preprocessPoints(listOfPoints)
+    mustNotVisitPoints = [listOfPoints[5], listOfPoints[4]]
 
-startTime = 10
-endTime = 22
-mustVisitPoints = [listOfPoints[0], listOfPoints[2], listOfPoints[3], listOfPoints[4]]
+    print("\nMust Visit Points: ")
+    for index, point in enumerate(mustVisitPoints):
+        print(point['pointName'])
+        print(mustVisitPointsTime[index])
 
-mustVisitPointsTime = [[10, 11], [13, 14], [16, 17], [21, 22]]
+    print("\nmust not visit points:")
+    for index, point in enumerate(mustNotVisitPoints):
+        print(point['pointName'])
 
-mustNotVisitPoints = [listOfPoints[5], listOfPoints[9]]
-
-#mustNotVisitPoints = [listOfPoints[2]]
-print("\nMust Visit Points: ")
-for index, point in enumerate(mustVisitPoints):
-    print(point['pointName'])
-    print(mustVisitPointsTime[index])
-
-
-print("\nmust not visit points:")
-for index, point in enumerate(mustNotVisitPoints):
-    print(point['pointName'])
-
-print('\n\n')
-bestSequence, maxGScore = getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPointsTime, mustNotVisitPoints, startTime, endTime)
-printSequence(bestSequence, startTime, maxGScore)
-
+    print('\n\n')
+    bestSequence, maxGScore = getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPointsTime, mustNotVisitPoints,
+                                              startTime, endTime, dayNum)
+    printSequence(bestSequence, startTime, maxGScore, dayNum)
