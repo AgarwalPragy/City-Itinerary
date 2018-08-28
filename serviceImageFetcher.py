@@ -62,7 +62,7 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
         return imageResize(original, size)
 
 
-@imageFetcher.route('/fetch-image')
+@imageFetcher.route('/api/fetch-image')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def fetchImage():
     url = request.args.get('url')

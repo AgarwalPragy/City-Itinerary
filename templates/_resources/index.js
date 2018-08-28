@@ -1,6 +1,13 @@
 var cityImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png'
 window.fuse = null;
 
+
+Date.prototype.addHours = function(h) {    
+   this.setTime(this.getTime() + (h*60*60*1000)); 
+   return this;   
+}
+
+
 var getData = function(url, callback) {
     console.log(url);
     console.log('getting data...');
@@ -62,7 +69,7 @@ var getEncodedCityImageURL = function (city) {
 
 var renderResult = function(item) {
     return '<div class="search-result">' + 
-                '<img class="search-result-cityimage" src="/fetch-image?url=' + getEncodedCityImageURL(item) + '&width=160&height=90">' +
+                '<img class="search-result-cityimage" src="/api/fetch-image?url=' + getEncodedCityImageURL(item) + '&width=160&height=90">' +
                 '<div class="search-result-cityname">' + item.cityName + '</div>' +
                 '<div class="search-result-countryname">' + item.countryName + '</div>' +
             '</div>';
@@ -78,7 +85,7 @@ var renderEmpty = function(context) {
     ]);
     var randomPerson = chooseRandomElement(['Albert Einstein', 'Nikola Tesla', 'Charles Darwin', 'Carl Sagan', 'Charles Babbage', 'Aristotle']);
     return '<div class="search-result tt-suggestion">' +
-                '<img class="search-result-cityimage" src="/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
+                '<img class="search-result-cityimage" src="/api/fetch-image?url=' + encodeURIComponent(cityImageUnavailable) + '&width=160&height=90">' +
                 '<div class="search-result-cityname">' + randomSuggestion + '</div>' +
                 '<div class="search-result-countryname">- ' + randomPerson + '</div>' +
             '</div>';
@@ -97,7 +104,7 @@ var registerVue = function() {
         methods: {
             getCityImage: function(plan) {
                 var city = this.cities[plan.city]
-                return '/fetch-image?url=' + getEncodedCityImageURL(city) + '&width=320&height=180';
+                return '/api/fetch-image?url=' + getEncodedCityImageURL(city) + '&width=320&height=180';
             },
             getCityName: function(plan) {
                 var city = this.cities[plan.city];
@@ -135,10 +142,14 @@ var registerDateTime = function () {
             useCurrent: false //Important! See issue #1075
         });
     $("#datetimepicker1").on("dp.change", function (e) {
-        $('#datetimepicker2').data("DateTimePicker").minDate(e.date);
+        minDate = new Date(e.date);
+        minDate.addHours(24);
+        $('#datetimepicker2').data("DateTimePicker").minDate(minDate);
     });
     $("#datetimepicker2").on("dp.change", function (e) {
-        $('#datetimepicker1').data("DateTimePicker").maxDate(e.date);
+        maxDate = new Date(e.date);
+        maxDate.addHours(-24);
+        $('#datetimepicker1').data("DateTimePicker").maxDate(maxDate);
     });
 }
 
@@ -173,12 +184,12 @@ var registerDataDependents = function() {
     window.app['recentPlans'] = window.recentPlans;
 }
 
-getData('/cities', function (response) {
+getData('/api/cities', function (response) {
     window.cities = response.data;
     window.hasCities = true;
     registerDataDependents();
 });
-getData('/recent-plans', function (response) {
+getData('/api/recent-plans', function (response) {
     window.recentPlans = response.data;
     window.hasRecentPlans = true;
     registerDataDependents();
