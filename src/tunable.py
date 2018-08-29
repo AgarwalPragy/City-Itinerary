@@ -31,11 +31,11 @@ indexToOrderPolicy = {
 orderWeightOfPolicies = {
     'frequency': 0.3/freqDivideFactor,
     'rank': 0.0,
-    'wilsonScore': 0.1,
-    'mayurScore': 0.3,
-    'pointAttributes': 0.0,
-    'tripexpertScore': 0.3,
-    'category': 0.0
+    'wilsonScore': 0.15,
+    'mayurScore': 0.2,
+    'pointAttributes': 0.05,
+    'tripexpertScore': 0.25,
+    'category': 0.05
 }
 
 orderBasedOn = indexToOrderPolicy[5]

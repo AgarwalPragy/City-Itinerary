@@ -2,14 +2,6 @@ import json
 import sys
 import random
 from math import radians, sin, cos, atan2, sqrt
-import re
-from collections import defaultdict
-from sklearn.cluster import KMeans
-import matplotlib
-matplotlib.use('TkAgg')
-import matplotlib.pyplot as plt
-import numpy as np
-
 sys.path.append('.')
 from utilities import getWilsonScore, roundUpTime
 
@@ -107,47 +99,6 @@ def getBestSequence(sequences, totalTime):
             maxGScoreSequence = sequence
 
     return maxGScoreSequence, maxGScore
-
-
-def getDayWiseClusteredListOfPoints(pointsOfCity, numDays: int):
-    dayWiseClusteredData = defaultdict(list)
-    latLngToPoint = defaultdict()
-    coordinatesData = []
-    for point in pointsOfCity:
-
-        coordinates = point['coordinates']
-        [lat, lng] = coordinates.split(',')
-
-        key = str(lat) + ", " + str(lng)
-        latLngToPoint[key] = point
-
-        coordinatesData.append([lat, lng])
-
-    coordinatesInArrayFormat = np.array(coordinatesData)
-
-    #
-    kMeans = KMeans(n_clusters=numDays, max_iter=500).fit(coordinatesInArrayFormat)
-
-    predictedClusters = kMeans.predict(coordinatesInArrayFormat)
-
-    for index, value in enumerate(coordinatesData):
-        [lat, lng] = value
-        key = str(lat) + ", " + str(lng)
-        dayWiseClusteredData[predictedClusters[index]].append(latLngToPoint[key])
-
-
-    for day in dayWiseClusteredData:
-        print(day)
-        for point in dayWiseClusteredData[day]:
-            print(point['pointName'])
-        print('\n\n')
-
-    print(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1])
-    plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
-    plt.show()
-
-    return dayWiseClusteredData
-
 
 # assume start point is already added in currentSequence
 def possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPoints, startPoint, currentSequence,
@@ -360,10 +311,8 @@ def printSequence(sequence, startTime, GScore, dayNum):
         print('\n\n')
 
 
-
-
 if __name__ == '__main__':
-    allData = readAllData('../aggregatedData/frequency/data.json')
+    allData = readAllData('../aggregatedData/latest/data.json')
 
     countryName = "United Kingdom"
     cityName = 'London'
@@ -374,30 +323,14 @@ if __name__ == '__main__':
             lat = random.uniform(51, 51.5)  # london lat range
             lng = random.uniform(-0.2, 0.2)  # london lng range
             point['coordinates'] = str(lat) + "," + str(lng)
-    #cityTopPoints = preprocessPoints(cityTopPoints)
-
-    # dayWiseClusteredData = getDayWiseClusteredListOfPoints(cityTopPoints, 5)
-    #
-    #
-    # for day in dayWiseClusteredData:
-    #     print(day)
-    #     for point in dayWiseClusteredData[day]:
-    #         print(point['pointName'])
-    #     print('\n\n')
-    #
-    # exit(0)
-
-
 
     numPoints=10
     listOfPoints = cityTopPoints[:numPoints]
 
-
-
     print("points: ")
     for index, point in enumerate(listOfPoints):
         print(str(index) + "\t" + point['pointName'])
-        
+
     startTime = 10
     endTime = 22
     dayNum = 0
