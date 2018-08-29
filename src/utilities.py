@@ -8,7 +8,7 @@ from functools import lru_cache
 from urllib.parse import unquote
 from fuzzywuzzy import fuzz
 
-__all__ = ['processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUp']
+__all__ = ['processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUpTime']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
@@ -53,15 +53,11 @@ def getWilsonScore(p, n) -> float:
     return lower_bound
 
 
-def roundUp(val):
-    intPart = int(val)
-    floatPart = val - intPart
-    if floatPart < 0.05:
-        return float(intPart)
-    if 0.05 <= floatPart <= 0.5:
-        return intPart + 0.5
-    else:
-        return intPart + 1.0
+def roundUpTime(val):
+    hours = int(val)
+    minutes = (val - hours) * 60
+    minutes = int(math.ceil(minutes / 15) * 15)
+    return hours + (minutes/60)
 
 
 def urlDecode(url: str) -> str:
