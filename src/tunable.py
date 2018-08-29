@@ -9,6 +9,8 @@ avgOpenTime = '9:00 am'
 avgCloseTime = '10:00 pm'
 
 mScoreAvgRatingCount = 10
+freqDivideFactor = 5
+
 pointAttributeWeights = {
     'coordinates': 0.35,
     'address': 0.25,
@@ -27,13 +29,13 @@ indexToOrderPolicy = {
 }
 
 orderWeightOfPolicies = {
-    'frequency': 0.2,
-    'rank': 0.1,
+    'frequency': 0.3/freqDivideFactor,
+    'rank': 0.0,
     'wilsonScore': 0.1,
-    'mayurScore': 0.1,
-    'pointAttributes': 0.1,
-    'tripexpertScore': 0.1,
-    'category': 0.3
+    'mayurScore': 0.3,
+    'pointAttributes': 0.0,
+    'tripexpertScore': 0.3,
+    'category': 0.0
 }
 
 orderBasedOn = indexToOrderPolicy[5]

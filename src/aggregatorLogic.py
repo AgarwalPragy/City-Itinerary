@@ -11,6 +11,9 @@ from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
 from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime, mScoreAvgRatingCount, goodWordWeight, badWordWeight, goodCategoryTitleWords, badCategoryTitleWords
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
+catTitleWeightAvgValue = 0
+catTitleWeightCount = 0
+
 
 def getBestName(names: List[str], strictness: int=3) -> str:
     """returns the longest name which occurs sufficiently enough
@@ -178,6 +181,8 @@ def processPointAggregated(pointAggregated):
 
 
 def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: str, bestCityName: str, bestPointName: str) -> PointAggregated:
+    global catTitleWeightAvgValue, catTitleWeightCount
+
     finalPoint = PointAggregated(bestCountryName, bestCityName, bestPointName)
     if len(jsonPointListings) == 0:
         finalPoint.avgRating = 0
@@ -297,6 +302,9 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     finalPoint.priceLevel = priceLevel
 
     processedPointAggregated = processPointAggregated(finalPoint)
+
+    catTitleWeightAvgValue += getCategoryTitleWeight(processedPointAggregated.jsonify())
+    catTitleWeightCount += 1
     return processedPointAggregated
 
 
@@ -345,13 +353,14 @@ def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
         result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
 
     if 'tripexpertScore' in orderWeightOfPolicies and jsonPointAggregated['tripexpertScore'] is not None:
-        result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
+        result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']/100
 
     if 'category' in orderWeightOfPolicies:
-        result += getCategoryTitleWeight(jsonPointAggregated) * orderWeightOfPolicies['category']
+        catTitleAverage = catTitleWeightAvgValue*1.0 / catTitleWeightCount
+        result += (getCategoryTitleWeight(jsonPointAggregated)/catTitleAverage) * orderWeightOfPolicies['category']
 
     if 'mayurScore' in orderWeightOfPolicies:
-        result += mayurScore(pointAggregated) * orderWeightOfPolicies['mayurScore']
+        result += mayurScore(pointAggregated) * orderWeightOfPolicies['mayurScore']/10
 
     return result
 
