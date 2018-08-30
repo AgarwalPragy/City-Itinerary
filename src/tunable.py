@@ -10,6 +10,7 @@ avgCloseTime = '10:00 pm'
 
 mScoreAvgRating = 5         # what to assign when no ratings available
 mScoreAvgRatingCount = 10   # how many fake values to put
+avgSpeedOfTravel = 25
 
 pointAttributeWeights = {
     'coordinates': 0.35,

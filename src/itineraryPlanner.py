@@ -1,10 +1,9 @@
 import json
 import sys
-import random
 from math import radians, sin, cos, atan2, sqrt
 sys.path.append('.')
 from utilities import getWilsonScore, roundUpTime
-
+from tunable import avgSpeedOfTravel
 
 def gratificationScoreOfSequence(pointsInOrder):
     # TODO: improve this?
@@ -69,7 +68,7 @@ def getDistance(point1, point2):
 
 def getTravelTime(point1, point2):
     distance = getDistance(point1, point2)
-    return roundUpTime(distance/40.0)  # assumed avg speed 40km/hr
+    return roundUpTime(distance/avgSpeedOfTravel)  # assumed avg speed 40km/hr
 
 
 def getBestSequence(sequences, totalTime):
@@ -270,6 +269,12 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
 
     bestSequence = getBestSequence(possibleSequences, dayEndTime - dayStartTime)
 
+    print('len=', len(possibleSequences))
+    for sequence in possibleSequences:
+        for seqData in sequence:
+            print(seqData['point']['pointName'], seqData['enterTime'], seqData['exitTime'], sep='\t', end=',')
+        print()
+
     return bestSequence
 
 
@@ -310,11 +315,11 @@ if __name__ == '__main__':
 
 
     numPoints=7
-    listOfPoints = cityTopPoints[:numPoints]
+    listOfPoints = cityTopPointsWithLatlng[:numPoints]
 
     print("points: ")
     for index, point in enumerate(listOfPoints):
-        print(str(index) + "\t" + point['pointName'])
+        print(str(index) + "\t" + point['pointName'] + "\t" + point['recommendedNumHours'] + "\t" + point['openingHour'] + "\t"+point['closingHour'])
 
     startTime = 10
     endTime = 22
