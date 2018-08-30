@@ -8,9 +8,21 @@ from functools import lru_cache
 from urllib.parse import unquote
 from fuzzywuzzy import fuzz
 
-__all__ = ['processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUpTime']
+__all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUpTime']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
+
+
+def maxArgMax(items, key=lambda x: x):
+    maxScore = -float('inf')
+    bestItem = None
+    for item in items:
+        score = key(item)
+        if score > maxScore:
+            maxScore = score
+            bestItem = item
+    return bestItem, maxScore
+
 
 @lru_cache(None)
 def sanitizeName(name: str) -> str:
