@@ -288,3 +288,15 @@ registerDateTime();
 registerVue();
 app.currentCity = initialCity;
 app.currentConstraints = initialConstraints;
+
+utils.getData('/api/points', {
+    city: app.currentCity.fullName
+}, function (response) {
+    app.points = response.data;
+});
+utils.getData('/api/itinerary', {
+    city: initialCity,
+    constraints: initialConstraints
+}, function (response) {
+    app.itinerary = response.data;
+});
