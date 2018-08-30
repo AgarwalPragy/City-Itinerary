@@ -193,19 +193,25 @@ var registerPointFuse = function() {
 
 
 var registerDateTime = function () {
-    $('#datetimepicker1').datetimepicker();
-    $('#datetimepicker2').datetimepicker({
-            useCurrent: false //Important! See issue #1075
-        });
-    $("#datetimepicker1").on("dp.change", function (e) {
-        minDate = new Date(e.date);
-        minDate.addHours(24);
-        $('#datetimepicker2').data("DateTimePicker").minDate(minDate);
+    $('#date_timepicker_start').datetimepicker({
+        format: 'Y/m/d H.i',
+        allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
+        onShow:function( ct ){
+            this.setOptions({
+                maxDate: $('#date_timepicker_end').val()?$('#date_timepicker_end').val():false
+            })
+        },
+        timepicker: true
     });
-    $("#datetimepicker2").on("dp.change", function (e) {
-        maxDate = new Date(e.date);
-        maxDate.addHours(-24);
-        $('#datetimepicker1').data("DateTimePicker").maxDate(maxDate);
+    $('#date_timepicker_end').datetimepicker({
+        format: 'Y/m/d H.i',
+        allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
+        onShow:function( ct ){
+            this.setOptions({
+                minDate: $('#date_timepicker_start').val()?$('#date_timepicker_start').val():false
+            })
+        },
+        timepicker: true
     });
 };
 
@@ -279,24 +285,30 @@ var registerVue = function() {
 };
 
 
-utils.getData('/api/cities', {}, function (response) {
-    app.cities = response.data;
-});
+(function() {
+    registerVue();
+    utils.getData('/api/itinerary', {
+        city: initialCity,
+        constraints: initialConstraints
+    }, function (response) {
+        app.itinerary = response.data;
+    });
+    app.currentCity = initialCity;
+    app.currentConstraints = initialConstraints;
+    utils.getData('/api/cities', {}, function (response) {
+        app.cities = response.data;
+    });
+    utils.getData('/api/points', {
+        city: app.currentCity.fullName
+    }, function (response) {
+        app.points = response.data;
+    });
 
-registerMap();
-registerDateTime();
-registerVue();
-app.currentCity = initialCity;
-app.currentConstraints = initialConstraints;
 
-utils.getData('/api/points', {
-    city: app.currentCity.fullName
-}, function (response) {
-    app.points = response.data;
-});
-utils.getData('/api/itinerary', {
-    city: initialCity,
-    constraints: initialConstraints
-}, function (response) {
-    app.itinerary = response.data;
-});
+    registerDateTime();
+    $('date_timepicker_start').val('')
+
+    registerMap();
+    $('#city-searchbar').val(initialCity);
+
+})();

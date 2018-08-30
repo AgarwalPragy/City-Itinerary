@@ -111,19 +111,19 @@ body {
 
     .input-box {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-gap: 1em;
+        grid-template-columns: 2fr 1fr;
+        grid-gap: 2.5em;
         text-align: left;
     }
 
         .search-box {
         }
             .twitter-typeahead {
-                width: calc(100% - 42px);
+                width: calc(100% - 41px);
                 font-weight: bold;
             }
                 .city-searchbar {
-                    width: calc(100% - 42px);
+                    width: calc(100% - 41px);
                     font-size: 1.5em;
                     font-weight: bold;
                     background: white;
@@ -165,12 +165,13 @@ body {
 
 
         .date-box {
-            width: 95%;
+            width: 97%;
             margin: auto;
             display: grid;
             grid-template-columns: 1fr 1fr 10em;
             grid-gap: 1em;
             font-size: 10px;
+            margin-left: 1em;
         }
             .datepicker-box {
                 /*overflow: hidden;*/

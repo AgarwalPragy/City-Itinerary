@@ -9,15 +9,15 @@
     <!-- Note: Order of loading is important! -->
     <!-- favicon       --><link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
     <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
     <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
-    <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
     <!-- css leaflet   --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
     <!-- css SELF      --><link rel="stylesheet" href="resources/planner.css">
     <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <!-- js  popper    --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
     <!-- js  moment    --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
     <!-- js  boostrap  --><script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-    <!-- js  datetime  --><script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+    <!-- js  datetime  --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
     <!-- js  axios     --><script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
     <!-- js  vue       --><script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
     <!-- js  sortable  --><script src=https://cdn.rawgit.com/RubaXa/Sortable/master/Sortable.min.js></script>
@@ -45,8 +45,8 @@
                 <div class="date-box">
                     <div class="datepicker-box">
                         <div class="form-group">
-                            <div class='input-group date' id='datetimepicker1'>
-                                <input type="text" class="form-control">
+                            <div class='input-group date'>
+                                <input type="text" class="form-control"  id='date_timepicker_start' value=""/>
                                 <div class="input-group-append input-group-addon">
                                     <span class="input-group-text"><span class="fas fa-calendar-alt"></span></span>
                                 </div>
@@ -55,8 +55,8 @@
                     </div>
                     <div class="datepicker-box">
                         <div class="form-group">
-                            <div class='input-group date' id='datetimepicker2'>
-                                <input type="text" class="form-control">
+                            <div class='input-group date'>
+                                <input type="text" class="form-control"  id='date_timepicker_end' value=""/>
                                 <div class="input-group-append input-group-addon">
                                     <span class="input-group-text"><span class="fas fa-calendar-alt"></span></span>
                                 </div>
