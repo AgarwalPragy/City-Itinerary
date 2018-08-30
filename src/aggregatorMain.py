@@ -6,13 +6,12 @@ import json
 import os
 import errno
 
-
 from jsonUtils import J, EnhancedJSONEncoder
 from aggregatorLogic import *
 from utilities import doesFuzzyMatch, UnionFind, tree, processName, getCurrentTime
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
-from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, orderBasedOn, fullConfig
-
+from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, pointGratificationBasedOn, fullConfig
+from gratify import getCategoryTitleWeight
 
 ID = t.Union[CountryID, CityID, PointID]
 
@@ -285,6 +284,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
     aggregated = tree()
     allPointScores = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
+    catTitleWeightVals = []
     for countryName, country in data.items():
         aggregatedCountry = aggregated[countryName]
         bestCountryID = CountryID(countryName)
@@ -318,9 +318,11 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
                     aggregatedPoint[attrib] = val
                 aggregatedPoint['images'] = orderImages(point['images'])
                 aggregatedPoint['reviews'] = orderReviews(point['reviews'])
+
                 category = aggregatedPoint['category']
                 if category and category.strip():
                     categoriesFound |= set(cat.strip() for cat in category.split(','))
+                catTitleWeightVals.append(getCategoryTitleWeight(finalPoint))
 
                 pointCount += 1
                 imageCount += len(point['images'])
@@ -329,12 +331,12 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
             finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
             for attrib, val in finalCity.jsonify().items():
                 aggregatedCity[attrib] = val
-            orderedPoints, pointScores = orderPointsOfCity(points)
+            orderedPoints = orderPointsOfCity(points)
             orderedNames = list(map(attrgetter('pointName'), orderedPoints))
             orderedCats = list(map(attrgetter('category'), orderedPoints))
+            pointScores = list(map(attrgetter('gratificationScore'), orderedPoints))
             allPointScores[countryName][cityName] = list('          '.join(map(str, x)) for x in zip(range(len(orderedPoints)), pointScores, orderedNames, orderedCats))
             aggregatedCity['pointsOrder'] = orderedNames
-            aggregatedCity['pointScores'] = pointScores
             aggregatedCity['images'] = orderImages(city['images'])
             aggregatedCity['reviews'] = orderReviews(city['reviews'])
             cityCount += 1
@@ -355,6 +357,11 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
     print('Finally extracted {} points'.format(pointCount))
     print('Finally extracted {} images'.format(imageCount))
     print('Finally extracted {} reviews'.format(reviewCount))
+
+    catTitleWeightVals = [xx for xx in catTitleWeightVals if xx > 0]
+    print('Avg Category Title Weight (FROM NON-ZERO VALS ONLY):', sum(catTitleWeightVals) / len(catTitleWeightVals))
+    # with open('catTitleWeights.txt', 'w') as f:
+    #     f.write(str(catTitleWeightVals))
     return aggregated, categoriesFound, allPointScores
 
 

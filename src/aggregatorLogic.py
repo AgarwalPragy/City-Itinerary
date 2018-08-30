@@ -1,5 +1,6 @@
 from typing import List, Dict
 from collections import Counter
+from operator import attrgetter
 from collections import defaultdict
 from jsonUtils import J
 import json
@@ -8,10 +9,8 @@ import re
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours
-from tunable import avgOpenTime, avgCloseTime, mScoreAvgRatingCount, mScoreAvgRating
-from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight
-from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount
+from tunable import avgRecommendedNumHours, avgOpenTime, avgCloseTime
+from gratify import gratificationScoreOfPoint
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 catTitleWeightAvgValue = 0
@@ -39,21 +38,6 @@ def getBestName(names: List[str], strictness: int=3) -> str:
     return sanitizeName(sortedNames[0])
 
 
-def getCategoryTitleWeight(point):
-    title = processName(point['pointName'])
-    categories = processName((point['category'] if point['category'] else ''))
-    score = 0
-    goodWordCount = (sum(titleWeight for word in goodCategoryTitleWords if processName(word) in title)
-                    +sum(categoryWeight for word in goodCategoryTitleWords if processName(word) in categories))
-    badWordCount = (sum(titleWeight for word in badCategoryTitleWords if processName(word) in title)
-                    +sum(categoryWeight for word in badCategoryTitleWords if processName(word) in categories))
-    okayWordCount = (sum(titleWeight for word in okayCategoryTitleWords if processName(word) in title)
-                    +sum(categoryWeight for word in okayCategoryTitleWords if processName(word) in categories))
-    if goodWordCount >= thresholdGoodWordCount:
-        return goodWordWeight * (goodWordCount ** 0.5)
-    else:
-        goodWordWeight * (goodWordCount ** 0.5) + badWordWeight * (badWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
-    return score
 
 
 def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
@@ -167,6 +151,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     if len(jsonPointListings) == 0:
         finalPoint.avgRating = 0
         finalPoint.ratingCount = 0
+        finalPoint.gratificationScore = 0
         return finalPoint
 
     ignoreAttributes = ['countryName', 'cityName', 'pointName', 'canStay',
@@ -282,89 +267,13 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     processedPointAggregated = processPointAggregated(finalPoint)
 
-    catTitleWeightAvgValue += getCategoryTitleWeight(processedPointAggregated.jsonify())
-    catTitleWeightCount += 1
+    processedPointAggregated.gratificationScore = gratificationScoreOfPoint(processedPointAggregated)
     return processedPointAggregated
 
 
-#######################################################################################################################
-#######################################################################################################################
-
-def pointFrequency(point):
-    return len(point.sources)
-
-
-def wilsonScoreLB(point):
-    return getWilsonScore(point.avgRating/10, point.ratingCount)
-
-
-def freqWithWeightedDomainRanking(point):
-    rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
-    return len(point.sources), rank                        # first sort on len, then on rank
-
-
-def weightAvgRating(point):
-    return point.avgRating
-
-
-def mayurScore(point):
-    avgRating = point.avgRating
-    ratingCount = point.ratingCount
-    return (avgRating * ratingCount + mScoreAvgRating * mScoreAvgRatingCount) / (ratingCount + mScoreAvgRatingCount)  # inject fake ratings
-
-
-def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
-    result = 0
-    jsonPointAggregated = pointAggregated.jsonify()
-    if 'frequency' in orderWeightOfPolicies:
-        result += len(jsonPointAggregated['sources']) * orderWeightOfPolicies['frequency']
-
-    if 'rank' in orderWeightOfPolicies and jsonPointAggregated['rank'] is not None:
-        result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
-
-    if 'wilsonScore' in orderWeightOfPolicies:
-        result += getWilsonScore(jsonPointAggregated['avgRating']/10, jsonPointAggregated['ratingCount']) * orderWeightOfPolicies['wilsonScore']
-
-    if 'pointAttributes' in orderWeightOfPolicies:
-        pointAttrValue = 0
-        for pointAttr in pointAttributeWeights:
-            if jsonPointAggregated[pointAttr] is not None:
-                pointAttrValue += pointAttributeWeights[pointAttr]
-
-        result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
-
-    if 'tripexpertScore' in orderWeightOfPolicies and jsonPointAggregated['tripexpertScore'] is not None:
-        result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']/100
-
-    if 'category' in orderWeightOfPolicies:
-        catTitleAverage = catTitleWeightAvgValue*1.0 / catTitleWeightCount
-        result += (getCategoryTitleWeight(jsonPointAggregated)/catTitleAverage) * orderWeightOfPolicies['category']
-
-    if 'mayurScore' in orderWeightOfPolicies:
-        result += mayurScore(pointAggregated) * orderWeightOfPolicies['mayurScore']/10
-
-    return result
-
-
 def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
-    keyFunction = {
-        'frequency': pointFrequency,
-        'wilsonScore': wilsonScoreLB,
-        'weightedAvgRating': weightAvgRating,
-        'frequencyWithWDomainRanking': freqWithWeightedDomainRanking,
-        'mayurScore': mayurScore,
-        'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
-    }
-
-    sortedPoints = sorted(pointsOfCity, key=keyFunction[orderBasedOn], reverse=True)
-    scores = list(map(keyFunction[orderBasedOn], sortedPoints))
-    return sortedPoints, scores
-
-
-#######################################################################################################################
-#######################################################################################################################
-
-
+    sortedPoints = sorted(pointsOfCity, key=attrgetter('gratificationScore'), reverse=True)
+    return sortedPoints
 
 
 def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:

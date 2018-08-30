@@ -185,6 +185,8 @@ class CityListing(City, EntityListing):
 
 @dataclass
 class PointAggregated(Point, EntityAggregated):
+    gratificationScore: Optional[float] = None
+
     def __post_init__(self):
         self._entityType = 'point'
         self._uuid = str(uuid4())

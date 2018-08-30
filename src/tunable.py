@@ -28,19 +28,22 @@ indexToOrderPolicy = {
     5: 'weightedOverDiffPolicies'
 }
 
-orderBasedOn = indexToOrderPolicy[5]
+pointGratificationBasedOn = indexToOrderPolicy[5]
 
 
-_freqNormFactor = 5
+_freqScaleFactor = 5
+_tripexpertScoreScaleFactor = 100
+_categoryTitleScaleFactor = 3
+_mScoreScaleFactor = 10
 
 orderWeightOfPolicies = {
-    'mayurScore': 10,
-    'tripexpertScore': 7,
-    'rank': 0,
-    'category': 3,
-    'frequency': 5 / _freqNormFactor,
-    'wilsonScore': 1,
-    'pointAttributes': 1,
+    'mayurScore':       10 / _mScoreScaleFactor,
+    'category':          9 / _categoryTitleScaleFactor,
+    'tripexpertScore':   7 / _tripexpertScoreScaleFactor,
+    'rank':              0,
+    'frequency':         5 / _freqScaleFactor,
+    'wilsonScore':       1,
+    'pointAttributes':   1
 }
 
 thresholdGoodWordCount = 3

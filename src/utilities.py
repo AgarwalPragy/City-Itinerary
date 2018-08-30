@@ -13,6 +13,10 @@ __all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scal
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
 
+def avg(items):
+    return sum(items) / len(items)
+
+
 def maxArgMax(items, key=lambda x: x):
     maxScore = -float('inf')
     bestItem = None
