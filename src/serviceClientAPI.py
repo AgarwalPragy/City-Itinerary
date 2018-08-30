@@ -1,14 +1,14 @@
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
 import json
 from utilities import urlDecode
-
+from itineraryPlanner import getDayItinerary
 
 clientAPI = Blueprint('clientAPI', __name__)
 
 
 def loadData():
-    with open('aggregatedData.json', 'r') as f:
+    with open('../aggregatedData/latest/data.json', 'r') as f:
         countries = json.loads(f.read())
 
     cities = {city['fullName']: city
@@ -30,6 +30,16 @@ def loadData():
 countries, cities, citiesNoPoints = loadData()
 
 
+def getTopPointsOfCity(city, amount=10):
+    if isinstance(city, (str,)):
+        city = cities[city]
+    topnames = city['pointsOrder'][:amount]
+    return {
+        'points': {fullName: city['points'][fullName] for fullName in topnames},
+        'pointsOrder': topnames
+    }
+
+
 recentPlans = [
     # {'city': 'United Kingdom/London', 'duration': '48'},
     # {'city': 'India/Agra', 'duration': '168'},
@@ -44,20 +54,14 @@ def getCities():
     return jsonify(citiesNoPoints)
 
 
-@clientAPI.route('/api/attractions')
+@clientAPI.route('/api/points')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getAttractions():
     cityName = request.args.get('city', None)
     amount = int(request.args.get('amount', 50))
     if cityName:
         cityName = urlDecode(cityName)
-        city = cities[cityName]
-        topnames = city['pointsOrder'][:amount]
-
-        return jsonify({
-            'points': {fullName: city['points'][fullName] for fullName in topnames},
-            'pointsOrder': topnames
-        })
+        return jsonify(getTopPointsOfCity(cityName, amount))
     return 'invalid city'
 
 
@@ -65,12 +69,18 @@ def getAttractions():
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getItinerary():
     cityName = request.args.get('city', None)
-    startTime = request.args.get('startTime', None)
-    endTime = request.args.get('endTime', None)
-
-    if cityName and startTime and endTime:
+    constraints = request.args.get('constraints', {})
+    print(cityName, constraints)
+    if cityName:
         cityName = urlDecode(cityName)
         city = cities[cityName]
+        points = getTopPointsOfCity(city, 15)['points'].values()
+        points = [point for point in points if point['coordinates'] != None][:7]
+        print([point['pointName'] for point in points])
+        itinerary = getDayItinerary(points, [], [], [], 9, 21, 1)[0]
+        print(itinerary)
+        return jsonify(itinerary)
+    return 'invalid city'
 
 
 @clientAPI.route('/api/recent-plans')

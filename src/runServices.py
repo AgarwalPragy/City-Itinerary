@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, request
 from flask import send_file, send_from_directory, render_template
 from flask_cors import CORS, cross_origin
+import json
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
@@ -22,10 +23,16 @@ def index():
     return send_file('templates/index.html')
 
 
+@app.route('/favicon.png')
+def favicon():
+    return send_from_directory('templates/', 'favicon.png')
+
 @app.route('/planner')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def planner():
-    return render_template('planner.html', context={'initialConstraints': 'haha'})
+    city = request.args.get('city', 'Mumbai (Bombay), India')
+    constraints = request.args.get('constraints', {})
+    return render_template('planner.html', initialCity=city, initialConstraints=json.dumps(constraints))
 
 
 @app.route('/city/<cityName>/')

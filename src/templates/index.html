@@ -7,9 +7,9 @@
 
     <!-- Note: Order of loading is important! -->
     <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
     <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
-    <!-- css SELF      --><link rel="stylesheet" type="text/css" href="resources/index.css">
-
+    <!-- css SELF      --><link rel="stylesheet" href="resources/index.css">
     <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <!-- js  popper    --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
     <!-- js  moment    --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
@@ -28,9 +28,16 @@
         <div class="top-box">
             <div class="input-box">
                 <div class="search-box">
-                    <input id="city-searchbar" type="text" class="city-searchbar"  placeholder="What's your destination?">
+                    <div class="form-group">
+                        <div class='input-group'>
+                            <div class="input-group-prepend input-group-addon">
+                                <span class="input-group-text"><span class="fas fa-search"></span></span>
+                            </div>
+                            <input id="city-searchbar" type="text" class="city-searchbar form-control"  placeholder="What's your destination?">
+                        </div>
+                    </div>
                 </div>
-                <div class="date-box">  
+                <div class="date-box">
                     <div class="datepicker-box">
                         <div class="form-group">
                             <div class="row">
@@ -50,7 +57,7 @@
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-primary">Journey to <span v-if="selectedCity"> {{selectedCity.fullName}}!</span><span v-else>wonderland?</span></button>
+                <button type="submit" onclick="validateCityPlan()" class="btn btn-primary">Journey to <span v-if="searchSelectedCity"> {{searchSelectedCity.fullName}}!</span><span v-else>wonderland?</span></button>
             </div>
         </div>
 
@@ -61,14 +68,15 @@
                 <img class="city-image" :src="getCityImage(plan)"/>
                 <span class="city-prompt">
                     {{getRandomVisitText()}}
-                    <div class="city-name">{{getCityName(plan)}}</div>
+                    <div class="city-name">{{cities[plan.city]}}</div>
                     in
                     <div class="plan-length">{{getDurationText(plan.duration)}}</div>
                 </span>
             </div>
         </div>
 
-    </div>    
-    <!-- js SELF --><script src="resources/index.js"></script>
+    </div>
+    <!-- js UTILS --><script src="resources/utils.js"></script>
+    <!-- js SELF  --><script src="resources/index.js"></script>
 </body>
 </html>

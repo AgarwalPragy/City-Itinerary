@@ -1,3 +1,4 @@
+
 .tt-menu {
   width: 100%;
   margin: 12px 0;
@@ -5,17 +6,16 @@
   background-color: #fff;
   border: 1px solid #ccc;
   border: 1px solid rgba(0, 0, 0, 0.2);
-  -webkit-border-radius: 8px;
-     -moz-border-radius: 8px;
-          border-radius: 8px;
   -webkit-box-shadow: 0 5px 10px rgba(0,0,0,.2);
      -moz-box-shadow: 0 5px 10px rgba(0,0,0,.2);
           box-shadow: 0 5px 10px rgba(0,0,0,.2);
+  z-index: 30;
 }
 
 .tt-suggestion {
   padding: 3px 20px;
   font-size: 18px;
+  z-index: 30;
   line-height: 24px;
 }
 
@@ -93,20 +93,21 @@ body {
         .search-box {
         }
             .twitter-typeahead {
-                width: 100%;
-                font-size: 1.5em;
+                width: calc(100% - 42px);
                 font-weight: bold;
             }
-                .city-searchbar,
+                .city-searchbar {
+                    width: calc(100% - 42px);
+                    font-size: 2em;
+                    font-weight: bold;
+                    background: white;
+                    text-align: center;
+                    padding: 5px 1em;
+                }
+
                 .tt-input,
                 .tt-hint {
                     width: 100%;
-                    font-size: 1.5em;
-                    font-weight: bold;
-                    background: white;
-                    border: 0;
-                    text-align: center;
-                    padding: 5px 1em;
                 }
 
                 .tt-hint {
@@ -122,14 +123,14 @@ body {
                     display: inline-block;
                 }
                 .search-result-cityname {
-                    font-size: 1.7em;
+                    font-size: 1.5em;
                     font-weight: bold;
                     display: inline-block;
                     margin-left: 1em;
                     color: #333;
                 }
                 .search-result-countryname {
-                    font-size: 1em;
+                    font-size: 0.8em;
                     font-weight: bold;
                     display: inline-block;
                     margin-left: 1em;

@@ -1,0 +1,168 @@
+{% raw %}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Note: Order of loading is important! -->
+    <!-- favicon       --><link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+    <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+    <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
+    <!-- css leaflet   --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
+    <!-- css SELF      --><link rel="stylesheet" href="resources/planner.css">
+    <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <!-- js  popper    --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <!-- js  moment    --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <!-- js  boostrap  --><script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+    <!-- js  datetime  --><script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+    <!-- js  axios     --><script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <!-- js  vue       --><script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+    <!-- js  sortable  --><script src=https://cdn.rawgit.com/RubaXa/Sortable/master/Sortable.min.js></script>
+    <!-- js  typeahead --><script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+    <!-- js  fuse      --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js"></script>
+    <!-- js  leaflet   --><script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
+    <title>City Itinerary Planner</title>
+</head>
+<body>
+    <div class="background-image"></div>
+    <div id="container" class="content">
+
+        <div class="top-box">
+            <div class="input-box">
+                <div class="search-box">
+                    <div class="form-group">
+                        <div class='input-group'>
+                            <div class="input-group-prepend input-group-addon">
+                                <span class="input-group-text"><span class="fas fa-search"></span></span>
+                            </div>
+                            <input id="city-searchbar" type="text" class="city-searchbar form-control"  placeholder="What's your destination?">
+                        </div>
+                    </div>
+                </div>
+                <div class="date-box">
+                    <div class="datepicker-box">
+                        <div class="form-group">
+                            <div class='input-group date' id='datetimepicker1'>
+                                <input type="text" class="form-control">
+                                <div class="input-group-append input-group-addon">
+                                    <span class="input-group-text"><span class="fas fa-calendar-alt"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="datepicker-box">
+                        <div class="form-group">
+                            <div class='input-group date' id='datetimepicker2'>
+                                <input type="text" class="form-control">
+                                <div class="input-group-append input-group-addon">
+                                    <span class="input-group-text"><span class="fas fa-calendar-alt"></span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary submit-btn">Go!</button>
+                </div>
+            </div>
+        </div>
+        <div class="content-box">
+            <div id="plan-box" class="plan-box">
+                <div class="itinerary-box">
+                    <div class="list-box-header">
+                        <div class="list-box-title">Suggested Plan</div>
+                    </div>
+                    <div class="overflow-container">
+                        <ul v-sortable="{onEnd: reorder}">
+                            <li v-for="(visit, index) in itinerary" :key="index">
+                                <div class="point-listing">
+                                    <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
+                                    <div class="point-name">{{ visit.point.pointName }}</div>
+                                    <div class="point-rating">
+                                        <span v-for="cls in getRatingStars(visit.point)"
+                                              :class="cls">
+                                        </span>
+                                    </div>
+                                    <div class="point-time">
+                                        <span class="point-time-title time-from">From:</span>
+                                        {{ utils.formatTime(visit.enterTime) }}
+                                        <span class="point-time-title">To:</span>
+                                        {{ utils.formatTime(visit.exitTime) }}
+                                    </div>
+                                </div>
+                                <div class="break-listing"></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="likes-box">
+                    <div class="list-box-header">
+                        <div class="list-box-title">I must visit</div>
+                        <div class="list-box-search">
+                            <div class='input-group'>
+                                <div class="input-group-prepend input-group-addon">
+                                    <span class="input-group-text"><span class="fas fa-search"></span></span>
+                                </div>
+                                <input id="point-searchbar" type="text" class="point-searchbar form-control"  placeholder="Look what's around">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-container">
+                        <ul v-sortable="{onEnd: reorder}">
+                            <li v-for="(visit, index) in itinerary" :key="index">
+                                <div class="point-listing">
+                                    <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
+                                    <div class="point-name">{{ visit.point.pointName }}</div>
+                                    <div class="point-rating">
+                                        <span v-for="cls in getRatingStars(visit.point)"
+                                              :class="cls">
+                                        </span>
+                                    </div>
+                                    <div class="point-time">
+                                        <span class="point-time-title time-from">From:</span>
+                                        {{ utils.formatTime(visit.enterTime) }}
+                                        <span class="point-time-title">To:</span>
+                                        {{ utils.formatTime(visit.exitTime) }}
+                                    </div>
+                                </div>
+                                <div class="break-listing"></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="dislikes-box">
+                    <div class="list-box-header">
+                        <div class="list-box-title">Don't show</div>
+                        <div class="list-box-search">
+                            <div class='input-group'>
+                                <div class="input-group-prepend input-group-addon">
+                                    <span class="input-group-text"><span class="fas fa-search"></span></span>
+                                </div>
+                                <input id="point-searchbar" type="text" class="point-searchbar form-control"  placeholder="Look what's around">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="overflow-container">
+                        <ul v-sortable="{onEnd: reorder}">
+                            <li v-for="(visit, index) in itinerary" :key="index">
+                                <div class="bad-point-listing">
+                                    <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 144, 80)"></div>
+                                    <div class="point-name">{{ visit.point.pointName }}</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="map-box">
+                <div id="mapid"></div>
+            </div>
+        </div>
+    </div>
+    <!-- js injected --> <script type="text/javascript"> {% endraw %} var initialCity = "{{ initialCity }}"; var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
+    <!-- js UTILS    --><script src="resources/utils.js"></script>
+    <!-- js SELF     --><script src="resources/planner.js"></script>
+</body>
+</html>
+{% endraw %}
