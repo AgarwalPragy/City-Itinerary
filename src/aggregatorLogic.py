@@ -8,7 +8,10 @@ import re
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours, avgOpenTime, avgCloseTime, mScoreAvgRatingCount, goodWordWeight, badWordWeight, goodCategoryTitleWords, badCategoryTitleWords
+from tunable import pointAttributeWeights, orderWeightOfPolicies, orderBasedOn, avgRecommendedNumHours
+from tunable import avgOpenTime, avgCloseTime, mScoreAvgRatingCount, mScoreAvgRating
+from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight
+from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 catTitleWeightAvgValue = 0
@@ -36,40 +39,21 @@ def getBestName(names: List[str], strictness: int=3) -> str:
     return sanitizeName(sortedNames[0])
 
 
-def _getCategoryWeight(category):
-    score = sum(goodWordWeight for word in goodCategoryTitleWords if word in category) - sum(badWordWeight for word in badCategoryTitleWords if word in category)
-    return score
-
-def splitWord(word):
-    afterSpaces = word.split()
-    afterCommas = []
-    for word in afterSpaces:
-        for wordSplited in word.split(','):
-            afterCommas.append(wordSplited)
-    return afterCommas
-
-
 def getCategoryTitleWeight(point):
-    titleWords = splitWord(point['pointName'])
-    categoryWords = (point['category'] if point['category'] else '').split(',')
-    allwords = titleWords + categoryWords
-    categoriesFound = set(cat.strip() for cat in allwords)
-    return sum(_getCategoryWeight(cat) for cat in categoriesFound)
-
-
-
-
-
-def orderImages(jsonImageListings: List[J]) -> List[J]:
-    # TODO: Sort images by dimension/quality?
-    # return as is for now
-    return jsonImageListings
-
-
-def orderReviews(jsonReviewListings: List[J]) -> List[J]:
-    # TODO: Sort reviews by grammar, length, relevancy?
-    # return as is for now
-    return jsonReviewListings
+    title = processName(point['pointName'])
+    categories = processName((point['category'] if point['category'] else ''))
+    score = 0
+    goodWordCount = (sum(titleWeight for word in goodCategoryTitleWords if processName(word) in title)
+                    +sum(categoryWeight for word in goodCategoryTitleWords if processName(word) in categories))
+    badWordCount = (sum(titleWeight for word in badCategoryTitleWords if processName(word) in title)
+                    +sum(categoryWeight for word in badCategoryTitleWords if processName(word) in categories))
+    okayWordCount = (sum(titleWeight for word in okayCategoryTitleWords if processName(word) in title)
+                    +sum(categoryWeight for word in okayCategoryTitleWords if processName(word) in categories))
+    if goodWordCount >= thresholdGoodWordCount:
+        return goodWordWeight * (goodWordCount ** 0.5)
+    else:
+        goodWordWeight * (goodWordCount ** 0.5) + badWordWeight * (badWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
+    return score
 
 
 def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
@@ -80,42 +64,39 @@ def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
                 return value
     return result
 
-# to convert time in only hours for example 2h 30 min => 2.5
-def getRecommendedNumHoursInHour(pointAggregated):
+
+def getRecommendedNumHoursInHour(pointAggregated: PointAggregated):
+    """Converts time from string to float hours.
+    example 2h 30 min -> 2.5"""
+
     if pointAggregated.recommendedNumHours is None:
         return avgRecommendedNumHours
     else:
         result = 0
         timeString = pointAggregated.recommendedNumHours.strip().lower()
-
         hourRegex = re.compile('^([0-9]+)(h|h | hours| hour)+')
-
         hour = hourRegex.findall(timeString)
         if len(hour) > 0:
             result += int(hour[0][0])
-
         minutesRegex = re.compile('([0-9]+) min')
         minutes = minutesRegex.findall(timeString)
-
         if len(minutes) > 0:
             result += int(minutes[0]) / 60.0
         return result
 
 
-# convert time in 24 hour format
-def formatTime(timeString):
-    if timeString == 'closed':
-        return '$'
+def formatTime(timeString: str):
+    """Converts time string to 24 hour format"""
+
+    if timeString == 'closed': return '$'
 
     amFormatData = timeString.split('am')
-
     if len(amFormatData) == 2:
         hourAndMinutes = amFormatData[0].split(':')
         hour = int(hourAndMinutes[0])
         minutes = 0
         if len(hourAndMinutes) == 2:  # think about 8 am
             minutes = int(hourAndMinutes[1])
-
         if hour == 12:
             if minutes == 0:  # 12 am => 24
                 result = 24
@@ -140,26 +121,25 @@ def formatTime(timeString):
         return result
 
 
-def processPointAggregated(pointAggregated):
+def processPointAggregated(pointAggregated: PointAggregated):
     hours = getRecommendedNumHoursInHour(pointAggregated)
     pointAggregated.recommendedNumHours = str(hours)
 
     # convert opening closing in 0-24 format
-    formatedOpeningHour = ''
-    formatedClosingHour = ''
+    formattedOpeningHour = ''
+    formattedClosingHour = ''
 
     if pointAggregated.openingHour is not None:
         openingHourDayWiseData = pointAggregated.openingHour.split(',')
         for openTime in openingHourDayWiseData:
             processedOpenTime = formatTime(openTime.lower())
-            if processedOpenTime is None: # in case of openTime =  unavailable from tripExpert Data
+            if processedOpenTime is None:                      # in case of openTime =  unavailable from tripExpert Data
                 processedOpenTime = formatTime(avgOpenTime.lower())
-
-            formatedOpeningHour += str(processedOpenTime) + ","
+            formattedOpeningHour += str(processedOpenTime) + ","
     else:
         openTime = avgOpenTime
         for i in range(7):
-            formatedOpeningHour += str(formatTime(openTime.lower())) + ","
+            formattedOpeningHour += str(formatTime(openTime.lower())) + ","
 
     if pointAggregated.closingHour is not None:
         closingHourDayWiseData = pointAggregated.closingHour.split(',')
@@ -167,14 +147,14 @@ def processPointAggregated(pointAggregated):
             processedCloseTime = formatTime(closeTime)
             if processedCloseTime is None:
                 processedCloseTime = formatTime(avgCloseTime.lower())
-            formatedClosingHour += str(processedCloseTime) + ","
+            formattedClosingHour += str(processedCloseTime) + ","
     else:
         closeTime = avgCloseTime
         for i in range(7):
-            formatedClosingHour += str(formatTime(closeTime.lower())) + ","
+            formattedClosingHour += str(formatTime(closeTime.lower())) + ","
 
-    pointAggregated.openingHour = formatedOpeningHour[:-1]
-    pointAggregated.closingHour = formatedClosingHour[:-1]
+    pointAggregated.openingHour = formattedOpeningHour[:-1]
+    pointAggregated.closingHour = formattedClosingHour[:-1]
 
     return pointAggregated
 
@@ -199,8 +179,9 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     avgRating, ratingCount = 0, 0
     avgRankNumerator, avgRankDenominator = 0, 0
     canStay, canTour, canEat = None, None, None
-    notesData, contactData, websites = "", "", ""
+    notesData, contactData, websites = '', '', ''
     categoryData = []
+
     for listing in jsonPointListings:
         finalPoint.sources.append(listing['_uuid'])
 
@@ -235,7 +216,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                 canTour = canTour or listing['canTour']
 
         if listing['notes'] is not None:
-            notesData += listing['notes']
+            notesData += '\n' + listing['notes']
 
         if listing['category'] is not None:
             categoryData.append(listing['category'])
@@ -263,16 +244,16 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     if avgRankDenominator != 0:
         finalPoint.rank = avgRankNumerator / avgRankDenominator
 
-    if len(notesData) > 0:
+    if notesData:
         finalPoint.notes = notesData
 
-    if len(categoryData) > 0:
+    if categoryData:
         finalPoint.category = ', '.join(set((', '.join(categoryData)).split(',')))
 
-    if len(contactData) > 0:
+    if contactData:
         finalPoint.contact = contactData[:-1]
 
-    if len(websites) > 0:
+    if websites:
         finalPoint.website = websites[:-1]
 
     finalPoint.canEat = canEat
@@ -282,23 +263,21 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     # get best props value
     address = getBestAttributeValue(attributesValueListByCrawler['address'])
     coordinates = getBestAttributeValue(attributesValueListByCrawler['coordinates'])
-    finalPoint.address = address
-    finalPoint.coordinates = coordinates
 
     openingHour = getBestAttributeValue(attributesValueListByCrawler['openingHour'])
     closingHour = getBestAttributeValue(attributesValueListByCrawler['closingHour'])
     recommendedNumHours = getBestAttributeValue(attributesValueListByCrawler['recommendedNumHours'])
+    description = getBestAttributeValue(attributesValueListByCrawler['description'])
+    tripexpertScore = getBestAttributeValue(attributesValueListByCrawler['tripexpertScore'])
+    priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
+
+    finalPoint.address = address
+    finalPoint.coordinates = coordinates
     finalPoint.openingHour = openingHour
     finalPoint.closingHour = closingHour
     finalPoint.recommendedNumHours = recommendedNumHours
-
-    description = getBestAttributeValue(attributesValueListByCrawler['description'])
     finalPoint.description = description
-
-    tripexpertScore = getBestAttributeValue(attributesValueListByCrawler['tripexpertScore'])
     finalPoint.tripexpertScore = tripexpertScore
-
-    priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
     finalPoint.priceLevel = priceLevel
 
     processedPointAggregated = processPointAggregated(finalPoint)
@@ -327,10 +306,12 @@ def freqWithWeightedDomainRanking(point):
 def weightAvgRating(point):
     return point.avgRating
 
+
 def mayurScore(point):
     avgRating = point.avgRating
     ratingCount = point.ratingCount
-    return (avgRating*ratingCount + 5.0*mScoreAvgRatingCount)/(ratingCount + mScoreAvgRatingCount)
+    return (avgRating * ratingCount + mScoreAvgRating * mScoreAvgRatingCount) / (ratingCount + mScoreAvgRatingCount)  # inject fake ratings
+
 
 def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
     result = 0
@@ -363,6 +344,7 @@ def getWeightedOrderValueOverDiffPolices(pointAggregated: PointAggregated):
         result += mayurScore(pointAggregated) * orderWeightOfPolicies['mayurScore']/10
 
     return result
+
 
 def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
     keyFunction = {
@@ -443,3 +425,16 @@ def aggregateOneCountryFromListings(jsonCountryListings: List[J], bestCountryNam
     coordinates = getBestAttributeValue(coordinatesListByCrawler)
     finalCountry.coordinates = coordinates
     return finalCountry
+
+
+def orderImages(jsonImageListings: List[J]) -> List[J]:
+    # TODO: Sort images by dimension/quality?
+    # return as is for now
+    return jsonImageListings
+
+
+def orderReviews(jsonReviewListings: List[J]) -> List[J]:
+    # TODO: Sort reviews by grammar, length, relevancy?
+    # return as is for now
+    return jsonReviewListings
+

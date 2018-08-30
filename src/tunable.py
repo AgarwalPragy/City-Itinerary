@@ -8,8 +8,8 @@ avgRecommendedNumHours = 2
 avgOpenTime = '9:00 am'
 avgCloseTime = '10:00 pm'
 
-mScoreAvgRatingCount = 10
-freqDivideFactor = 5
+mScoreAvgRating = 5         # what to assign when no ratings available
+mScoreAvgRatingCount = 10   # how many fake values to put
 
 pointAttributeWeights = {
     'coordinates': 0.35,
@@ -28,22 +28,29 @@ indexToOrderPolicy = {
     5: 'weightedOverDiffPolicies'
 }
 
-orderWeightOfPolicies = {
-    'frequency': 0.3/freqDivideFactor,
-    'rank': 0.0,
-    'wilsonScore': 0.15,
-    'mayurScore': 0.2,
-    'pointAttributes': 0.05,
-    'tripexpertScore': 0.25,
-    'category': 0.05
-}
-
 orderBasedOn = indexToOrderPolicy[5]
 
-goodWordWeight = 2
-badWordWeight = 1
+
+_freqNormFactor = 5
+
+orderWeightOfPolicies = {
+    'mayurScore': 10,
+    'tripexpertScore': 7,
+    'rank': 0,
+    'category': 3,
+    'frequency': 5 / _freqNormFactor,
+    'wilsonScore': 1,
+    'pointAttributes': 1,
+}
+
+thresholdGoodWordCount = 3
+goodWordWeight = 1.5
+badWordWeight = -2      # Note: the negation
+okayWordWeight = 1
+titleWeight = 1.5
+categoryWeight = 1
 badCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'accessories',
+    'accessories', 'airport',
     'bar', 'Beer',
     'cafe', 'Casino', 'Clothing', 'club', 'Cocktail', 'company', 'Cosmetics',
     'drink', 'Drugstore',
@@ -51,39 +58,70 @@ badCategoryTitleWords = list(set(word.strip().lower() for word in [
     'Gourmet', 'Grocery', 'gym',
     'Hair', 'Hospital', 'hotel',
     'Jewelry', 'Jogging Path',
-    'marijuana',
+    'marijuana', 'mall',
     'Office', 'outlet',
     'Pharmacy', 'Private', 'Pub',
     'rental', 'restaurant', 'restautrant',
-    'Salon', 'shop', 'Spa', 'Speakeasy', 'Startup', 'store', 'Supplies',
-    'Theater', 'tour', 'Tours',
+    'Salon', 'shop', 'Spa', 'Speakeasy', 'Startup', 'store', 'Supplies', 'shopping',
+    'Theater', 'tour', 'Tours', 'Terminus', 'Toilet',
     'Whisky', 'Wine', 'Workshop'
 ]))
-goodCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'Amusement', 'aquarium''Architectural', 'Art', 'attraction', 'Auditorium',
-    'beach', 'Boat', 'botanical', 'Bridge',
-    'camping', 'Canyon', 'Castle', 'cave', 'Cave', 'Chapel', 'church', 'City', 'Climbing', 'Courthouse',
-    'dam', 'desert', 'Disney', 'Dolphins',
-    'Educational', 'Equestrian',
-    'festival', 'Forest', 'fort', 'Fountain',
-    'gallery', 'garden', 'Geologic', 'Gondolas',
-    'hall', 'Harbor', 'Helicopter', 'Hiking', 'historic', 'history', 'Horse',
-    'Island', 'island',
-    'lake', 'Library', 'lighthouse',
-    'Mall', 'marina', 'market', 'masjidh', 'meuseum', 'Monument', 'monument', 'Mosque', 'Mountain', 'mountain', 'Museum',
-    'national', 'Natural', 'Nature',
-    'observation', 'Observatory', 'Opera',
-    'palace', 'Paragliding', 'park', 'Pier', 'Planetarium', 'Planetarium', 'Popular',
-    'religious', 'river', 'Rock', 'Ruin',
-    'Safari', 'Scenic', 'science', 'Scuba', 'spring', 'stadium', 'state', 'station',
-    'temple', 'Theme', 'tourist', 'tower', 'trekking',
-    'University',
-    'Valley',
-    'Water Body', 'waterfall', 'Wildlife', 'Wildlife',
-    'Zoo'
+
+okayCategoryTitleWords = list(set(word.strip().lower() for word in [
+    'Amusement', 'Auditorium', 'attraction',
+    'Boat', 'Bridge',
+    'camping',  'Climbing',
+    'Educational',
+    'festival',
+    'hall', 'Hiking', 'Helicopter',  'Horse',
+    'market',
+    'observation',  'Opera',
+    'Paragliding', 'Popular',
+    'Safari',  'Scuba', 'stadium',
+    'Theme', 'trekking', 'tourist',
+    'Harbor', 'history',
+    'Natural', 'Nature',
+    'park',
+    'Planetarium',
+    'station',
+    'Water Body', 'Wildlife',
+
+    # cities names are important
+    'Bangkok', 'Seoul', 'London', 'Milan', 'Paris', 'Rome', 'Singapore', 'Shanghai', 'York',
+    'Amsterdam', 'Istanbul', 'Tokyo', 'Dubai', 'Vienna', 'Kuala Lumpur', 'Taipei', 'Hong Kong',
+    'Riyadh', 'Barcelona', 'Los Angeles', 'Mumbai', 'Delhi', 'Pune', 'Kolkata', 'Agra', 'Jaipur', 'Bengaluru',
+    'Bangalore', 'Calcutta'
 ]))
 
-
+goodCategoryTitleWords = list(set(word.strip().lower() for word in [
+    'aquarium', 'Architectural', 'Art', 'Archaeological',
+    'beach', 'botanical', 'bagh',
+    'Canyon', 'Castle', 'cave', 'Chapel', 'church', 'City', 'Courthouse', 'cathedral',
+    'dam', 'desert', 'Disney', 'Dolphins', 'dargah',
+    'Equestrian',
+    'Forest', 'fort', 'Fountain',
+    'gallery', 'garden', 'Geologic', 'Gondolas',
+    'historic',
+    'Island', 'island', 'intercontinental',
+    'kingdom',
+    'lake', 'Library', 'lighthouse',
+    'marina', 'marine', 'masjidh', 'monument', 'Mosque', 'Mountain', 'Museum', 'Minar',
+    'national',
+    'Observatory',
+    'palace', 'Pier',
+    'Qila',
+    'religious', 'river', 'Rock', 'Ruin',
+    'Scenic', 'science', 'spring', 'state', 'Statue'
+    'temple', 'tower', 'Tomb',
+    'University',
+    'Valley',
+    'waterfall',
+    'Zoo',
+    # country names are really freaking important
+    'Thailand', 'Korea', 'England', 'United Kingdom', 'Italy', 'France', 'Singapore', 'China', 'USA',
+    'America', 'United States', 'Netherlands', 'Netherlands', 'Turkey', 'Japan',
+    'United Arab Emirates', 'UAE', 'Austria', 'Malaysia', 'Taiwan', 'China', 'Spain', 'Saudi Arabia', 'Arabia', 'India'
+]))
 
 
 injectedPointAliases = [

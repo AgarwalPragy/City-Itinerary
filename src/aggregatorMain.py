@@ -331,7 +331,8 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
                 aggregatedCity[attrib] = val
             orderedPoints, pointScores = orderPointsOfCity(points)
             orderedNames = list(map(attrgetter('pointName'), orderedPoints))
-            allPointScores[countryName][cityName] = list('          '.join(map(str, x)) for x in zip(pointScores, orderedNames))
+            orderedCats = list(map(attrgetter('category'), orderedPoints))
+            allPointScores[countryName][cityName] = list('          '.join(map(str, x)) for x in zip(range(len(orderedPoints)), pointScores, orderedNames, orderedCats))
             aggregatedCity['pointsOrder'] = orderedNames
             aggregatedCity['pointScores'] = pointScores
             aggregatedCity['images'] = orderImages(city['images'])
