@@ -269,11 +269,11 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
 
     bestSequence = getBestSequence(possibleSequences, dayEndTime - dayStartTime)
 
-    print('len=', len(possibleSequences))
-    for sequence in possibleSequences:
-        for seqData in sequence:
-            print(seqData['point']['pointName'], seqData['enterTime'], seqData['exitTime'], sep='\t', end=',')
-        print()
+    # print('len=', len(possibleSequences))
+    # for sequence in possibleSequences:
+    #     for seqData in sequence:
+    #         print(seqData['point']['pointName'], seqData['enterTime'], seqData['exitTime'], sep='\t', end=',')
+    #     print()
 
     return bestSequence
 
@@ -314,14 +314,14 @@ if __name__ == '__main__':
             cityTopPointsWithLatlng.append(point)
 
 
-    numPoints=7
+    numPoints=10
     listOfPoints = cityTopPointsWithLatlng[:numPoints]
 
     print("points: ")
     for index, point in enumerate(listOfPoints):
         print(str(index) + "\t" + point['pointName'] + "\t" + point['recommendedNumHours'] + "\t" + point['openingHour'] + "\t"+point['closingHour'])
 
-    startTime = 10
+    startTime = 9
     endTime = 22
     dayNum = 0
     mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
