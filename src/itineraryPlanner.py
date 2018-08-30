@@ -63,7 +63,7 @@ def getDistance(point1, point2):
 
     distance = R * c
 
-    return distance * 2 # to make approximate same as path distance
+    return distance * 1.7 # to make approximate same as path distance
 
 
 def getTravelTime(point1, point2):
@@ -314,7 +314,7 @@ if __name__ == '__main__':
             cityTopPointsWithLatlng.append(point)
 
 
-    numPoints=10
+    numPoints=9
     listOfPoints = cityTopPointsWithLatlng[:numPoints]
 
     print("points: ")
