@@ -43,7 +43,7 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
     urlHash = strHash(url)
     images = memcache.get(urlHash, None)
     if not images:
-        print('Cache MISS :(')
+        # print('Cache MISS :(')
         original = getImageFromNetwork(url)
         resized = imageResize(original, size)
         memcache[urlHash] = {
@@ -54,10 +54,10 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
 
     desiredSize = images.get(size, None)
     if desiredSize:
-        print('Cache Hit!!')
+        # print('Cache Hit!!')
         return desiredSize
     else:
-        print('Cache Hit!!')
+        # print('Cache Hit!!')
         original = images.get('original', None)
         return imageResize(original, size)
 
@@ -69,13 +69,13 @@ def fetchImage():
     width = request.args.get('width')
     height = request.args.get('height')
 
-    print('Requested image-fetch', url, width, height)
+    # print('Requested image-fetch', url, width, height)
 
     url = urlDecode(url)
     size = int(width), int(height)
 
     image = getImageFromMemcache(url, size)
-    print(image)
+    # print(image)
 
     output = io.BytesIO()
     image.convert('RGBA').save(output, format='PNG')

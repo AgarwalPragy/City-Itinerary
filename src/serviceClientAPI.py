@@ -3,6 +3,7 @@ from flask_cors import cross_origin
 import json
 from utilities import urlDecode
 from itineraryPlanner import getDayItinerary
+import time
 
 clientAPI = Blueprint('clientAPI', __name__)
 
@@ -68,18 +69,22 @@ def getAttractions():
 @clientAPI.route('/api/itinerary')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getItinerary():
+    tstart = time.time()
     cityName = request.args.get('city', None)
     constraints = request.args.get('constraints', {})
     print(cityName, constraints)
     if cityName:
         cityName = urlDecode(cityName)
         city = cities[cityName]
-        points = getTopPointsOfCity(city, 15)['points'].values()
+        points = getTopPointsOfCity(city, 20)['points'].values()
         points = [point for point in points if point['coordinates'] != None][:7]
         print([point['pointName'] for point in points])
         itinerary = getDayItinerary(points, [], [], [], 9, 21, 1)[0]
-        print(itinerary)
+        tend = time.time()
+        print('Time for request:', tend - tstart)
         return jsonify(itinerary)
+    tend = time.time()
+    print('Time for request:', tend - tstart)
     return 'invalid city'
 
 
