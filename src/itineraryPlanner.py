@@ -102,13 +102,13 @@ def getBestSequence(sequences, totalTime):
 
 # assume start point is already added in currentSequence
 def possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPoints, startPoint, currentSequence,
-                                            startPointExitTIme, endTime, dayNum, possibleSequences):
+                                            startPointExitTime, endTime, dayNum, possibleSequences):
     possibleSequences.append(currentSequence)
     for index, point in enumerate(listOfPoints):
         if not visitedPoints[index]:
             travelTime = getTravelTime(startPoint, point)
             visitingTime = roundUpTime(float(point['recommendedNumHours']))
-            pointEnterTime = roundUpTime(startPointExitTIme + travelTime)
+            pointEnterTime = roundUpTime(startPointExitTime + travelTime)
             pointExitTime = roundUpTime(pointEnterTime + visitingTime)
 
             pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(point, pointEnterTime, pointExitTime, dayNum)
@@ -122,6 +122,7 @@ def possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPoints, startPo
             if pointExitTime < endTime:
                 newVisitedList = visitedPoints[:]
                 newVisitedList[index] = True
+
                 newSequence = currentSequence[:]
                 pointInSeqFormat = {'point': point, 'enterTime': pointEnterTime, 'exitTime': pointExitTime}
                 newSequence.append(pointInSeqFormat)
@@ -169,7 +170,7 @@ def possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPoints, startPoint,
                                                     endPointEnterTime, endPointExitTime, newSequence, dayNum, possibleSequences)
 
 
-# it will add only endpoint always and other point only when possible
+# it will add only endpoint always and other point before endpoint only when possible
 def possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, currentSequence, endPoint, startTime,
                                             endPointEnterTime, endPointExitTime, dayNum):
     possibleSequences = []
@@ -314,17 +315,17 @@ def printSequence(sequence, startTime, GScore, dayNum):
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
 
-    countryName = "United Kingdom"
-    cityName = 'London'
+    countryName = "United States of America"
+    cityName = 'New York City'
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
 
+    cityTopPointsWithLatlng = []
     for point in cityTopPoints:
-        if point['coordinates'] is None:
-            lat = random.uniform(51, 51.5)  # london lat range
-            lng = random.uniform(-0.2, 0.2)  # london lng range
-            point['coordinates'] = str(lat) + "," + str(lng)
+        if point['coordinates'] is not None:
+            cityTopPointsWithLatlng.append(point)
 
-    numPoints=10
+
+    numPoints=7
     listOfPoints = cityTopPoints[:numPoints]
 
     print("points: ")
