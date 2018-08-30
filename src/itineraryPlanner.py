@@ -6,6 +6,12 @@ sys.path.append('.')
 from utilities import getWilsonScore, roundUpTime
 
 
+def gratificationScoreOfSequence(pointsInOrder):
+    # TODO: improve this?
+    return sum(point['gratificationScore'] for point in pointsInOrder)
+
+
+
 def readAllData(filePath: str):
     with open(filePath, 'r') as f:
         allData = json.loads(f.read())
@@ -66,34 +72,12 @@ def getTravelTime(point1, point2):
     return roundUpTime(distance/40.0)  # assumed avg speed 40km/hr
 
 
-def gratificationScoreOfSeq(sequenceOfPoints, totalTime):
-    gScore = 0
-    travelTime = 0
-    avgWilsonScore  = 0
-    avgRank = 0
-    for index, seqData in enumerate(sequenceOfPoints):
-
-        avgWilsonScore += getWilsonScore(seqData['point']['avgRating'] / 10, seqData['point']['ratingCount'])
-
-        avgRank += seqData['point']['rank']  # normalize between 0-10
-
-        if index < len(sequenceOfPoints) - 1:
-            travelTime += sequenceOfPoints[index+1]['enterTime'] - seqData['exitTime']
-
-    gScore -= avgRank/(5*len(sequenceOfPoints))
-    gScore += avgWilsonScore*10/len(sequenceOfPoints)
-    gScore -= (travelTime / totalTime) * 10  # normalize between 0-10
-    # want more number of attraction
-    gScore += len(sequenceOfPoints)  #normalize bw 1-10 since each we are considering max 10 points
-
-    return gScore
-
-
 def getBestSequence(sequences, totalTime):
     maxGScore = -float('inf')
     maxGScoreSequence = []
+    print('Number of sequences to check for gratification:', len(sequences))
     for sequence in sequences:
-        gScore = gratificationScoreOfSeq(sequence, totalTime)
+        gScore = gratificationScoreOfSequence([item['point'] for item in sequence])
         if gScore > maxGScore:
             maxGScore = gScore
             maxGScoreSequence = sequence
