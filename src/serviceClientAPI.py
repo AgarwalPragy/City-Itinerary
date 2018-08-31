@@ -88,7 +88,7 @@ def __getItinerary(cityName: str, likes, likesTimings, dislikes, startDate, endD
     numDays = getNumDays(startDate, endDate)
 
     if not (0 < page <= numDays):
-        return {'itinerary': [], 'score': -float('inf'), 'nextPage': False, 'currentPage': 0}
+        return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
     pointMap = getTopPointsOfCity(cityName, 60)['points']
 
@@ -109,6 +109,15 @@ def __getItinerary(cityName: str, likes, likesTimings, dislikes, startDate, endD
 
     # For clustering, remove points that I must visit today
     clusteringPoints = [point for point in points if point['pointName'] not in set(todaysLikes)]
+
+    if not clusteringPoints:
+        return {'itinerary': [{
+            'point': {
+                'pointName': '__newday__'
+            },
+            'dayNum': page,
+            'date': 'No data    (╯°□°）╯︵ ┻━┻'
+        }], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
     todaysPoints = getPointsFromMaxPointsCluster(listOfPoints=clusteringPoints,
                                                  numDays=numDays,

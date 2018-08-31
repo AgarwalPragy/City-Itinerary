@@ -158,7 +158,8 @@
                     <div class="overflow-container">
                         <ul v-sortable="{onEnd: reorder}">
                             <li v-for="(visit, index) in itinerary" :key="index">
-                                <div class="bad-point-listing">
+                                <div class="bad-point-listing"
+                                     v-if="visit.point.pointName !== '__newday__'">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 144, 80)"></div>
                                     <div class="point-name">{{ visit.point.pointName }}</div>
                                 </div>

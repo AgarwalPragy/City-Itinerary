@@ -228,9 +228,11 @@ var redrawMap = function(currentPage, items) {
     pins = L.markerClusterGroup({
         removeOutsideVisibleBounds: false,
         spiderfyOnMaxZoom: false,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: false
+        showCoverageOnHover: true,
+        zoomToBoundsOnClick: true,
+        disableClusteringAtZoom: true
     });
+    if(!items) return;
     for (var i = 0; i < items.length; i++) {
         var point = items[i].point;
         var pointName = point.pointName;
@@ -245,6 +247,7 @@ var redrawMap = function(currentPage, items) {
     }
     allClusters.push(pins);
     map.addLayer(pins);
+    if(allCoordinates.length < 1) return;
     var bounds = new L.LatLngBounds(allCoordinates);
     map.fitBounds(bounds);
     map.invalidateSize();
@@ -259,9 +262,10 @@ var getItineraryPage = function(page) {
         endDayTime: app.constraints.endDayTime,
         page: page
     }, function (response) {
-        currentPage = parseInt(response.data.currentPage);
+        data = response.data;
+        currentPage = parseInt(data.currentPage);
         if(currentPage === 1) {
-            app.itinerary = response.data.itinerary;
+            app.itinerary = data.itinerary;
             for (var i = allClusters.length - 1; i >= 0; i--) {
                 allClusters[i].clearLayers();
             }
@@ -269,11 +273,11 @@ var getItineraryPage = function(page) {
             allClusters = [];
         }
         else
-            app.itinerary = app.itinerary.concat(response.data.itinerary);
+            app.itinerary = app.itinerary.concat(data.itinerary);
 
-        redrawMap(currentPage, response.data.itinerary);
-        if(response.data.nextPage !== false)
-            getItineraryPage(response.data.nextPage);
+        redrawMap(currentPage, data.itinerary);
+        if(data.nextPage !== false)
+            getItineraryPage(data.nextPage);
     });
 }
 
