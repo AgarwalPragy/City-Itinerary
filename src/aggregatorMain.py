@@ -379,7 +379,8 @@ def processAll():
         '../data/tripexpertData/tripexpert_requiredcities.json',
         '../data/viatorData/viator_requiredcities.json',
         '../data/inspirockData/finalInspirock.json',
-        '../data/skyscannerData/finalSkyscanner.json'
+        '../data/skyscannerData/finalSkyscanner.json',
+        '../data/googleCoordinates/googleAPICoordinates.json'
     ])
 
     print('Processing.')

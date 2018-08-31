@@ -26,7 +26,7 @@ alexa_ranking = {
     'inspirock':   120
 }
 
-alexa_ranking_orderedList = ['tripexpert', 'tripAdvisor', 'skyscanner', 'viator_v2', 'inspirock']
+alexa_ranking_orderedList = ['googleCoordinates', 'tripexpert', 'tripAdvisor', 'skyscanner', 'viator_v2', 'inspirock']
 
 similar_web_ranking = {
     'tripexpert' : 1,
