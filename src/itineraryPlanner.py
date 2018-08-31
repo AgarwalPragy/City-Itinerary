@@ -194,7 +194,7 @@ def possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, current
 
 
 def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, mustNotVisitPoints, dayStartTime,
-                    dayEndTime, dayNum):
+                    dayEndTime, weekDay):
     possibleSequences = []
     visitedPoints = [False] * len(listOfPoints)
 
@@ -209,7 +209,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
                 startPointVisitingTime = roundUpTime(float(startPoint['recommendedNumHours']))
                 startPointExitTime = roundUpTime(startPointEnterTime + startPointVisitingTime)
 
-                pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(startPoint, startPointEnterTime, startPointExitTime, dayNum)
+                pointEnterTimeBasedOnOpeningHour = getEnterTimeBasedOnOpeningHour(startPoint, startPointEnterTime, startPointExitTime, weekDay)
 
                 if pointEnterTimeBasedOnOpeningHour < 0:
                     continue
@@ -223,7 +223,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
                 currentSequence = [{'point': startPoint, 'enterTime': startPointEnterTime, 'exitTime': startPointExitTime}]
 
                 possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointsForStartPoint, startPoint,
-                                                        currentSequence, startPointExitTime, dayEndTime, dayNum, possibleSequences)
+                                                        currentSequence, startPointExitTime, dayEndTime, weekDay, possibleSequences)
     else:
         for mustVisitPoint in mustVisitPoints:
             visitedPoints[listOfPoints.index(mustVisitPoint)] = True
@@ -233,7 +233,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
         endPoint = mustVisitPoints[0]
         possibleSequences = possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, [], endPoint,
                                                                     dayStartTime, firstPointEnterTime,
-                                                                    firstPointExitTime, dayNum)
+                                                                    firstPointExitTime, weekDay)
 
         for index, startPoint in enumerate(mustVisitPoints):
             startPointExitTime = mustVisitPlaceEnterExitTime[index][1]  # end Time will be now start time for sequence
@@ -252,7 +252,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
 
                     possibleSequencesBWStartAndEndPoint(listOfPoints, visitedPointsForSeq, startPoint,
                                                         startPointExitTime, endPoint, endPointEnterTime,
-                                                        endPointExitTime, sequence, dayNum, possibleSequencesAfterIter)
+                                                        endPointExitTime, sequence, weekDay, possibleSequencesAfterIter)
 
             else:
                 for sequence in possibleSequences:
@@ -262,7 +262,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
                         visitedPointsForSeq[listOfPoints.index(seqPointData['point'])] = True
 
                     possibleSequencesBWStartPointAndEndTime(listOfPoints, visitedPointsForSeq, startPoint, sequence,
-                                                            startPointExitTime, dayEndTime, dayNum, possibleSequencesAfterIter)
+                                                            startPointExitTime, dayEndTime, weekDay, possibleSequencesAfterIter)
 
             possibleSequences = possibleSequencesAfterIter[:]
 

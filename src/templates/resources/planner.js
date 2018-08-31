@@ -3,6 +3,8 @@ var cityFuse = null;
 var pointFuse = null;
 var map = null;
 var pinPopups = null;
+var allCoordinates = [];
+var allClusters = [];
 
 
 Date.prototype.addHours = function(h) {
@@ -88,9 +90,10 @@ var fuzzyPointMatcher = function(query, callback) {
 
 
 var renderPinPopup = function(point) {
+    var desc = point.description || '';
     return '<div class="pin-popup">' +
                '<div class="pin-popup-title">' + point.pointName + '</div>' +
-               '<div class="pin-popup-description">' + point.description.replace(/\n/g, '<hr/>') + '</div>' +
+               '<div class="pin-popup-description">' + desc.replace(/\n/g, '<hr/>') + '</div>' +
            '</div>';
 };
 
@@ -192,9 +195,9 @@ var registerDateTime = function () {
         value: initialConstraints.startDate + ' ' + initialConstraints.startDayTime + ':00',
         allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
         onShow:function( ct ){
-            this.setOptions({
-                maxDate: $('#date_timepicker_end').val()?$('#date_timepicker_end').val():false
-            })
+            // this.setOptions({
+            //     maxDate: $('#date_timepicker_end').val()?$('#date_timepicker_end').val():false
+            // })
         },
         timepicker: true
     });
@@ -221,18 +224,57 @@ var registerMap = function() {
     map.setView([51.505, -0.09], 12);
 };
 
-var redrawMap = function() {
-    pinPopups = {}
-    for (var i = 0; i < app.itinerary.length; i++) {
-        var point = app.itinerary[i].point;
+var redrawMap = function(currentPage, items) {
+    pins = L.markerClusterGroup({
+        removeOutsideVisibleBounds: false,
+        spiderfyOnMaxZoom: false,
+        showCoverageOnHover: false,
+        zoomToBoundsOnClick: false
+    });
+    for (var i = 0; i < items.length; i++) {
+        var point = items[i].point;
         var pointName = point.pointName;
+        if(pointName === '__newday__')
+            continue;
         console.log('Point: ' + point.fullName + ', coordinates: ' + point.coordinates);
-        pinPopups[pointName] = L.marker(utils.getCoordinatesFromString(point.coordinates));
-        p = pinPopups[pointName];
-        p.addTo(map);
-        p.bindPopup(renderPinPopup(point));
-        p.openPopup();
+        var coordinates = utils.getCoordinatesFromString(point.coordinates);
+        allCoordinates.push(coordinates);
+        pin = L.marker(coordinates);        
+        pin.bindPopup(renderPinPopup(point));
+        pins.addLayer(pin);
     }
+    allClusters.push(pins);
+    map.addLayer(pins);
+    var bounds = new L.LatLngBounds(allCoordinates);
+    map.fitBounds(bounds);
+    map.invalidateSize();
+}
+
+var getItineraryPage = function(page) {
+    utils.getData('/api/itinerary', {
+        city: app.constraints.city,
+        startDate: app.constraints.startDate,
+        endDate: app.constraints.endDate,
+        startDayTime: app.constraints.startDayTime,
+        endDayTime: app.constraints.endDayTime,
+        page: page
+    }, function (response) {
+        currentPage = parseInt(response.data.currentPage);
+        if(currentPage === 1) {
+            app.itinerary = response.data.itinerary;
+            for (var i = allClusters.length - 1; i >= 0; i--) {
+                allClusters[i].clearLayers();
+            }
+            allCoordinates = [];
+            allClusters = [];
+        }
+        else
+            app.itinerary = app.itinerary.concat(response.data.itinerary);
+
+        redrawMap(currentPage, response.data.itinerary);
+        if(response.data.nextPage !== false)
+            getItineraryPage(response.data.nextPage);
+    });
 }
 
 var registerVue = function() {
@@ -265,12 +307,7 @@ var registerVue = function() {
             constraints: function() {
                 $('#city-searchbar').val(app.constraints.city);
                 console.log('constraints changed!')
-                utils.getData('/api/itinerary', {
-                    city: app.constraints.city
-                }, function (response) {
-                    app.itinerary = response.data;
-                    redrawMap();
-                });
+                getItineraryPage(1);
                 utils.getData('/api/points', {
                     city: app.constraints.city
                 }, function (response) {

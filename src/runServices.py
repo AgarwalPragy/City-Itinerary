@@ -3,6 +3,7 @@ from flask import send_file, send_from_directory, render_template
 from flask_cors import CORS, cross_origin
 import datetime
 import json
+import urllib
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
@@ -47,15 +48,15 @@ def planner():
     if dislikes:
         dislikes = dislikes.split('|')
 
-    period = request.args.get('period', None)
-    if period:
-        period = period.split(' ')
-        startDate, startDayTime, endDate, endDayTime = period
-    else:
-        strFormat = '%y/%m/%d'
-        startDate = datetime.datetime.now().strftime(strFormat)
-        endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength)).strftime(strFormat)
-        startDayTime, endDayTime = clientDefaultStartTime, clientDefaultEndTime
+    strFormat = '%y/%m/%d'
+    startDate = datetime.datetime.now().strftime(strFormat)
+    endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength-1)).strftime(strFormat)
+    startDayTime, endDayTime = clientDefaultStartTime, clientDefaultEndTime
+
+    startDate = request.args.get('startDate', startDate)
+    endDate = request.args.get('endDate', endDate)
+    startDayTime = request.args.get('startDayTime', startDayTime)
+    endDayTime = request.args.get('endDayTime', endDayTime)
 
     constraints = {
         'city': city,
@@ -65,8 +66,10 @@ def planner():
         'startDate': startDate,
         'endDate': endDate,
         'startDayTime': startDayTime,
-        'endDayTime': endDayTime
+        'endDayTime': endDayTime,
+        'page': 1
     }
+
     return render_template('planner.html', initialConstraints=json.dumps(constraints))
 
 

@@ -11,6 +11,7 @@
     <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
     <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
     <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.0/MarkerCluster.css">
     <!-- css leaflet   --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
     <!-- css SELF      --><link rel="stylesheet" href="resources/planner.css">
     <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
@@ -24,6 +25,7 @@
     <!-- js  typeahead --><script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
     <!-- js  fuse      --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js"></script>
     <!-- js  leaflet   --><script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.0/leaflet.markercluster.js"></script>
     <title>City Itinerary Planner</title>
 </head>
 <body>
@@ -76,7 +78,8 @@
                     <div class="overflow-container">
                         <ul v-sortable="{onEnd: reorder}">
                             <li v-for="(visit, index) in itinerary" :key="index">
-                                <div class="point-listing">
+                                <div class="point-listing"
+                                     v-if="visit.point.pointName !== '__newday__'">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
                                     <div class="point-name">{{ visit.point.pointName }}</div>
                                     <div class="point-rating">
@@ -91,9 +94,10 @@
                                         {{ utils.formatTime(visit.exitTime) }}
                                     </div>
                                 </div>
-                                <div class="day-listing">
-                                    <div class="day-listing-number">Day 1</div>
-                                    <div class="day-listing-date">15th August</div>
+                                <div class="day-listing"
+                                     v-else>
+                                    <div class="day-listing-number">Day {{visit.dayNum}}</div>
+                                    <div class="day-listing-date">{{visit.date}}</div>
                                 </div>
                             </li>
                         </ul>
@@ -114,7 +118,8 @@
                     <div class="overflow-container">
                         <ul v-sortable="{onEnd: reorder}">
                             <li v-for="(visit, index) in itinerary" :key="index">
-                                <div class="point-listing">
+                                <div class="point-listing"
+                                     v-if="visit.point.pointName !== '__newday__'">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
                                     <div class="point-name">{{ visit.point.pointName }}</div>
                                     <div class="point-rating">
@@ -129,9 +134,10 @@
                                         {{ utils.formatTime(visit.exitTime) }}
                                     </div>
                                 </div>
-                                <div class="day-listing">
-                                    <div class="day-listing-number">Day 1</div>
-                                    <div class="day-listing-date">15th August</div>
+                                <div class="day-listing"
+                                     v-else>
+                                    <div class="day-listing-number">Day {{visit.dayNum}}</div>
+                                    <div class="day-listing-date">{{visit.date}}</div>
                                 </div>
                             </li>
                         </ul>

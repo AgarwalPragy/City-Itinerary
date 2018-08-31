@@ -1,11 +1,11 @@
 from entities import CityID, CountryID, PointID
 
 
-clientDefaultTripLength = 4  # number of days
+clientDefaultTripLength = 3  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'Jaipur, India'
-clientMaxPossiblePointsPerDay = 10
+clientDefaultCity = 'Mumbai (Bombay), India'
+clientMaxPossiblePointsPerDay = 8
 
 
 matchPointID_countryThreshold = 75
