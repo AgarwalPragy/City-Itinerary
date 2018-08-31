@@ -13,6 +13,8 @@ from utilities import urlDecode
 imageFetcher = Blueprint('imageFetcher', __name__)
 ssl._create_default_https_context = ssl._create_unverified_context
 
+brokenImage = 'https://banner2.kisspng.com/20180403/cte/kisspng-london-eye-the-london-pass-skyline-tourist-attract-london-eye-5ac3a5c3c91f47.3845406215227713958238.jpg'
+
 
 @lru_cache(1000)
 def strHash(string):
@@ -44,7 +46,10 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
     images = memcache.get(urlHash, None)
     if not images:
         # print('Cache MISS :(')
-        original = getImageFromNetwork(url)
+        try:
+            original = getImageFromNetwork(url)
+        except Exception as e:
+            return getImageFromMemcache(brokenImage, size)
         resized = imageResize(original, size)
         memcache[urlHash] = {
             'original': original,
