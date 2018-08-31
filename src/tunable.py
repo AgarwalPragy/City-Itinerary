@@ -1,7 +1,7 @@
 from entities import CityID, CountryID, PointID
 
 
-clientDefaultTripLength = 3  # number of days
+clientDefaultTripLength = 6  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
 clientDefaultCity = 'Mumbai (Bombay), India'
