@@ -183,7 +183,7 @@ var registerPointFuse = function() {
             {name: 'countryAliases', weight: 0.1},
         ]
     };
-    var items = Object.values(app.points);
+    var items = Object.values(app.points.points);
     pointFuse = new Fuse(items, options);
 };
 
@@ -308,6 +308,9 @@ var registerVue = function() {
                 registerCityFuse();
                 registerPointFuse();
             },
+            points: function() {
+                registerPointFuse();
+            },
             constraints: function() {
                 $('#city-searchbar').val(app.constraints.city);
                 console.log('constraints changed!')
@@ -316,6 +319,7 @@ var registerVue = function() {
                     city: app.constraints.city
                 }, function (response) {
                     app.points = response.data;
+                    registerPointFuse();
                 });
             }
         }
