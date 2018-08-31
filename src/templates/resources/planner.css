@@ -215,6 +215,18 @@ body {
             height: 100%;
             padding: 0;
         }
+            .pin-popup {
+
+            }
+                .pin-popup-title {
+                    font-size: 1.5em;
+                    font-weight: bold;
+                }
+                .pin-popup-description {
+                    margin-top: 1em;
+                    font-size: 1em;
+                }
+
     .plan-box {
         display: grid;
         grid-template-columns: 1fr 1fr;

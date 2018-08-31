@@ -90,7 +90,7 @@ var fuzzyPointMatcher = function(query, callback) {
 var renderPinPopup = function(point) {
     return '<div class="pin-popup">' +
                '<div class="pin-popup-title">' + point.pointName + '</div>' +
-               '<div class="pin-popup-description' + point.description + '</div>' +
+               '<div class="pin-popup-description">' + point.description.replace(/\n/g, '<hr/>') + '</div>' +
            '</div>';
 };
 
@@ -218,16 +218,16 @@ var registerMap = function() {
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
+    map.setView([51.505, -0.09], 12);
 };
 
 var redrawMap = function() {
-    map.setView([51.505, -0.09], 13);
     pinPopups = {}
     for (var i = 0; i < app.itinerary.length; i++) {
-        var point = itinerary[i].point;
+        var point = app.itinerary[i].point;
         var pointName = point.pointName;
         console.log('Point: ' + point.fullName + ', coordinates: ' + point.coordinates);
-        pinPopups[pointName] = L.marker(getCoordinatesFromString(point.coordinates));
+        pinPopups[pointName] = L.marker(utils.getCoordinatesFromString(point.coordinates));
         p = pinPopups[pointName];
         p.addTo(map);
         p.bindPopup(renderPinPopup(point));
@@ -247,7 +247,7 @@ var registerVue = function() {
             cities: {},
             points: {},
             searchSelectedCity: initialConstraints.city,
-            constraints: initialConstraints,
+            constraints: false,
             itinerary: []
         },
         mounted: function() {},
@@ -263,11 +263,13 @@ var registerVue = function() {
                 registerPointFuse();
             },
             constraints: function() {
+                $('#city-searchbar').val(app.constraints.city);
                 console.log('constraints changed!')
                 utils.getData('/api/itinerary', {
                     city: app.constraints.city
                 }, function (response) {
                     app.itinerary = response.data;
+                    redrawMap();
                 });
                 utils.getData('/api/points', {
                     city: app.constraints.city
@@ -282,37 +284,23 @@ var registerVue = function() {
 
 (function() {
     registerVue();
-    utils.getData('/api/itinerary', {
-        city: initialConstraints.city
-    }, function (response) {
-        app.itinerary = response.data;
-    });
+    app.constraints = initialConstraints;
     utils.getData('/api/cities', {}, function (response) {
         app.cities = response.data;
     });
-    utils.getData('/api/points', {
-        city: initialConstraints.city
-    }, function (response) {
-        app.points = response.data['points'];
-    });
-
-
-    registerDateTime();
-    registerMap();
-    redrawMap();
-    $('#city-searchbar').val(initialConstraints.city);
-
     $('#city-searchbar-submit').on('click', function() {
         newconstraints = {
             city: $('#city-searchbar').val(),
             startDate: $('#date_timepicker_start').val().split(' ')[0],
-            startDayTime: $('#date_timepicker_end').val().split(' ')[0],
-            endDate: 9 ,
-            endDayTime: 22 
+            endDate: $('#date_timepicker_end').val().split(' ')[0],
+            startDayTime: $('#date_timepicker_end').val().split(' ')[1].split(':'),
+            endDayTime: $('#date_timepicker_end').val().split(' ')[1].split(':')
         }
         app.constraints = newconstraints;
     });
 
+    registerDateTime();
+    registerMap();
     registerCitySearch();
     registerPointSearch();
 })();
