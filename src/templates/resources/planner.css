@@ -163,6 +163,18 @@ body {
                     color: #aaa;
                 }
 
+                .search-result-pointimage {
+                    border: 1px solid black;
+                    display: inline-block;
+                }
+                .search-result-pointname {
+                    font-size: 0.7em;
+                    font-weight: bold;
+                    display: inline-block;
+                    margin-left: 10px;
+                    color: #333;
+                }
+
 
         .date-box {
             width: 97%;

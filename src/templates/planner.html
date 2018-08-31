@@ -63,7 +63,7 @@
                             </div>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary submit-btn">Go!</button>
+                    <button type="submit" class="btn btn-primary submit-btn" id="city-searchbar-submit">Go!</button>
                 </div>
             </div>
         </div>
@@ -160,7 +160,7 @@
             </div>
         </div>
     </div>
-    <!-- js injected --> <script type="text/javascript"> {% endraw %} var initialCity = "{{ initialCity }}"; var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
+    <!-- js injected --> <script type="text/javascript"> {% endraw %} var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
     <!-- js UTILS    --><script src="resources/utils.js"></script>
     <!-- js SELF     --><script src="resources/planner.js"></script>
 </body>

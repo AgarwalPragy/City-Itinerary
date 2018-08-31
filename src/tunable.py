@@ -1,5 +1,12 @@
 from entities import CityID, CountryID, PointID
 
+
+clientDefaultTripLength = 4  # number of days
+clientDefaultStartTime = 9   # hours
+clientDefaultEndTime = 20    # hours
+clientDefaultCity = 'Jaipur, India'
+
+
 matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
 matchPointID_pointThreshold = 95

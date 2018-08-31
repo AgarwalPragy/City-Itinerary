@@ -1,11 +1,13 @@
 from flask import Flask, request
 from flask import send_file, send_from_directory, render_template
 from flask_cors import CORS, cross_origin
+import datetime
 import json
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
 from serviceClientAPI import clientAPI
+from tunable import clientDefaultStartTime, clientDefaultEndTime, clientDefaultTripLength, clientDefaultCity
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'This is the secret key for now'
@@ -27,12 +29,45 @@ def index():
 def favicon():
     return send_from_directory('templates/', 'favicon.png')
 
+
 @app.route('/planner')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def planner():
-    city = request.args.get('city', 'Mumbai (Bombay), India')
-    constraints = request.args.get('constraints', {})
-    return render_template('planner.html', initialCity=city, initialConstraints=json.dumps(constraints))
+    city = request.args.get('city', clientDefaultCity)
+
+    likes = request.args.get('likes', [])
+    if likes:
+        likes = likes.split('|')
+
+    likesTimings = request.args.get('likesTimings', [])
+    if likesTimings:
+        likesTimings = likesTimings.split('|')
+
+    dislikes = request.args.get('dislikes', [])
+    if dislikes:
+        dislikes = dislikes.split('|')
+
+    period = request.args.get('period', None)
+    if period:
+        period = period.split(' ')
+        startDate, startDayTime, endDate, endDayTime = period
+    else:
+        strFormat = '%y/%m/%d'
+        startDate = datetime.datetime.now().strftime(strFormat)
+        endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength)).strftime(strFormat)
+        startDayTime, endDayTime = clientDefaultStartTime, clientDefaultEndTime
+
+    constraints = {
+        'city': city,
+        'likes': likes,
+        'likesTimings': likesTimings,
+        'dislikes': dislikes,
+        'startDate': startDate,
+        'endDate': endDate,
+        'startDayTime': startDayTime,
+        'endDayTime': endDayTime
+    }
+    return render_template('planner.html', initialConstraints=json.dumps(constraints))
 
 
 @app.route('/city/<cityName>/')

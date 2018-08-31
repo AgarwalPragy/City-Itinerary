@@ -12,9 +12,7 @@ Date.prototype.addHours = function(h) {
 
 
 var getRatingStars = function(point) {
-    console.log(point.pointName + ' has rating ' + point.avgRating);
     var rating = Math.round(point.avgRating) / 2.0;
-    console.log('Giving it ' + rating + ' stars')
     var classes = [];
     for (var i = 1; i <= Math.floor(rating); i++) {
         classes.push('fas fa-star');
@@ -25,7 +23,6 @@ var getRatingStars = function(point) {
     for (var i = Math.ceil(rating)+1; i <= 5; i++) {
         classes.push('far fa-star');
     }
-    console.log(classes);
     return classes;
 };
 
@@ -56,21 +53,19 @@ var renderCityEmptyResult = function(context) {
 
 var renderPointSearchResult = function(point) {
     return '<div class="search-result">' +
-                '<img class="search-result-pointimage" src="' + utils.getEncodedPointImageURL(city, 144, 80) + '">' +
+                '<img class="search-result-pointimage" src="' + utils.getEncodedPointImageURL(point, 80, 45) + '">' +
                 '<div class="search-result-pointname">' + point.pointName + '</div>' +
             '</div>';
 };
 
 var renderPointEmptyResult = function(context) {
     return '<div class="search-result tt-suggestion">' +
-                '<img class="search-result-pointimage" src="' + utils.fetchImageURL(utils.pointImageUnavailable, 144, 80) + '">' +
+                '<img class="search-result-pointimage" src="' + utils.fetchImageURL(utils.pointImageUnavailable, 80, 45) + '">' +
             '</div>';
 };
 
 
 var fuzzyCityMatcher = function(query, callback) {
-    // TODO: Fix the NYC on top instead of Agra when querying "a" bug
-    console.log('query ' + query);
     var sanitized = query.toLowerCase().replace(/[^a-z]/g, '')
     var matches = [];
     var results = cityFuse.search(sanitized);
@@ -82,8 +77,6 @@ var fuzzyCityMatcher = function(query, callback) {
 
 
 var fuzzyPointMatcher = function(query, callback) {
-    // TODO: Fix the NYC on top instead of Agra when querying "a" bug
-    console.log('query ' + query);
     var sanitized = query.toLowerCase().replace(/[^a-z]/g, '')
     var matches = [];
     var results = pointFuse.search(sanitized);
@@ -119,7 +112,9 @@ var registerCitySearch = function () {
             }
         }
     ).on('typeahead:selected', function (e, city) {
-        app.searchSelectedCity = city;
+        app.searchSelectedCity = city.fullName;
+    }).on('blur', function (e) {
+        $('#city-searchbar').val(app.searchSelectedCity);
     });
 };
 
@@ -131,7 +126,7 @@ var registerPointSearch = function () {
             hint: false
         },
         {
-            name: 'fuzzySearchOnCities',
+            name: 'fuzzySearchOnPoints',
             display: 'fullName',
             limit: 6,
             source: fuzzyPointMatcher,
@@ -164,7 +159,6 @@ var registerCityFuse = function() {
     };
     var items = Object.values(app.cities);
     cityFuse = new Fuse(items, options);
-    registerCitySearch();
 };
 
 
@@ -188,13 +182,14 @@ var registerPointFuse = function() {
     };
     var items = Object.values(app.points);
     pointFuse = new Fuse(items, options);
-    registerPointSearch();
 };
 
 
 var registerDateTime = function () {
     $('#date_timepicker_start').datetimepicker({
         format: 'Y/m/d H.i',
+        defaultTime:'10:00',
+        value: initialConstraints.startDate + ' ' + initialConstraints.startDayTime + ':00',
         allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
         onShow:function( ct ){
             this.setOptions({
@@ -205,6 +200,8 @@ var registerDateTime = function () {
     });
     $('#date_timepicker_end').datetimepicker({
         format: 'Y/m/d H.i',
+        defaultTime:'20:00',
+        value: initialConstraints.endDate + ' ' + initialConstraints.endDayTime + ':00',
         allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
         onShow:function( ct ){
             this.setOptions({
@@ -244,14 +241,13 @@ var registerVue = function() {
             var sortable = new Sortable(el, binding.value || {});
         }
     });
-    window.app = new Vue({
+    app = new Vue({
         el: '#plan-box',
         data: {
             cities: {},
             points: {},
-            searchSelectedCity: false,
-            currentCity: false,
-            currentConstraints: false,
+            searchSelectedCity: initialConstraints.city,
+            constraints: initialConstraints,
             itinerary: []
         },
         mounted: function() {},
@@ -266,19 +262,18 @@ var registerVue = function() {
                 registerCityFuse();
                 registerPointFuse();
             },
-            currentCity: function() {
-                utils.getData('/api/points', {
-                    city: app.currentCity.fullName
-                }, function (response) {
-                    app.points = response.data;
-                });
+            constraints: function() {
+                console.log('constraints changed!')
                 utils.getData('/api/itinerary', {
-                    city: initialCity,
-                    constraints: initialConstraints
+                    city: app.constraints.city
                 }, function (response) {
                     app.itinerary = response.data;
                 });
-                redrawMap();
+                utils.getData('/api/points', {
+                    city: app.constraints.city
+                }, function (response) {
+                    app.points = response.data;
+                });
             }
         }
     });
@@ -288,27 +283,36 @@ var registerVue = function() {
 (function() {
     registerVue();
     utils.getData('/api/itinerary', {
-        city: initialCity,
-        constraints: initialConstraints
+        city: initialConstraints.city
     }, function (response) {
         app.itinerary = response.data;
     });
-    app.currentCity = initialCity;
-    app.currentConstraints = initialConstraints;
     utils.getData('/api/cities', {}, function (response) {
         app.cities = response.data;
     });
     utils.getData('/api/points', {
-        city: app.currentCity.fullName
+        city: initialConstraints.city
     }, function (response) {
-        app.points = response.data;
+        app.points = response.data['points'];
     });
 
 
     registerDateTime();
-    $('date_timepicker_start').val('')
-
     registerMap();
-    $('#city-searchbar').val(initialCity);
+    redrawMap();
+    $('#city-searchbar').val(initialConstraints.city);
 
+    $('#city-searchbar-submit').on('click', function() {
+        newconstraints = {
+            city: $('#city-searchbar').val(),
+            startDate: $('#date_timepicker_start').val().split(' ')[0],
+            startDayTime: $('#date_timepicker_end').val().split(' ')[0],
+            endDate: 9 ,
+            endDayTime: 22 
+        }
+        app.constraints = newconstraints;
+    });
+
+    registerCitySearch();
+    registerPointSearch();
 })();
