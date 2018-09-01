@@ -46,15 +46,17 @@ _freqScaleFactor = 5
 _tripexpertScoreScaleFactor = 100
 _categoryTitleScaleFactor = 3
 _mScoreScaleFactor = 10
+freqWithDomainRankingScaleFactor = 1000
 
 orderWeightOfPolicies = {
     'mayurScore':       10 / _mScoreScaleFactor,
-    'category':          9 / _categoryTitleScaleFactor,
+    'category':          8 / _categoryTitleScaleFactor,
     'tripexpertScore':   7 / _tripexpertScoreScaleFactor,
     'rank':              0,
-    'frequency':         5 / _freqScaleFactor,
+    'frequency':         0 / _freqScaleFactor,
     'wilsonScore':       1,
-    'pointAttributes':   1
+    'pointAttributes':   1,
+    'frequencyWithWDomainRanking': 3/freqWithDomainRankingScaleFactor
 }
 
 thresholdGoodWordCount = 3

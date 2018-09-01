@@ -1,6 +1,6 @@
 from tunable import pointAttributeWeights, orderWeightOfPolicies, pointGratificationBasedOn, mScoreAvgRatingCount, mScoreAvgRating
 from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight
-from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount
+from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount, freqWithDomainRankingScaleFactor
 from utilities import getWilsonScore, processName
 from entities import PointAggregated
 
@@ -32,8 +32,10 @@ def wilsonScoreLB(point):
 
 
 def freqWithWeightedDomainRanking(point):
-    rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
-    return len(point.sources), rank                        # first sort on len, then on rank
+    # rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
+    # return len(point.sources), rank                        # first sort on len, then on rank
+    rank = -point.rank if point.rank else -100
+    return freqWithDomainRankingScaleFactor*len(point.sources) + rank
 
 
 def weightAvgRating(point):
@@ -74,6 +76,9 @@ def getWeightedOrderValueOverDiffPolices(point: PointAggregated):
 
     if 'mayurScore' in orderWeightOfPolicies:
         result += mayurScore(point) * orderWeightOfPolicies['mayurScore']
+
+    if 'frequencyWithWDomainRanking' in orderWeightOfPolicies:
+        result += freqWithWeightedDomainRanking(point) * orderWeightOfPolicies['frequencyWithWDomainRanking']
 
     return result
 

@@ -55,7 +55,7 @@ def getRecommendedNumHoursInHour(pointAggregated: PointAggregated):
 
     if pointAggregated.recommendedNumHours is None:
         return avgRecommendedNumHours
-    else:
+    elif 'hour' in pointAggregated.recommendedNumHours or 'min' in pointAggregated.recommendedNumHours:
         result = 0
         timeString = pointAggregated.recommendedNumHours.strip().lower()
         hourRegex = re.compile('^([0-9]+)(h|h | hours| hour)+')
@@ -67,6 +67,8 @@ def getRecommendedNumHoursInHour(pointAggregated: PointAggregated):
         if len(minutes) > 0:
             result += int(minutes[0]) / 60.0
         return result
+    else:
+        return pointAggregated.recommendedNumHours
 
 
 def formatTime(timeString: str, isOpen):
@@ -192,7 +194,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                 ratingCount += 1
 
         if listing['rank'] is not None:
-            avgRankNumerator += listing['rank'] * (1.0 / domain_avg_ranking[listing['crawler']])
+            avgRankNumerator += float(listing['rank']) * (1.0 / domain_avg_ranking[listing['crawler']])
             avgRankDenominator += 1.0 / domain_avg_ranking[listing['crawler']]
 
         if listing['canStay'] is not None:
