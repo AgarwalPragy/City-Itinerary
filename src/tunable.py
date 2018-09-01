@@ -21,6 +21,7 @@ mScoreAvgRatingCount = 10   # how many fake values to put
 avgSpeedOfTravel = 25
 kMeansPointSelectDisWeight = 12
 kMeansPointSelectGScoreWeight = 1
+pointAvgRank = 100
 
 pointAttributeWeights = {
     'coordinates': 0.35,

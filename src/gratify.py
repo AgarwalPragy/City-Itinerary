@@ -1,5 +1,5 @@
 from tunable import pointAttributeWeights, orderWeightOfPolicies, pointGratificationBasedOn, mScoreAvgRatingCount, mScoreAvgRating
-from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight
+from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight, pointAvgRank
 from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount, freqWithDomainRankingScaleFactor
 from utilities import getWilsonScore, processName
 from entities import PointAggregated
@@ -34,7 +34,7 @@ def wilsonScoreLB(point):
 def freqWithWeightedDomainRanking(point):
     # rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
     # return len(point.sources), rank                        # first sort on len, then on rank
-    rank = -point.rank if point.rank else -100
+    rank = -point.rank if point.rank else -pointAvgRank
     return freqWithDomainRankingScaleFactor*len(point.sources) + rank
 
 
