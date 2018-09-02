@@ -200,7 +200,7 @@ def possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, current
     return possibleSequences
 
 
-def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, dayStartTime,
+def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime,mustNotVisitPoints, dayStartTime,
                     dayEndTime, weekDay):
     possibleSequences = []
     visitedPoints = [False] * len(listOfPoints)
