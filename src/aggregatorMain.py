@@ -4,6 +4,7 @@ from tqdm import tqdm
 from operator import attrgetter, itemgetter
 import json
 import os
+import pickle
 import errno
 
 from jsonUtils import J, EnhancedJSONEncoder
@@ -403,9 +404,20 @@ def processAll():
             elif forPoint(listing):
                 pointIDs.append(getPointID(listing))
 
-    # TODO: save these mappings so that fuzzy search queries can be answered
-    # TODO: check why Amsterdam, Milan don't show up
-    bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
+    if cachedPointAliases and os.path.exists('../PointAliasesCache/cache.pkl'):
+        with open('../PointAliasesCache/cache.pkl', 'rb') as f:
+            bestPointIDMap, bestCityIDMap, bestCountryIDMap = pickle.load(f)
+    else:
+        if not os.path.exists(os.path.dirname('../PointAliasesCache/cache.pkl')):
+            try:
+                os.makedirs(os.path.dirname('../PointAliasesCache/cache.pkl'))
+            except OSError as exc:  # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+        bestPointIDMap, bestCityIDMap, bestCountryIDMap = clusterAllIDs(pointIDs, cityIDs, countryIDs)
+        with open('../PointAliasesCache/cache.pkl', 'wb') as f:
+            pickle.dump((bestPointIDMap, bestCityIDMap, bestCountryIDMap), f)
+
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
@@ -433,4 +445,9 @@ def processAll():
 
 
 if __name__ == '__main__':
+    cachedPointAliases = True
+    if cachedPointAliases:
+        print('#' * 20, 'WARNING: USING CACHED POINT ALIASES', '#' * 20)
     processAll()
+    if cachedPointAliases:
+        print('#' * 20, 'WARNING: USED CACHED POINT ALIASES', '#' * 20)
