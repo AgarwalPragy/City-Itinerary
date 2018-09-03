@@ -286,7 +286,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
     allPointScores = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     catTitleWeightVals = []
-    for countryName, country in data.items():
+    for countryName, country in tqdm(data.items()):
         aggregatedCountry = aggregated[countryName]
         bestCountryID = CountryID(countryName)
         aggregatedCountry['countryAliases'] = frontAndBack(revCountry[bestCountryID] + [bestCountryID])
@@ -312,7 +312,8 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
                 aggregatedPoint['countryAliases'] = aggregatedCountry['countryAliases']
 
                 if not point['listings']:
-                    print('No listings found, but reviews/images exist for the point:', bestPointID)
+                    # print('No listings found, but reviews/images exist for the point:', bestPointID)
+                    continue
                 finalPoint = aggregateOnePointFromListings(point['listings'], countryName, cityName, pointName)
                 points.append(finalPoint)
                 for attrib, val in finalPoint.jsonify().items():
