@@ -1,6 +1,7 @@
 from tunable import pointAttributeWeights, orderWeightOfPolicies, pointGratificationBasedOn, mScoreAvgRatingCount, mScoreAvgRating
 from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight, pointAvgRank
 from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount, freqWithDomainRankingScaleFactor
+from tunable import avgTripExpertScore
 from utilities import getWilsonScore, processName
 from entities import PointAggregated
 
@@ -17,7 +18,7 @@ def getCategoryTitleWeight(point: PointAggregated):
                     + sum(categoryWeight for word in okayCategoryTitleWords if processName(word) in categories))
 
     if goodWordCount >= thresholdGoodWordCount:
-        score = goodWordWeight * (goodWordCount ** 0.5)
+        score = goodWordWeight * (goodWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
     else:
         score = goodWordWeight * (goodWordCount ** 0.5) + badWordWeight * (badWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
     return score
@@ -68,8 +69,14 @@ def getWeightedOrderValueOverDiffPolices(point: PointAggregated):
 
         result += pointAttrValue * orderWeightOfPolicies['pointAttributes']
 
-    if 'tripexpertScore' in orderWeightOfPolicies and jsonPointAggregated['tripexpertScore'] is not None:
-        result += jsonPointAggregated['tripexpertScore'] * orderWeightOfPolicies['tripexpertScore']
+    if 'tripexpertScore' in orderWeightOfPolicies:
+        tripScore = None
+        if jsonPointAggregated['tripexpertScore'] is not None:
+            tripScore = jsonPointAggregated['tripexpertScore']
+        else:
+            tripScore = avgTripExpertScore
+        result += tripScore * orderWeightOfPolicies['tripexpertScore']
+
 
     if 'category' in orderWeightOfPolicies:
         result += getCategoryTitleWeight(point) * orderWeightOfPolicies['category']

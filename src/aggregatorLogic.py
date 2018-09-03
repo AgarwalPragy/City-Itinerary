@@ -38,6 +38,13 @@ def getBestName(names: List[str], strictness: int=100) -> str:
     return sanitizeName(sortedNames[0])
 
 
+def getMinMaxAttributeValue(valueListByCrawler: Dict[str, List], func):
+    result = None
+    for crawler in alexa_ranking_orderedList:
+        values = [val for val in valueListByCrawler[crawler] if val is not None]
+        if values:
+            result = func(values)
+    return result
 
 
 def getBestAttributeValue(valueListByCrawler: Dict[str, List]):
@@ -270,7 +277,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     closingHour = getBestAttributeValue(attributesValueListByCrawler['closingHour'])
     recommendedNumHours = getBestAttributeValue(attributesValueListByCrawler['recommendedNumHours'])
     description = getBestAttributeValue(attributesValueListByCrawler['description'])
-    tripexpertScore = getBestAttributeValue(attributesValueListByCrawler['tripexpertScore'])
+    tripexpertScore = getMinMaxAttributeValue(attributesValueListByCrawler['tripexpertScore'], max)
     priceLevel = getBestAttributeValue(attributesValueListByCrawler['priceLevel'])
 
     finalPoint.address = address
