@@ -131,7 +131,6 @@ def __getItinerary(cityName: str, likes, likesTimings, dislikes, startDate, endD
     itinerary, score = getDayItinerary(listOfPoints=todaysPoints,
                                 mustVisitPoints=[pointMap[like] for like in todaysLikes],
                                 mustVisitPlaceEnterExitTime=todaysLikesTimings,
-                                mustNotVisitPoints=[],
                                 dayStartTime=(startDayTime if page == 0 else clientDefaultStartTime),
                                 dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
                                 weekDay=(today.weekday() + 1) % 7)
