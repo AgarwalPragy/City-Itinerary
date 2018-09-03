@@ -52,21 +52,20 @@ indexToOrderPolicy = {
 pointGratificationBasedOn = indexToOrderPolicy[5]
 
 
-_freqScaleFactor = 5
+_freqScaleFactor = 6
 _tripexpertScoreScaleFactor = 100
 _categoryTitleScaleFactor = 7
 _mScoreScaleFactor = 10
 freqWithDomainRankingScaleFactor = 1000
 
 orderWeightOfPolicies = {
-    'mayurScore':                    1 / _mScoreScaleFactor,
-    'category':                      1 / _categoryTitleScaleFactor,
-    'tripexpertScore':               1 / _tripexpertScoreScaleFactor,
-    'frequencyWithWDomainRanking':   0 / freqWithDomainRankingScaleFactor,
-    'rank':                          0,
-    'frequency':                     0 / _freqScaleFactor,
-    'wilsonScore':                   0,
-    'pointAttributes':               0,
+    'mayurScore':            1 / _mScoreScaleFactor,
+    'category':              0 / _categoryTitleScaleFactor,
+    'tripexpertScore':       0 / _tripexpertScoreScaleFactor,
+    'frequency':             0 / _freqScaleFactor,
+    'rank':                  0,
+    'wilsonScore':           0,
+    'pointAttributes':       0,
 }
 
 thresholdGoodWordCount = 6
@@ -150,7 +149,8 @@ goodCategoryTitleWords = list(set(word.strip().lower() for word in [
 
 injectedPointAliases = [
     (PointID('India', 'Mumbai', 'Indian Institute of Technology Bombay'), PointID('India', 'Mumbai', 'IIT Bombay')),
-    (PointID('India', 'Mumbai', 'IIT B'), PointID('India', 'Mumbai', 'IIT Bombay'))
+    (PointID('India', 'Mumbai', 'IIT B'), PointID('India', 'Mumbai', 'IIT Bombay')),
+    (PointID('India', 'Mumbai', 'InterContinental Marine Drive'), PointID('India', 'Mumbai', 'Marine Drive (Queen’s Necklace)')),
 ]
 
 injectedCityAliases = [
@@ -158,6 +158,7 @@ injectedCityAliases = [
     (CityID('USA', 'New York'), CityID('USA', 'NY')),
     (CityID('USA', 'NY'), CityID('USA', 'NYC')),
     (CityID('India', 'Mumbai'), CityID('India', 'Bombay')),
+    (CityID('India', 'Mumbai'), CityID('India', 'Mumbai (Bombay)')),
     (CityID('India', 'Calcutta'), CityID('India', 'Kolkata')),
     (CityID('India', 'Bengaluru'), CityID('India', 'Bangalore'))
 ]

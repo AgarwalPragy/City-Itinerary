@@ -32,7 +32,7 @@ def wilsonScoreLB(point):
     return getWilsonScore(point.avgRating/10, point.ratingCount)
 
 
-def freqWithWeightedDomainRanking(point):
+def _old_freqWithWeightedDomainRanking(point):
     # rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
     # return len(point.sources_crawlers), rank                        # first sort on len, then on rank
     rank = -point.rank if point.rank else -pointAvgRank
@@ -85,7 +85,7 @@ def getWeightedOrderValueOverDiffPolices(point: PointAggregated):
         result += mayurScore(point) * orderWeightOfPolicies['mayurScore']
 
     if 'frequencyWithWDomainRanking' in orderWeightOfPolicies:
-        result += freqWithWeightedDomainRanking(point) * orderWeightOfPolicies['frequencyWithWDomainRanking']
+        result += _old_freqWithWeightedDomainRanking(point) * orderWeightOfPolicies['frequencyWithWDomainRanking']
 
     return result
 
@@ -95,7 +95,7 @@ def gratificationScoreOfPoint(point: PointAggregated):
         'frequency': pointFrequency,
         'wilsonScore': wilsonScoreLB,
         'weightedAvgRating': weightAvgRating,
-        'frequencyWithWDomainRanking': freqWithWeightedDomainRanking,
+        'frequencyWithWDomainRanking': _old_freqWithWeightedDomainRanking,
         'mayurScore': mayurScore,
         'weightedOverDiffPolicies': getWeightedOrderValueOverDiffPolices
     }
