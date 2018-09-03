@@ -1,6 +1,6 @@
 from tunable import pointAttributeWeights, orderWeightOfPolicies, pointGratificationBasedOn, mScoreAvgRatingCount, mScoreAvgRating
 from tunable import goodWordWeight, badWordWeight, okayWordWeight, titleWeight, categoryWeight, pointAvgRank
-from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount, freqWithDomainRankingScaleFactor
+from tunable import okayCategoryTitleWords, goodCategoryTitleWords, badCategoryTitleWords, thresholdGoodWordCount, _old_freqWithDomainRankingScaleFactor
 from tunable import avgTripExpertScore
 from utilities import getWilsonScore, processName
 from entities import PointAggregated
@@ -36,7 +36,7 @@ def _old_freqWithWeightedDomainRanking(point):
     # rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
     # return len(point.sources_crawlers), rank                        # first sort on len, then on rank
     rank = -point.rank if point.rank else -pointAvgRank
-    return freqWithDomainRankingScaleFactor * len(point.sources_crawlers) + rank
+    return _old_freqWithDomainRankingScaleFactor * len(point.sources_crawlers) + rank
 
 
 def weightAvgRating(point):
@@ -55,8 +55,12 @@ def getWeightedOrderValueOverDiffPolices(point: PointAggregated):
     if 'frequency' in orderWeightOfPolicies:
         result += len(jsonPointAggregated['sources_crawlers']) * orderWeightOfPolicies['frequency']
 
-    if 'rank' in orderWeightOfPolicies and jsonPointAggregated['rank'] is not None:
-        result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
+    if 'rank' in orderWeightOfPolicies:
+        if jsonPointAggregated['rank'] is not None:
+            rank = jsonPointAggregated['rank']
+        else:
+            rank = pointAvgRank
+        result -= rank * orderWeightOfPolicies['rank']
 
     if 'wilsonScore' in orderWeightOfPolicies:
         result += getWilsonScore(jsonPointAggregated['avgRating']/10, jsonPointAggregated['ratingCount']) * orderWeightOfPolicies['wilsonScore']

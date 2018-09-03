@@ -1,10 +1,10 @@
 from entities import CityID, CountryID, PointID
 
 
-clientDefaultTripLength = 6  # number of days
+clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'Mumbai (Bombay), India'
+clientDefaultCity = 'Jaipur, India'
 clientMaxPossiblePointsPerDay = 8
 
 stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
@@ -29,7 +29,7 @@ mScoreAvgRatingCount = 800   # how many fake values to put
 avgSpeedOfTravel = 25
 kMeansPointSelectDisWeight = 12
 kMeansPointSelectGScoreWeight = 1
-pointAvgRank = 100
+pointAvgRank = 50
 avgTripExpertScore = 70
 
 pointAttributeWeights = {
@@ -56,14 +56,15 @@ _freqScaleFactor = 6
 _tripexpertScoreScaleFactor = 100
 _categoryTitleScaleFactor = 7
 _mScoreScaleFactor = 10
-freqWithDomainRankingScaleFactor = 1000
+_rankScaleFactor = 500
+_old_freqWithDomainRankingScaleFactor = 1000
 
 orderWeightOfPolicies = {
     'mayurScore':            1 / _mScoreScaleFactor,
-    'category':              0 / _categoryTitleScaleFactor,
-    'tripexpertScore':       0 / _tripexpertScoreScaleFactor,
-    'frequency':             0 / _freqScaleFactor,
-    'rank':                  0,
+    'category':              1 / _categoryTitleScaleFactor,
+    'tripexpertScore':       1 / _tripexpertScoreScaleFactor,
+    'frequency':             1 / _freqScaleFactor,
+    'rank':                  0 / _rankScaleFactor,
     'wilsonScore':           0,
     'pointAttributes':       0,
 }
