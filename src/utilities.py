@@ -8,6 +8,8 @@ from functools import lru_cache
 from urllib.parse import unquote
 from fuzzywuzzy import fuzz
 
+from tunable import stopWords, synonyms
+
 __all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUpTime']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
@@ -37,7 +39,14 @@ def sanitizeName(name: str) -> str:
 @lru_cache(None)
 def processName(name: str) -> str:
     """Removes spaces, normalize unicode data, convert to lowercase, remove special chars"""
-    normalized: str = unidecode(name.strip())
+    stopRemoved = name.lower()
+    for stopw in stopWords:
+        stopRemoved = stopRemoved.replace(stopw, ' ')
+    synonymReplaced = stopRemoved
+    for syn, word in synonyms:
+        synonymReplaced = synonymReplaced.replace(syn, word)
+
+    normalized: str = unidecode(synonymReplaced.strip())
     nohyphen = normalized.replace(' ', '')
     lowercase = nohyphen.lower()
     nospecial = ''.join(c for c in lowercase if c in allowedChars)
@@ -45,8 +54,11 @@ def processName(name: str) -> str:
 
 
 @lru_cache(None)
-def doesFuzzyMatch(name1: str, name2: str, threshold: int=90) -> bool:
-    return fuzz.partial_ratio(processName(name1), processName(name2)) > threshold
+def doesFuzzyMatch(name1: str, name2: str, threshold: int) -> bool:
+    n1, n2 = processName(name1), processName(name2)
+    similar = fuzz.ratio(n1, n2) > threshold
+    contained = fuzz.partial_ratio(n1, n2) > threshold
+    return contained or similar
 
 
 def getCurrentTime() -> str:

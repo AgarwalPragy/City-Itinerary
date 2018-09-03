@@ -7,6 +7,11 @@ clientDefaultEndTime = 20    # hours
 clientDefaultCity = 'Mumbai (Bombay), India'
 clientMaxPossiblePointsPerDay = 8
 
+stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
+synonyms = [
+    ('dargah', 'mosque'),
+    ('darga', 'mosque')
+]
 
 matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
@@ -17,7 +22,7 @@ avgOpenTime = '9:00 am'
 avgCloseTime = '10:00 pm'
 
 mScoreAvgRating = 5         # what to assign when no ratings available
-mScoreAvgRatingCount = 10   # how many fake values to put
+mScoreAvgRatingCount = 200   # how many fake values to put
 avgSpeedOfTravel = 25
 kMeansPointSelectDisWeight = 12
 kMeansPointSelectGScoreWeight = 1
@@ -45,29 +50,29 @@ pointGratificationBasedOn = indexToOrderPolicy[5]
 
 _freqScaleFactor = 5
 _tripexpertScoreScaleFactor = 100
-_categoryTitleScaleFactor = 3
+_categoryTitleScaleFactor = 2.23
 _mScoreScaleFactor = 10
 freqWithDomainRankingScaleFactor = 1000
 
 orderWeightOfPolicies = {
     'mayurScore':       10 / _mScoreScaleFactor,
-    'category':          8 / _categoryTitleScaleFactor,
+    'category':          6 / _categoryTitleScaleFactor,
     'tripexpertScore':   7 / _tripexpertScoreScaleFactor,
+    'frequencyWithWDomainRanking': 5 / freqWithDomainRankingScaleFactor,
     'rank':              0,
     'frequency':         0 / _freqScaleFactor,
     'wilsonScore':       1,
     'pointAttributes':   1,
-    'frequencyWithWDomainRanking': 3/freqWithDomainRankingScaleFactor
 }
 
-thresholdGoodWordCount = 3
-goodWordWeight = 1.5
+thresholdGoodWordCount = 4
+goodWordWeight = 2
 badWordWeight = -2      # Note: the negation
 okayWordWeight = 1
 titleWeight = 1.5
 categoryWeight = 1
 badCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'accessories', 'airport',
+    'accessories', 'airport', 'Sulabh',
     'bar', 'Beer',
     'cafe', 'Casino', 'Clothing', 'club', 'Cocktail', 'company', 'Cosmetics',
     'drink', 'Drugstore',
@@ -94,7 +99,7 @@ okayCategoryTitleWords = list(set(word.strip().lower() for word in [
     'market',
     'observation',  'Opera',
     'Paragliding', 'Popular',
-    'Safari',  'Scuba', 'stadium',
+    'Safari',  'Scuba', 'stadium', 'sight',
     'Theme', 'trekking', 'tourist',
     'Harbor', 'history',
     'Natural', 'Nature',
@@ -104,32 +109,33 @@ okayCategoryTitleWords = list(set(word.strip().lower() for word in [
     'Water Body', 'Wildlife',
 
     # cities names are important
-    'Bangkok', 'Seoul', 'London', 'Milan', 'Paris', 'Rome', 'Singapore', 'Shanghai', 'York',
-    'Amsterdam', 'Istanbul', 'Tokyo', 'Dubai', 'Vienna', 'Kuala Lumpur', 'Taipei', 'Hong Kong',
-    'Riyadh', 'Barcelona', 'Los Angeles', 'Mumbai', 'Delhi', 'Pune', 'Kolkata', 'Agra', 'Jaipur', 'Bengaluru',
-    'Bangalore', 'Calcutta'
+    # 'Bangkok', 'Seoul', 'London', 'Milan', 'Paris', 'Rome', 'Singapore', 'Shanghai', 'York',
+    # 'Amsterdam', 'Istanbul', 'Tokyo', 'Dubai', 'Vienna', 'Kuala Lumpur', 'Taipei', 'Hong Kong',
+    # 'Riyadh', 'Barcelona', 'Los Angeles', 'Mumbai', 'Delhi', 'Pune', 'Kolkata', 'Agra', 'Jaipur', 'Bengaluru',
+    # 'Bangalore', 'Calcutta'
 ]))
 
 goodCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'aquarium', 'Architectural', 'Art', 'Archaeological',
-    'beach', 'botanical', 'bagh',
-    'Canyon', 'Castle', 'cave', 'Chapel', 'church', 'City', 'Courthouse', 'cathedral',
-    'dam', 'desert', 'Disney', 'Dolphins', 'dargah',
+    'aquarium', 'Archaeological', 'Architectural', 'Art',
+    'bagh', 'beach', 'botanical',
+    'Canyon', 'Castle', 'cathedral', 'cave', 'Chapel', 'church', 'City', 'Courthouse',
+    'dam', 'dargah', 'desert', 'Disney', 'Dolphins',
     'Equestrian',
-    'Forest', 'fort', 'Fountain',
+    'Forest',
+    'fort', 'Fountain',
     'gallery', 'garden', 'Geologic', 'Gondolas',
     'historic',
-    'Island', 'island', 'intercontinental',
+    'intercontinental', 'Island',
     'kingdom',
     'lake', 'Library', 'lighthouse',
-    'marina', 'marine', 'masjidh', 'monument', 'Mosque', 'Mountain', 'Museum', 'Minar',
+    'marina', 'marine', 'masjidh', 'Minar', 'monument', 'Mosque', 'Mountain', 'Museum',
     'national',
     'Observatory',
     'palace', 'Pier',
     'Qila',
     'religious', 'river', 'Rock', 'Ruin',
     'Scenic', 'science', 'spring', 'state', 'Statue'
-    'temple', 'tower', 'Tomb',
+    'temple', 'Tomb', 'tower',
     'University',
     'Valley',
     'waterfall',
@@ -157,6 +163,7 @@ injectedCityAliases = [
 
 injectedCountryAliases = [
     (CountryID('USA'), CountryID('United States of America')),
+    (CountryID('USA'), CountryID('California')),   # Los Angeles seems to be listed both under USA and California (even though California is in USA)
     (CountryID('USA'), CountryID('United States')),
     (CountryID('USA'), CountryID('US')),
     (CountryID('USA'), CountryID('America')),
