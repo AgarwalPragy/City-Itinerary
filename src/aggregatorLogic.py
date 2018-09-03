@@ -178,7 +178,7 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     ignoreAttributes = ['countryName', 'cityName', 'pointName', 'canStay',
                         'canEat', 'canTour', 'crawler', 'sourceURL', 'crawlTimestamp',
-                        'avgRating', 'ratingCount', 'rank', 'notes', 'category',
+                        'avgRating', 'ratingCount', 'notes', 'category', 'rank',
                         '_uuid', '_listingType', 'website']
 
     attributesValueListByCrawler = defaultdict(lambda: defaultdict(list))
@@ -202,9 +202,12 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                 avgRating += listing['avgRating']  # considered at least one person reviewed this listing
                 ratingCount += 1
 
+        # if listing['rank'] is not None:
+        #     avgRankNumerator += float(listing['rank']) * (1.0 / domain_avg_ranking[listing['crawler']])
+        #     avgRankDenominator += 1.0 / domain_avg_ranking[listing['crawler']]
+
         if listing['rank'] is not None:
-            avgRankNumerator += float(listing['rank']) * (1.0 / domain_avg_ranking[listing['crawler']])
-            avgRankDenominator += 1.0 / domain_avg_ranking[listing['crawler']]
+            attributesValueListByCrawler['rank'][listing['crawler']].append(float(listing['rank']))
 
         if listing['canStay'] is not None:
             if canStay is None:
@@ -242,7 +245,6 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
                     attributesValueListByCrawler[attr][listing['crawler']].append(listing[attr])
                 else:
                     attributesValueListByCrawler[attr][listing['crawler']] = [listing[attr]]
-
     if ratingCount != 0:
         finalPoint.avgRating = avgRating/ratingCount
     else:
@@ -250,8 +252,8 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     finalPoint.ratingCount = ratingCount
 
-    if avgRankDenominator != 0:
-        finalPoint.rank = avgRankNumerator / avgRankDenominator
+    # if avgRankDenominator != 0:
+    #     finalPoint.rank = avgRankNumerator / avgRankDenominator
 
     if notesData:
         finalPoint.notes = notesData
@@ -268,6 +270,23 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
     finalPoint.canEat = canEat
     finalPoint.canStay = canStay
     finalPoint.canTour = canTour
+
+
+    rankNumerator = 0
+    rankDenominator = 0
+    for crawler, rankValuesList in attributesValueListByCrawler['rank'].items():
+        rankMinValue = None
+        if rankValuesList:
+            rankMinValue = min(rankValuesList)
+
+        if rankMinValue:
+            rankNumerator += rankMinValue / domain_avg_ranking[crawler]
+            rankDenominator += 1/domain_avg_ranking[crawler]
+
+    if rankDenominator != 0:
+        finalPoint.rank = rankNumerator / rankDenominator
+
+
 
     # get best props value
     address = getBestAttributeValue(attributesValueListByCrawler['address'])
