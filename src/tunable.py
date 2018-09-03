@@ -10,7 +10,10 @@ clientMaxPossiblePointsPerDay = 8
 stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
 synonyms = [
     ('dargah', 'mosque'),
-    ('darga', 'mosque')
+    ('darga', 'mosque'),
+    ('masjidh', 'mosque'),
+    ('bagh', 'garden'),
+    ('qila', 'fort'),
 ]
 
 matchPointID_countryThreshold = 75
@@ -22,11 +25,12 @@ avgOpenTime = '9:00 am'
 avgCloseTime = '10:00 pm'
 
 mScoreAvgRating = 5         # what to assign when no ratings available
-mScoreAvgRatingCount = 200   # how many fake values to put
+mScoreAvgRatingCount = 800   # how many fake values to put
 avgSpeedOfTravel = 25
 kMeansPointSelectDisWeight = 12
 kMeansPointSelectGScoreWeight = 1
 pointAvgRank = 100
+avgTripExpertScore = 70
 
 pointAttributeWeights = {
     'coordinates': 0.35,
@@ -50,25 +54,25 @@ pointGratificationBasedOn = indexToOrderPolicy[5]
 
 _freqScaleFactor = 5
 _tripexpertScoreScaleFactor = 100
-_categoryTitleScaleFactor = 2.23
+_categoryTitleScaleFactor = 7
 _mScoreScaleFactor = 10
 freqWithDomainRankingScaleFactor = 1000
 
 orderWeightOfPolicies = {
-    'mayurScore':       10 / _mScoreScaleFactor,
-    'category':          6 / _categoryTitleScaleFactor,
-    'tripexpertScore':   7 / _tripexpertScoreScaleFactor,
-    'frequencyWithWDomainRanking': 5 / freqWithDomainRankingScaleFactor,
-    'rank':              0,
-    'frequency':         0 / _freqScaleFactor,
-    'wilsonScore':       1,
-    'pointAttributes':   1,
+    'mayurScore':                    1 / _mScoreScaleFactor,
+    'category':                      1 / _categoryTitleScaleFactor,
+    'tripexpertScore':               1 / _tripexpertScoreScaleFactor,
+    'frequencyWithWDomainRanking':   0 / freqWithDomainRankingScaleFactor,
+    'rank':                          0,
+    'frequency':                     0 / _freqScaleFactor,
+    'wilsonScore':                   0,
+    'pointAttributes':               0,
 }
 
-thresholdGoodWordCount = 4
+thresholdGoodWordCount = 6
 goodWordWeight = 2
-badWordWeight = -2      # Note: the negation
-okayWordWeight = 1
+badWordWeight = -1      # Note: the negation
+okayWordWeight = 2
 titleWeight = 1.5
 categoryWeight = 1
 badCategoryTitleWords = list(set(word.strip().lower() for word in [
@@ -90,24 +94,22 @@ badCategoryTitleWords = list(set(word.strip().lower() for word in [
 ]))
 
 okayCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'Amusement', 'Auditorium', 'attraction',
+    'Amusement', 'aquarium', 'art', 'attraction', 'Auditorium',
     'Boat', 'Bridge',
-    'camping',  'Climbing',
+    'camping', 'church', 'Climbing',
+    'Disney', 'Dolphins',
     'Educational',
-    'festival',
-    'hall', 'Hiking', 'Helicopter',  'Horse',
+    'festival', 'Fountain',
+    'gallery', 'garden',
+    'hall', 'Harbor', 'Helicopter', 'Hiking', 'history', 'Horse',
+    'Library',
     'market',
-    'observation',  'Opera',
-    'Paragliding', 'Popular',
-    'Safari',  'Scuba', 'stadium', 'sight',
-    'Theme', 'trekking', 'tourist',
-    'Harbor', 'history',
     'Natural', 'Nature',
-    'park',
-    'Planetarium',
-    'station',
+    'observation', 'Opera',
+    'Paragliding', 'park', 'Planetarium', 'Popular',
+    'Safari', 'Scuba', 'sight', 'stadium', 'station',
+    'Theme', 'tourist', 'trekking',
     'Water Body', 'Wildlife',
-
     # cities names are important
     # 'Bangkok', 'Seoul', 'London', 'Milan', 'Paris', 'Rome', 'Singapore', 'Shanghai', 'York',
     # 'Amsterdam', 'Istanbul', 'Tokyo', 'Dubai', 'Vienna', 'Kuala Lumpur', 'Taipei', 'Hong Kong',
@@ -116,25 +118,24 @@ okayCategoryTitleWords = list(set(word.strip().lower() for word in [
 ]))
 
 goodCategoryTitleWords = list(set(word.strip().lower() for word in [
-    'aquarium', 'Archaeological', 'Architectural', 'Art',
-    'bagh', 'beach', 'botanical',
-    'Canyon', 'Castle', 'cathedral', 'cave', 'Chapel', 'church', 'City', 'Courthouse',
-    'dam', 'dargah', 'desert', 'Disney', 'Dolphins',
+    'Archaeological', 'Architectural',
+    'botanical',  'beach', 'burj khalifa',
+    'Canyon', 'Castle', 'cathedral', 'cave', 'Chapel', 'City', 'Courthouse',
+    'dam', 'desert',
     'Equestrian',
     'Forest',
-    'fort', 'Fountain',
-    'gallery', 'garden', 'Geologic', 'Gondolas',
+    'fort',
+    'Geologic', 'Gondolas', 'gate'
     'historic',
     'intercontinental', 'Island',
     'kingdom',
-    'lake', 'Library', 'lighthouse',
-    'marina', 'marine', 'masjidh', 'Minar', 'monument', 'Mosque', 'Mountain', 'Museum',
+    'lake', 'lighthouse',
+    'marina', 'marine', 'Minar', 'monument', 'Mosque', 'Mountain', 'Museum', 'marine drive',
     'national',
     'Observatory',
     'palace', 'Pier',
-    'Qila',
     'religious', 'river', 'Rock', 'Ruin',
-    'Scenic', 'science', 'spring', 'state', 'Statue'
+    'Scenic', 'scenic drive', 'science', 'spring', 'state', 'Statue'
     'temple', 'Tomb', 'tower',
     'University',
     'Valley',
