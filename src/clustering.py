@@ -9,9 +9,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from math import radians, sin, cos, atan2, sqrt
 import math
-from tunable import kMeansPointSelectDisWeight, kMeansPointSelectGScoreWeight
+from tunable import weightOfMaxGscoreClusterSelection, weightOfAvgGscoreClusterSelection, weightOfNumPointsClusterSelection
+from tunable import weightOfDistancePointSelection, weightOfGscorePointSelection
 import time
-
+from itineraryPlanner import getDayItinerary
+from tunable import clientDefaultStartTime, clientDefaultEndTime
 def readAllData(filePath: str):
     with open(filePath, 'r') as f:
         allData = json.loads(f.read())
@@ -54,16 +56,36 @@ def getDistance(lat1, lon1, lat2, lon2):
     distance = R * c
     return distance
 
-def getGScoreAndDistanceWeightedValue(point, centerOfCluster):
+
+def getAvgMaxGscore(listOfPoints):
+    maxGscore = -float('inf')
+    avgGscore = 0
+
+    for point in listOfPoints:
+        avgGscore += point['gratificationScore']
+        if maxGscore < point['gratificationScore']:
+            maxGscore = point['gratificationScore']
+
+    avgGscore = avgGscore/len(listOfPoints)
+    return maxGscore, avgGscore
+
+
+def getWeightedScoreOfCluster(listOfPoints):
+    maxGscore, avgGscore = getAvgMaxGscore(listOfPoints)
+    numPoints = len(listOfPoints)
+
+    return weightOfAvgGscoreClusterSelection*avgGscore + weightOfMaxGscoreClusterSelection*maxGscore + weightOfNumPointsClusterSelection*numPoints
+
+
+def getWeightedScoreOfPoint(point, centerOfCluster):
     [lat, lng] = map(float, point['coordinates'].split(','))
     [centerX, centerY] = centerOfCluster
-
     distance = getDistance(lat, lng, centerX, centerY)
-    gScore = point['gratificationScore']
+    pointGscore = point['gratificationScore']
+    return -weightOfDistancePointSelection*distance + weightOfGscorePointSelection * pointGscore
 
-    return -kMeansPointSelectDisWeight*distance + kMeansPointSelectGScoreWeight*gScore
-
-def getPointsFromMaxPointsCluster(listOfPoints, numDays: int, numPoints: int):
+# allSelectedPoints: already selected points
+def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int, Debug=False):
     dayWiseClusteredData = defaultdict(list)
 
     coordinatesData = []
@@ -74,61 +96,115 @@ def getPointsFromMaxPointsCluster(listOfPoints, numDays: int, numPoints: int):
 
     coordinatesInArrayFormat = np.array(coordinatesData)
 
-    kMeans = KMeans(n_clusters=numDays, max_iter=10, n_init=4, tol=1e-6).fit(coordinatesInArrayFormat)
-    #print('iter: ', kMeans.n_iter_)
+    kMeans = KMeans(n_clusters=numDays, max_iter=100, n_init=10, tol=1e-6).fit(coordinatesInArrayFormat)
+    # print('iter: ', kMeans.n_iter_)
+    # plot clustered data
+    if Debug:
+        plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
+        plt.title('clustered Data')
+        plt.show()
 
+    # predict cluster for points
     for point in listOfPoints:
         coordinates = point['coordinates']
         lat, lng = map(float, coordinates.split(','))
         clusterNumber = kMeans.predict([[lat, lng]])[0]
         dayWiseClusteredData[clusterNumber].append(point)
 
-    maxDensityClusterIndex = 0
-    maxDensityClusterNumPoints = len(dayWiseClusteredData[0])
+
+    # get maxWeighted Score cluster
+    maxWeightedScoreIndex = 0
+    maxWeightedScore = -float('inf')
     for day in dayWiseClusteredData:
-        if maxDensityClusterNumPoints < len(dayWiseClusteredData[day]):
-            maxDensityClusterIndex = day
-            maxDensityClusterNumPoints = len(dayWiseClusteredData[day])
+        weightedValue = getWeightedScoreOfCluster(dayWiseClusteredData[day])
+        if weightedValue > maxWeightedScore:
+            maxWeightedScore = weightedValue
+            maxWeightedScoreIndex = day
+    maxWeightCluster = dayWiseClusteredData[maxWeightedScoreIndex]
+    maxWeightClusterCenter = kMeans.cluster_centers_[maxWeightedScoreIndex]
 
-    maxDensityClusterCenter = kMeans.cluster_centers_[maxDensityClusterIndex]
-    maxDensityClusterPoints = dayWiseClusteredData[maxDensityClusterIndex]
-    takenPoints = [False] * len(maxDensityClusterPoints)
+    # max weighted cluster
+    if Debug:
+        print('cluster: ', maxWeightedScoreIndex, 'points: ', len(maxWeightCluster), 'center: ', maxWeightClusterCenter)
+    # plot listOfPoints with already selected data
+        alreadySelectedPointsCoordinates = []
+        for point in allSelectedPoints:
+            coordinates = point['coordinates']
+            lat, lng = map(float, coordinates.split(','))
+            alreadySelectedPointsCoordinates.append([lat, lng])
+        allSelectedPointsCoordinatesArrayFormat = np.array(alreadySelectedPointsCoordinates)
 
-    # plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
-    # plt.show()
-    if len(maxDensityClusterPoints) <= numPoints:
-        return maxDensityClusterPoints
+        if alreadySelectedPointsCoordinates:
+            plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
+            plt.scatter(allSelectedPointsCoordinatesArrayFormat[:, 0], allSelectedPointsCoordinatesArrayFormat[:, 1], color='#000000')
+            plt.title('clustered data with already selected points')
+            plt.show()
+
+    result = []
+    if len(maxWeightCluster) <= numPoints:
+        result = maxWeightCluster
     else:
-        result = []
+        takenPoints = [False] * len(maxWeightCluster)
         while len(result) < numPoints:
-            maxIndex = 0
-            maxValue = -float('inf')
-            for index, point in enumerate(maxDensityClusterPoints):
+            maxWeightedScoreIndex = 0
+            maxWeightedScore = -float('inf')
+
+            for index, point in enumerate(maxWeightCluster):
                 if not takenPoints[index]:
-                    value = getGScoreAndDistanceWeightedValue(point, maxDensityClusterCenter)
-                    if maxValue < value:
-                        maxValue = value
-                        maxIndex = index
-            result.append(maxDensityClusterPoints[maxIndex])
-            takenPoints[maxIndex] = True
-        return result
+                    weightedScore = getWeightedScoreOfPoint(point, maxWeightClusterCenter)
+                    if weightedScore > maxWeightedScore:
+                        maxWeightedScore = weightedScore
+                        maxWeightedScoreIndex = index
 
+            result.append(maxWeightCluster[maxWeightedScoreIndex])
+            takenPoints[maxWeightedScoreIndex] = True
 
+    # plot all selected points
+    if Debug:
+        selectedPointsCoordinates = []
+        for point in result:
+            coordinates = point['coordinates']
+            lat, lng = map(float, coordinates.split(','))
+            selectedPointsCoordinates.append([lat, lng])
+
+        selectedPointsCoordinatesInArrayFormat = np.array(selectedPointsCoordinates)
+        plt.scatter(coordinatesInArrayFormat[:, 0], coordinatesInArrayFormat[:, 1], c=kMeans.labels_, cmap='rainbow')
+        plt.scatter(selectedPointsCoordinatesInArrayFormat[:, 0], selectedPointsCoordinatesInArrayFormat[:, 1], color='#000000')
+        plt.title('selected points')
+        plt.show()
+
+    return result
 
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
     countryName = "India"
-    cityName = 'Mumbai (Bombay)'
-    cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
-    numDays = 7
+    cityName = 'Mumbai'
+    cityTopPoints = getTopPointsOfCity(allData, countryName, cityName, amount=50)
+    numDays = 5
 
     # tstart = time.time()
+    selectedPoints = []
+    itinerayLabels = []
+    Debug = False
+    numPoints = 10
+    itineraryDayWiseCoordinates = []
     for day in range(numDays):
-        clusteredPoints = getPointsFromMaxPointsCluster(cityTopPoints, numDays-day, 7)
+        print('day: ', day)
+        clusteredPoints = getBestPoints(cityTopPoints, selectedPoints, numDays-day, numPoints, Debug)
+        itinerarySeq, maxGscore = getDayItinerary(clusteredPoints, [], [], clientDefaultStartTime, clientDefaultEndTime, day)
 
-        for point in clusteredPoints:
-            #print(point['pointName'])
+        for index, seqData in enumerate(itinerarySeq):
+            point = seqData['point']
+            print(index, 'pointName: ', point['pointName'], 'enterTime: ', seqData['enterTime'], 'exitTime: ', seqData['exitTime'])
+            [lat, lng] = map(float, point['coordinates'].split(','))
+            itineraryDayWiseCoordinates.append([lat, lng])
+            itinerayLabels.append(day)
+            selectedPoints.append(point)
             cityTopPoints.remove(point)
-
     # tend = time.time()
     # print('Clustering took {} seconds'.format(tend - tstart))
+    if Debug:
+        itineraryDayWiseCoordinatesInArrayFormat = np.array(itineraryDayWiseCoordinates)
+        plt.scatter(itineraryDayWiseCoordinatesInArrayFormat[:, 0], itineraryDayWiseCoordinatesInArrayFormat[:, 1], c=itinerayLabels, cmap='rainbow')
+        plt.title('selected Clusters')
+        plt.show()
