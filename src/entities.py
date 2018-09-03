@@ -50,6 +50,7 @@ class EntityAggregated:
     _entityType: str = field(init=False)
     _uuid: str = field(init=False)
     sources: List[str] = field(init=False)  # this will be a list of UUIDs of listings
+    sources_crawlers: List[str] = field(init=False)
 
     def jsonify(self) -> JEA:
         # TODO: Make this more efficient
@@ -59,6 +60,7 @@ class EntityAggregated:
         self._entityType = 'undefined'
         self._uuid = 'none'
         self.sources = []
+        self.sources_crawlers = []
 
 
 @dataclass
@@ -159,6 +161,7 @@ class CountryAggregated(Country, EntityAggregated):
         self._entityType = 'country'
         self._uuid = str(uuid4())
         self.sources = []
+        self.sources_crawlers = []
 
 
 @dataclass
@@ -174,6 +177,7 @@ class CityAggregated(City, EntityAggregated):
         self._entityType = 'city'
         self._uuid = str(uuid4())
         self.sources = []
+        self.sources_crawlers = []
 
 
 @dataclass
@@ -191,6 +195,7 @@ class PointAggregated(Point, EntityAggregated):
         self._entityType = 'point'
         self._uuid = str(uuid4())
         self.sources = []
+        self.sources_crawlers = []
 
 
 @dataclass

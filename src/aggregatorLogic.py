@@ -17,7 +17,7 @@ catTitleWeightAvgValue = 0
 catTitleWeightCount = 0
 
 
-def getBestName(names: List[str], strictness: int=3) -> str:
+def getBestName(names: List[str], strictness: int=100) -> str:
     """returns the longest name which occurs sufficiently enough
     strictness: [1..100]"""
 
@@ -184,6 +184,8 @@ def aggregateOnePointFromListings(jsonPointListings: List[J], bestCountryName: s
 
     for listing in jsonPointListings:
         finalPoint.sources.append(listing['_uuid'])
+        if listing['crawler'] not in finalPoint.sources_crawlers:
+            finalPoint.sources_crawlers.append(listing['crawler'])
 
         if listing['avgRating'] is not None:
             if listing['ratingCount'] is not None:

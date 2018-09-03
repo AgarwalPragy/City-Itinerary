@@ -8,7 +8,7 @@ from entities import PointAggregated
 def getCategoryTitleWeight(point: PointAggregated):
     title = processName(point.pointName)
     categories = processName((point.category if point.category else ''))
-    score = 0
+    score = None
     goodWordCount = ( sum(titleWeight for word in goodCategoryTitleWords if processName(word) in title)
                     + sum(categoryWeight for word in goodCategoryTitleWords if processName(word) in categories))
     badWordCount  = ( sum(titleWeight for word in badCategoryTitleWords if processName(word) in title)
@@ -17,14 +17,14 @@ def getCategoryTitleWeight(point: PointAggregated):
                     + sum(categoryWeight for word in okayCategoryTitleWords if processName(word) in categories))
 
     if goodWordCount >= thresholdGoodWordCount:
-        return goodWordWeight * (goodWordCount ** 0.5)
+        score = goodWordWeight * (goodWordCount ** 0.5)
     else:
-        goodWordWeight * (goodWordCount ** 0.5) + badWordWeight * (badWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
+        score = goodWordWeight * (goodWordCount ** 0.5) + badWordWeight * (badWordCount ** 0.5) + okayWordWeight * (okayWordCount ** 0.5)
     return score
 
 
-def pointFrequency(point):
-    return len(point.sources)
+def pointFrequency(point: PointAggregated):
+    return len(point.sources_crawlers)
 
 
 def wilsonScoreLB(point):
@@ -33,9 +33,9 @@ def wilsonScoreLB(point):
 
 def freqWithWeightedDomainRanking(point):
     # rank = (-point.rank) if point.rank else -float('inf')  # lower rank is better
-    # return len(point.sources), rank                        # first sort on len, then on rank
+    # return len(point.sources_crawlers), rank                        # first sort on len, then on rank
     rank = -point.rank if point.rank else -pointAvgRank
-    return freqWithDomainRankingScaleFactor*len(point.sources) + rank
+    return freqWithDomainRankingScaleFactor * len(point.sources_crawlers) + rank
 
 
 def weightAvgRating(point):
@@ -52,7 +52,7 @@ def getWeightedOrderValueOverDiffPolices(point: PointAggregated):
     result = 0
     jsonPointAggregated = point.jsonify()
     if 'frequency' in orderWeightOfPolicies:
-        result += len(jsonPointAggregated['sources']) * orderWeightOfPolicies['frequency']
+        result += len(jsonPointAggregated['sources_crawlers']) * orderWeightOfPolicies['frequency']
 
     if 'rank' in orderWeightOfPolicies and jsonPointAggregated['rank'] is not None:
         result -= jsonPointAggregated['rank'] * orderWeightOfPolicies['rank']
