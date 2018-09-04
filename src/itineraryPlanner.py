@@ -230,7 +230,8 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
                                                         endTime=dayEndTime, weekDay=weekDay, possibleSequences=possibleSequences)
     else:
         for mustVisitPoint in mustVisitPoints:
-            visitedPoints[listOfPoints.index(mustVisitPoint)] = True
+            if mustVisitPoint in listOfPoints:
+                visitedPoints[listOfPoints.index(mustVisitPoint)] = True
         #points can be added before first must visit point, if it is not possible to add points before first must visit point this function will add only
         #first must visit point in possibleSequences
         firstPointEnterTime = mustVisitPlaceEnterExitTime[0][0]
@@ -302,7 +303,7 @@ def printSequence(sequence, dayStartTime, GScore, weekDay):
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
     countryName = "India"
-    cityName = 'Mumbai (Bombay)'
+    cityName = 'Jaipur'
 
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
 
@@ -322,7 +323,7 @@ if __name__ == '__main__':
     dayStartTime = 9
     dayEndTime = 22
     weekDay = 0
-    mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
+    mustVisitPoints = [listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
     mustVisitPointsTime = [[13, 14], [17, 18]]  # , [16.5, 17.5], [21, 22]]
 
