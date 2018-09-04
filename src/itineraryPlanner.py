@@ -60,14 +60,32 @@ def getTravelTime(point1, point2):
 
 def getBestSequence(sequences):
     maxGScore = -99999
-    maxGScoreSequence = []
+    maxGScoreSequences = []
     print('Number of sequences to check for gratification:', len(sequences))
     for sequence in sequences:
         gScore = gratificationScoreOfSequence([seqData['point'] for seqData in sequence])
         if gScore > maxGScore:
             maxGScore = gScore
-            maxGScoreSequence = sequence
+            maxGScoreSequences = [sequence]
+        elif gScore == maxGScore:
+            maxGScoreSequences.append(sequence)
 
+    print('Number of sequences:', len(maxGScoreSequences), 'with same gratification:', maxGScore)
+    if len(maxGScoreSequences) == 1:
+        maxGScoreSequence = maxGScoreSequences[0]
+    else:
+        minTravelledDistance = float('inf')
+        for sequence in maxGScoreSequences:
+            lastPoint = sequence[0]['point']
+            travelledDistance = 0
+            for index in range(1, len(sequence)):
+                currentPoint = sequence[index]['point']
+                travelledDistance += latlngDistance(*lastPoint['coordinates'].split(','), *currentPoint['coordinates'].split(','))
+            if travelledDistance < minTravelledDistance:
+                minTravelledDistance = travelledDistance
+                maxGScoreSequence = sequence
+
+        print('Travelled distance in best sequence: ', minTravelledDistance)
     return maxGScoreSequence, maxGScore
 
 # assume start point is already added in currentSequence and marked true in visitedPoints
@@ -261,6 +279,12 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
             possibleSequences = possibleSequencesAfterIter[:]
 
     bestSequence = getBestSequence(possibleSequences)
+
+    # for sequence in possibleSequences:
+    #     print('gScore: ', gratificationScoreOfSequence([seqData['point'] for seqData in sequence]))
+    #     for seqData in sequence:
+    #         print(seqData['point']['pointName'])
+    #     print()
     return bestSequence
 
 
@@ -300,7 +324,7 @@ if __name__ == '__main__':
             cityTopPointsWithLatlng.append(point)
 
 
-    numPoints=10
+    numPoints=8
     listOfPoints = cityTopPointsWithLatlng[:numPoints]
 
     print("points: ")
@@ -308,7 +332,7 @@ if __name__ == '__main__':
         print(str(index) + "\t" + point['pointName']+"\tcoordinates"+point['coordinates'] + "\t" + point['recommendedNumHours'] + "\t" + point['openingHour'] + "\t"+point['closingHour'])
 
     dayStartTime = 9
-    dayEndTime = 22
+    dayEndTime = 20
     weekDay = 0
     mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
