@@ -90,27 +90,24 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     if not (0 < page <= numDays):
         return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
-    pointMap = getTopPointsOfCity(cityName, 100)['points']
+    pointMap = getTopPointsOfCity(cityName, 150)['points']
 
     points = pointMap.values()
-    # Remove points for which we don't have coordinates
-    points = [point for point in points if point['coordinates'] != None][:50]
 
     # Remove dislikes
     points = [point for point in points if point['pointName'] not in set(dislikes)]
 
     # Remove points for which we were already shown in the previous pages
     for oldpage in range(page-1, 0, -1):
-        prevItinerary = _getItinerary(
-            cityName=cityName,
-            likes=likes,
-            mustVisit=mustVisit,
-            dislikes=dislikes,
-            startDate=startDate,
-            endDate=endDate,
-            startDayTime=startDayTime,
-            endDayTime=endDayTime,
-            page=oldpage)['itinerary']
+        prevItinerary = _getItinerary(cityName=cityName,
+                                      likes=likes,
+                                      mustVisit=mustVisit,
+                                      dislikes=dislikes,
+                                      startDate=startDate,
+                                      endDate=endDate,
+                                      startDayTime=startDayTime,
+                                      endDayTime=endDayTime,
+                                      page=oldpage)['itinerary']
         prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
         points = [point for point in points if point['pointName'] not in prevItineraryPoints]
 
@@ -121,8 +118,12 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     print('Todays Like Timings:', todaysLikesTimings)
 
     # For clustering, remove points that I must visit
-    clusteringPoints = [point for point in points if point['pointName'] not in set(likes)]
+    points = [point for point in points if point['pointName'] not in set(likes)]
 
+    # Remove points for which we don't have coordinates
+    points = [point for point in points if point['coordinates'] != None]
+
+    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
     if not clusteringPoints:
         return {'itinerary': [{
             'point': {

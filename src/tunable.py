@@ -4,8 +4,8 @@ from entities import CityID, CountryID, PointID
 clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'Jaipur, India'
-clientMaxPossiblePointsPerDay = 8
+clientDefaultCity = 'New Delhi, India'
+clientMaxPossiblePointsPerDay = 10
 
 stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
 synonyms = [
