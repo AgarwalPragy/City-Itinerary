@@ -2,8 +2,8 @@ import json
 import sys
 from math import radians, sin, cos, atan2, sqrt
 sys.path.append('.')
-from utilities import roundUpTime
-from tunable import avgSpeedOfTravel
+from utilities import roundUpTime, latlngDistance
+from tunable import avgSpeedOfTravel, distanceOverEstimatorFactor
 import time
 
 def gratificationScoreOfSequence(pointsInOrder):
@@ -47,24 +47,10 @@ def getEnterTimeBasedOnOpeningHour(point, enterTime, exitTime, weekDay):
 
 
 def getDistance(point1, point2):
-    # approximate radius of earth in km
-    R = 6373.0
     [lat1, lon1] = point1['coordinates'].split(',')
     [lat2, lon2] = point2['coordinates'].split(',')
-    lat1 = radians(float(lat1))
-    lon1 = radians(float(lon1))
-    lat2 = radians(float(lat2))
-    lon2 = radians(float(lon2))
+    return latlngDistance(lat1, lon1, lat2, lon2)
 
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    distance = R * c
-
-    return distance * 1.7 # to make approximate same as path distance
 
 
 def getTravelTime(point1, point2):

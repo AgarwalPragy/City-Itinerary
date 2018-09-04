@@ -32,9 +32,8 @@ def getTopPointsOfCity(allData, countryName, cityName, amount=50):
     for name in topnames:
         point = allData[countryName]['cities'][cityName]['points'][name]
         if addedAmount < amount:
-            if point['coordinates'] is not None:
-                topPoints.append(point)
-                addedAmount += 1
+            topPoints.append(point)
+            addedAmount += 1
         else:
             break
     return topPoints
@@ -179,14 +178,16 @@ if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
     countryName = "India"
     cityName = 'Mumbai'
-    cityTopPoints = getTopPointsOfCity(allData, countryName, cityName, amount=50)
-    numDays = 5
+    cityTopPoints = getTopPointsOfCity(allData, countryName, cityName, amount=100)
+
+    cityTopPoints = [point for point in cityTopPoints if point['coordinates'] is not None][:50]
+    numDays = 7
 
     # tstart = time.time()
     selectedPoints = []
     itinerayLabels = []
     Debug = False
-    numPoints = 10
+    numPoints = 8
     itineraryDayWiseCoordinates = []
     for day in range(numDays):
         print('day: ', day)
