@@ -200,10 +200,13 @@ injectedCountryAliases = [
 
 fullConfig = {item: globals()[item] for item in dir() if not item.startswith("__") and item not in ['CityID', 'CountryID', 'PointID', 'defaultdict', 'json']}
 
-
+distanceOverEstimatorFactor =  1.7
 weightOfMaxGscoreClusterSelection = 1
 weightOfAvgGscoreClusterSelection = 1
 weightOfNumPointsClusterSelection = 0.05
 
 weightOfDistancePointSelection = 3
 weightOfGscorePointSelection = 2
+
+outlierSelectionThreshold = 3
+distanceThresholdToRejectPoint = 100
