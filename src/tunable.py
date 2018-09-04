@@ -27,8 +27,6 @@ avgCloseTime = '10:00 pm'
 mScoreAvgRating = 5         # what to assign when no ratings available
 mScoreAvgRatingCount = 800   # how many fake values to put
 avgSpeedOfTravel = 25
-kMeansPointSelectDisWeight = 12
-kMeansPointSelectGScoreWeight = 1
 pointAvgRank = 50
 avgTripExpertScore = 70
 
@@ -200,3 +198,11 @@ injectedCountryAliases = [
 ]
 
 fullConfig = {item: globals()[item] for item in dir() if not item.startswith("__") and item not in ['CityID', 'CountryID', 'PointID', 'defaultdict', 'json']}
+
+
+weightOfMaxGscoreClusterSelection = 1
+weightOfAvgGscoreClusterSelection = 1
+weightOfNumPointsClusterSelection = 0.05
+
+weightOfDistancePointSelection = 3
+weightOfGscorePointSelection = 2
