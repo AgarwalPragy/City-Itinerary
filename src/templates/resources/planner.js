@@ -6,6 +6,7 @@ var allCoordinates = [];
 var allClusters = [];
 var allClusterPaths = [];
 var recenteringMap = false;
+var itineraryCallUUID = null;
 
 
 Date.prototype.addHours = function(h) {
@@ -310,7 +311,11 @@ var likePoint = function(visit) {
 }
 
 
+
 var getItineraryPage = function(page) {
+    if(page == 1) {
+        itineraryCallUUID = utils.uuid4();
+    }
     utils.getData('/api/itinerary', {
         city: app.constraints.city,
         startDate: app.constraints.startDate,
@@ -321,8 +326,11 @@ var getItineraryPage = function(page) {
         likes: app.constraints.likes.join('|'),
         likesTimings: app.constraints.likesTimings.join('|'),
         page: page,
+        uuid: itineraryCallUUID
     }, function (response) {
-        data = response.data;
+        var data = response.data;
+        var uuid = data.uuid;
+        if(uuid !== itineraryCallUUID) return; // If response is from some old request, ignore
         currentPage = parseInt(data.itinerary.currentPage);
         if(currentPage === 1) {
             app.itinerary = data.itinerary.itinerary;

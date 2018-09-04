@@ -152,7 +152,7 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
                 'pointName': '__newday__'
             },
             'dayNum': page,
-            'date': '(╯°□°）╯︵ ┻━┻ No data'
+            'date': 'No data. (╯°□°）╯︵ ┻━┻'
         }], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
     todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
@@ -164,12 +164,19 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     today = start + datetime.timedelta(days=page-1)
     # print('Today Date:', today)
 
+    print('Sending List of Points to itinerary')
+    print([point['pointName'] for point in todaysPoints])
+    print('Sending Must Visit Points to itinerary')
+    print(todaysLikes)
+
+    weekDay = (today.weekday() + 1) % 7
+
     itinerary, score = getDayItinerary(listOfPoints=todaysPoints,
                                        mustVisitPoints=[pointMap[like] for like in todaysLikes],
                                        mustVisitPlaceEnterExitTime=todaysLikesTimings,
                                        dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
                                        dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
-                                       weekDay=(today.weekday() + 1) % 7)
+                                       weekDay=weekDay)
 
     datePoint = {
         'point': {
@@ -291,10 +298,13 @@ def getItinerary():
 
     tend = time.time()
     print('Time for request:', tend - tstart)
+
+    itineraryCallUUID = request.args.get('uuid', None)
     result = {
         'itinerary': itinerary,
         'mustVisit': mustVisitItinerary,
-        'mustNotVisit': dislikes
+        'mustNotVisit': dislikes,
+        'uuid': itineraryCallUUID
     }
     # print(result)
     result = json.loads(json.dumps(result))
