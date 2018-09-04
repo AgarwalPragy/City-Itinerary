@@ -11,6 +11,8 @@ from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
 from tunable import avgRecommendedNumHours, avgOpenTime, avgCloseTime
 from gratify import gratificationScoreOfPoint
+from cityCenter import getCenterOfCity
+
 __all__ = ['getBestName', 'orderImages', 'orderReviews', 'orderPointsOfCity', 'aggregateOneCityFromListings', 'aggregateOneCountryFromListings', 'aggregateOnePointFromListings']
 
 catTitleWeightAvgValue = 0
@@ -311,7 +313,7 @@ def orderPointsOfCity(pointsOfCity: List[PointAggregated]):
     return sortedPoints
 
 
-def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str) -> CityAggregated:
+def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str, bestCityName: str, listOfPoints: List[PointAggregated]) -> CityAggregated:
     finalCity = CityAggregated(bestCountryName, bestCityName)
 
     coordinatesValuesListByCrawler = defaultdict(list)
@@ -351,10 +353,17 @@ def aggregateOneCityFromListings(jsonCityListings: List[J], bestCountryName: str
         finalCity.regionName = regionNameData
 
     finalCity.ratingCount = ratingCount
+    coordinates = None
 
-    coordinates = getBestAttributeValue(coordinatesValuesListByCrawler)
+    if listOfPoints:
+        coordinates = getCenterOfCity(listOfPoints)
+        if coordinates:
+            coordinates = ','.join(map(str, coordinates))
+
+    if not coordinates:
+        coordinates = getBestAttributeValue(coordinatesValuesListByCrawler)
+
     finalCity.coordinates = coordinates
-
     return finalCity
 
 

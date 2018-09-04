@@ -330,7 +330,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
                 imageCount += len(point['images'])
                 reviewCount += len(point['reviews'])
 
-            finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName)
+            finalCity = aggregateOneCityFromListings(city['listings'], countryName, cityName, points)
             for attrib, val in finalCity.jsonify().items():
                 aggregatedCity[attrib] = val
             orderedPoints = orderPointsOfCity(points)

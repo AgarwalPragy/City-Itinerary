@@ -5,7 +5,9 @@ clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
 clientDefaultCity = 'New Delhi, India'
-clientMaxPossiblePointsPerDay = 10
+clientMaxPossiblePointsPerDay = 8
+
+maxCityRadius = 100  # in KM
 
 stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
 synonyms = [
