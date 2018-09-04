@@ -94,16 +94,29 @@ def matchPointIDs(pointID1: PointID, pointID2: PointID) -> bool:
     return False
 
 
-def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs: t.List[CountryID]) -> t.Tuple[t.Dict[PointID, PointID], t.Dict[CityID, CityID], t.Dict[CountryID, CountryID]]:
+def clusterAllIDs(_pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs: t.List[CountryID]) -> t.Tuple[t.Dict[PointID, PointID], t.Dict[CityID, CityID], t.Dict[CountryID, CountryID]]:
     """Intelligently Identifies NameClusterMaps for countries, cities and points considered together"""
     # Usecase:
     #     India/Raipur vs India/Rampur
     #     can be Identified by the POIs that are present in the two cities
     print('Collecting all aliases')
-    allPointAliases: t.Set[PointID] = set(pointIDs) | set(map(itemgetter(0), injectedPointAliases)) | set(map(itemgetter(1), injectedPointAliases))
-    allCityAliases: t.Set[CityID] = set(cityIDs) | set(map(extractCityID, allPointAliases)) | set(map(itemgetter(0), injectedCityAliases)) | set(map(itemgetter(1), injectedCityAliases))
-    allCountryAliases: t.Set[CountryID] = set(countryIDs) | set(map(extractCountryID, allPointAliases)) | set(map(extractCountryID, allCityAliases)) | set(map(itemgetter(0), injectedCountryAliases)) | set(map(itemgetter(1), injectedCountryAliases))
-    pointIDs = sorted(list(allPointAliases))
+    allPointAliases: t.Set[PointID] = set(_pointIDs)
+    allPointAliases |= set(map(itemgetter(0), injectedPointAliases))
+    allPointAliases |= set(map(itemgetter(1), injectedPointAliases))
+    allPointAliases = sorted(list(allPointAliases))
+
+    allCityAliases: t.Set[CityID] = set(cityIDs)
+    allCityAliases |= set(map(extractCityID, allPointAliases))
+    allCityAliases |= set(map(itemgetter(0), injectedCityAliases))
+    allCityAliases |= set(map(itemgetter(1), injectedCityAliases))
+    allCityAliases = sorted(list(allCityAliases))
+
+    allCountryAliases: t.Set[CountryID] = set(countryIDs)
+    allCountryAliases |= set(map(extractCountryID, allPointAliases))
+    allCountryAliases |= set(map(extractCountryID, allCityAliases))
+    allCountryAliases |= set(map(itemgetter(0), injectedCountryAliases))
+    allCountryAliases |= set(map(itemgetter(1), injectedCountryAliases))
+    allCountryAliases = sorted(list(allCountryAliases))
 
     print('Found {} country aliases'.format(len(allCountryAliases)))
     print('Found {} city aliases'.format(len(allCityAliases)))
@@ -111,15 +124,15 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
 
     # if 2 names match, club them
     print('Matching point identifiers')
-    chosenAlready = [False] * len(pointIDs)
+    chosenAlready = [False] * len(allPointAliases)
     pointIDUnions: UnionFind[PointID] = UnionFind()
-    for index1, alias1 in enumerate(tqdm(pointIDs)):
-        if chosenAlready[index1]:
-            continue
+    for index1, alias1 in enumerate(tqdm(allPointAliases)):
+        # if chosenAlready[index1]:
+        #     continue
         chosenAlready[index1] = True
-        for index2, alias2 in enumerate(pointIDs[index1 + 1:], index1 + 1):
-            if chosenAlready[index2]:
-                continue
+        for index2, alias2 in enumerate(allPointAliases[index1 + 1:], index1 + 1):
+            # if chosenAlready[index2]:
+            #     continue
 
             if matchPointIDs(alias1, alias2):
                 pointIDUnions.union(alias1, alias2)
@@ -130,12 +143,12 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
 
     print('Matching city identifiers')
     cityIDUnions: UnionFind[CityID] = UnionFind()
-    for pointAlias in pointIDs:
+    for pointAlias in allPointAliases:
         root = pointIDUnions[pointAlias]
         rootCity = extractCityID(root)
         cityAlias = extractCityID(pointAlias)
-        if rootCity == cityAlias:
-            continue
+        # if rootCity == cityAlias:
+        #     continue
         cityIDUnions.union(rootCity, cityAlias)
     print('Injecting city aliases')
     for cityAlias1, cityAlias2 in injectedCityAliases:
@@ -143,7 +156,7 @@ def clusterAllIDs(pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryIDs
 
     print('Matching country identifiers')
     countryIDUnions: UnionFind[CountryID] = UnionFind()
-    for pointAlias in pointIDs:
+    for pointAlias in allPointAliases:
         root = pointIDUnions[pointAlias]
         countryAlias = extractCountryID(pointAlias)
         rootCountry = extractCountryID(root)
@@ -446,7 +459,7 @@ def processAll():
 
 
 if __name__ == '__main__':
-    cachedPointAliases = True
+    cachedPointAliases = False
     if cachedPointAliases:
         print('#' * 20, 'WARNING: USING CACHED POINT ALIASES', '#' * 20)
     processAll()
