@@ -11,8 +11,8 @@
     <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
     <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
     <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
-    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.0/MarkerCluster.css">
     <!-- css leaflet   --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
+    <!-- css leaflet routing --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.9/leaflet-routing-machine.css">
     <!-- css SELF      --><link rel="stylesheet" href="resources/planner.css">
     <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
     <!-- js  popper    --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
@@ -21,11 +21,10 @@
     <!-- js  datetime  --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
     <!-- js  axios     --><script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
     <!-- js  vue       --><script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
-    <!-- js  sortable  --><script src=https://cdn.rawgit.com/RubaXa/Sortable/master/Sortable.min.js></script>
     <!-- js  typeahead --><script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
     <!-- js  fuse      --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js"></script>
     <!-- js  leaflet   --><script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.4.0/leaflet.markercluster.js"></script>
+    <!-- js  leaflet routing --><script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.9/leaflet-routing-machine.min.js"></script>
     <title>City Itinerary Planner</title>
 </head>
 <body>
@@ -76,8 +75,20 @@
                         <div class="list-box-title">Suggested Plan</div>
                     </div>
                     <div class="overflow-container">
-                        <ul v-sortable="{onEnd: reorder}">
-                            <li v-for="(visit, index) in itinerary" :key="index">
+                        <ul>
+                            <li v-for="(visit, index) in itinerary">
+                                <div class="button-container"
+                                     v-if="visit.point.pointName !== '__newday__'">
+                                    <div v-if="!(isLiked(visit.point))">
+                                        <span class="fa-hover-hidden far fa-heart"></span>
+                                        <span class="fa-hover-show fas fa-heart" v-on:click="likePoint(visit)"></span>
+                                        <hr>
+                                    </div>
+                                    <div v-if="!(isLiked(visit.point))">
+                                        <span class="fa-hover-hidden far fa-thumbs-down"></span>
+                                        <span class="fa-hover-show fas fa-thumbs-down" v-on:click="dislikePoint(visit.point)"></span>
+                                    </div>
+                                 </div>
                                 <div class="point-listing"
                                      v-if="visit.point.pointName !== '__newday__'">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
@@ -116,8 +127,13 @@
                         </div>
                     </div>
                     <div class="overflow-container">
-                        <ul v-sortable="{onEnd: reorder}">
-                            <li v-for="(visit, index) in itinerary" :key="index">
+                        <ul>
+                            <li v-for="(visit, dayNum) in mustVisit">
+                                <div class="button-container"
+                                     v-if="visit.point.pointName !== '__newday__'">
+                                    <span class="fa-hover-hidden fas fa-heart"></span>
+                                    <span class="fa-hover-show fas fa-heartbeat" v-on:click="removeLikePoint(visit)"></span>
+                                 </div>
                                 <div class="point-listing"
                                      v-if="visit.point.pointName !== '__newday__'">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
@@ -147,7 +163,7 @@
                     <div class="list-box-header">
                         <div class="list-box-title">Don't show</div>
                         <div class="list-box-search">
-                            <div class='input-group'>
+                            <div class="input-group">
                                 <div class="input-group-prepend input-group-addon">
                                     <span class="input-group-text"><span class="fas fa-search"></span></span>
                                 </div>
@@ -156,12 +172,15 @@
                         </div>
                     </div>
                     <div class="overflow-container">
-                        <ul v-sortable="{onEnd: reorder}">
-                            <li v-for="(visit, index) in itinerary" :key="index">
-                                <div class="bad-point-listing"
-                                     v-if="visit.point.pointName !== '__newday__'">
-                                    <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 144, 80)"></div>
-                                    <div class="point-name">{{ visit.point.pointName }}</div>
+                        <ul>
+                            <li v-for="(dislikedPointName, index) in constraints.dislikes">
+                                <div class="button-container">
+                                    <span class="fa-hover-hidden fas fa-thumbs-down"></span>
+                                    <span class="fa-hover-show far fa-thumbs-down" v-on:click="removeDislikePoint(dislikedPointName)"></span>
+                                 </div>
+                                <div class="bad-point-listing">
+                                    <div class="point-image"><img :src="utils.getEncodedPointImageURL(getPointFromName(dislikedPointName), 144, 80)"></div>
+                                    <div class="point-name">{{ dislikedPointName }}</div>
                                 </div>
                             </li>
                         </ul>

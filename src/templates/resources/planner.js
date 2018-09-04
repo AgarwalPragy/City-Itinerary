@@ -2,9 +2,10 @@ var app = null;
 var cityFuse = null;
 var pointFuse = null;
 var map = null;
-var pinPopups = null;
 var allCoordinates = [];
 var allClusters = [];
+var allClusterPaths = [];
+var recenteringMap = false;
 
 
 Date.prototype.addHours = function(h) {
@@ -12,6 +13,9 @@ Date.prototype.addHours = function(h) {
    return this;
 };
 
+var getPointFromName = function(pointName) {
+    return app.points.points[pointName];
+}
 
 var getRatingStars = function(point) {
     var rating = Math.round(point.avgRating) / 2.0;
@@ -224,14 +228,28 @@ var registerMap = function() {
     map.setView([51.505, -0.09], 12);
 };
 
-var redrawMap = function(currentPage, items) {
-    pins = L.markerClusterGroup({
-        removeOutsideVisibleBounds: false,
-        spiderfyOnMaxZoom: false,
-        showCoverageOnHover: true,
-        zoomToBoundsOnClick: true,
-        disableClusteringAtZoom: true
+var clearMap = function() {
+    for (var i = allClusters.length - 1; i >= 0; i--) {
+        allClusters[i].remove();
+    }
+    allClusters = [];
+}
+
+var reCenterMap = function() {
+    if(recenteringMap)
+        return;
+    recenteringMap = true;
+    if(allCoordinates.length < 1) return;
+    var bounds = new L.LatLngBounds(allCoordinates);
+    map.fitBounds(bounds, {
+        padding: [10, 10]
     });
+    map.invalidateSize();
+    recenteringMap = false;
+}
+
+var addPointsToMap = function(currentPage, items) {
+    var pins = [];
     if(!items) return;
     for (var i = 0; i < items.length; i++) {
         var point = items[i].point;
@@ -240,18 +258,57 @@ var redrawMap = function(currentPage, items) {
             continue;
         console.log('Point: ' + point.fullName + ', coordinates: ' + point.coordinates);
         var coordinates = utils.getCoordinatesFromString(point.coordinates);
+        coordinates = L.latLng(coordinates[0], coordinates[1]);
         allCoordinates.push(coordinates);
         pin = L.marker(coordinates);        
         pin.bindPopup(renderPinPopup(point));
-        pins.addLayer(pin);
+        pins.push(pin);
     }
-    allClusters.push(pins);
-    map.addLayer(pins);
-    if(allCoordinates.length < 1) return;
-    var bounds = new L.LatLngBounds(allCoordinates);
-    map.fitBounds(bounds);
-    map.invalidateSize();
+    cluster = L.layerGroup(pins);
+    allClusters.push(cluster);
+    cluster.addTo(map);
+    // path = L.Routing.control({
+    //     waypoints: allCoordinates,
+    //     routeWhileDragging: false
+    // });
+    // allClusterPaths.push(path);
+    // path.addTo(map);
+    reCenterMap();
 }
+
+var isLiked = function(point) {
+    var index = app.constraints.likes.indexOf(point.pointName);
+    return index > -1;
+}
+
+var isDisliked = function(point) {
+    var index = app.constraints.dislikes.indexOf(point.pointName);
+    return index > -1;
+}
+
+var removeDislikePoint = function(pointName) {
+    var index = app.constraints.dislikes.indexOf(pointName);
+    app.constraints.dislikes.splice(index, 1);
+}
+
+var dislikePoint = function(point) {
+    if(isDisliked(point)) return;
+    app.constraints.dislikes.push(point.pointName);
+}
+
+
+var removeLikePoint = function(visit) {
+    var index = app.constraints.likes.indexOf(visit.point.pointName);
+    app.constraints.likes.splice(index, 1);
+    app.constraints.likesTimings.splice(index, 1);
+}
+
+var likePoint = function(visit) {
+    if(isLiked(visit.point)) return;
+    app.constraints.likes.push(visit.point.pointName);
+    app.constraints.likesTimings.push([visit.dayNum, visit.enterTime, visit.exitTime].join('-'))
+}
+
 
 var getItineraryPage = function(page) {
     utils.getData('/api/itinerary', {
@@ -260,33 +317,32 @@ var getItineraryPage = function(page) {
         endDate: app.constraints.endDate,
         startDayTime: app.constraints.startDayTime,
         endDayTime: app.constraints.endDayTime,
-        page: page
+        dislikes: app.constraints.dislikes.join('|'),
+        likes: app.constraints.likes.join('|'),
+        likesTimings: app.constraints.likesTimings.join('|'),
+        page: page,
     }, function (response) {
         data = response.data;
-        currentPage = parseInt(data.currentPage);
+        currentPage = parseInt(data.itinerary.currentPage);
         if(currentPage === 1) {
-            app.itinerary = data.itinerary;
-            for (var i = allClusters.length - 1; i >= 0; i--) {
-                allClusters[i].clearLayers();
-            }
+            app.itinerary = data.itinerary.itinerary;
+            app.mustVisit = data.mustVisit;
+            clearMap();
             allCoordinates = [];
             allClusters = [];
         }
         else
-            app.itinerary = app.itinerary.concat(data.itinerary);
+            app.itinerary = app.itinerary.concat(data.itinerary.itinerary);
 
-        redrawMap(currentPage, data.itinerary);
-        if(data.nextPage !== false)
-            getItineraryPage(data.nextPage);
+        addPointsToMap(currentPage, data.itinerary.itinerary);
+        if(data.itinerary.nextPage !== false)
+            getItineraryPage(data.itinerary.nextPage);
+        else
+            setTimeout(reCenterMap, 1000);
     });
 }
 
 var registerVue = function() {
-    Vue.directive('sortable', {
-        inserted: function (el, binding) {
-            var sortable = new Sortable(el, binding.value || {});
-        }
-    });
     app = new Vue({
         el: '#plan-box',
         data: {
@@ -294,7 +350,8 @@ var registerVue = function() {
             points: {},
             searchSelectedCity: initialConstraints.city,
             constraints: false,
-            itinerary: []
+            itinerary: [],
+            mustVisit: {0: []},
         },
         mounted: function() {},
         methods: {
@@ -311,16 +368,19 @@ var registerVue = function() {
             points: function() {
                 registerPointFuse();
             },
-            constraints: function() {
-                $('#city-searchbar').val(app.constraints.city);
-                console.log('constraints changed!')
-                getItineraryPage(1);
-                utils.getData('/api/points', {
-                    city: app.constraints.city
-                }, function (response) {
-                    app.points = response.data;
-                    registerPointFuse();
-                });
+            constraints: {
+                handler: function() {
+                    $('#city-searchbar').val(app.constraints.city);
+                    console.log('constraints changed!')
+                    getItineraryPage(1);
+                    utils.getData('/api/points', {
+                        city: app.constraints.city
+                    }, function (response) {
+                        app.points = response.data;
+                        registerPointFuse();
+                    });
+                },
+                deep: true
             }
         }
     });
@@ -338,8 +398,11 @@ var registerVue = function() {
             city: $('#city-searchbar').val(),
             startDate: $('#date_timepicker_start').val().split(' ')[0],
             endDate: $('#date_timepicker_end').val().split(' ')[0],
-            startDayTime: $('#date_timepicker_end').val().split(' ')[1].split(':'),
-            endDayTime: $('#date_timepicker_end').val().split(' ')[1].split(':')
+            startDayTime: $('#date_timepicker_start').val().split(' ')[1].split(':')[0],
+            endDayTime: $('#date_timepicker_end').val().split(' ')[1].split(':')[0],
+            dislikes: [],
+            likes: [],
+            likesTimings: [],
         }
         app.constraints = newconstraints;
     });

@@ -7,8 +7,9 @@ import urllib
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
-from serviceClientAPI import clientAPI
+from serviceClientAPI import clientAPI, getNumDays
 from tunable import clientDefaultStartTime, clientDefaultEndTime, clientDefaultTripLength, clientDefaultCity
+from utilities import urlDecode
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'This is the secret key for now'
@@ -34,19 +35,10 @@ def favicon():
 @app.route('/planner')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def planner():
-    city = request.args.get('city', clientDefaultCity)
-
-    likes = request.args.get('likes', [])
-    if likes:
-        likes = likes.split('|')
-
-    likesTimings = request.args.get('likesTimings', [])
-    if likesTimings:
-        likesTimings = likesTimings.split('|')
-
-    dislikes = request.args.get('dislikes', [])
-    if dislikes:
-        dislikes = dislikes.split('|')
+    cityName = clientDefaultCity
+    cityName = request.args.get('city', cityName)
+    if cityName:
+        cityName = urlDecode(cityName)
 
     strFormat = '%y/%m/%d'
     startDate = datetime.datetime.now().strftime(strFormat)
@@ -55,11 +47,30 @@ def planner():
 
     startDate = request.args.get('startDate', startDate)
     endDate = request.args.get('endDate', endDate)
-    startDayTime = request.args.get('startDayTime', startDayTime)
-    endDayTime = request.args.get('endDayTime', endDayTime)
+    startDayTime = float(request.args.get('startDayTime', startDayTime))
+    endDayTime = float(request.args.get('endDayTime', endDayTime))
+
+    numDays = getNumDays(startDate, endDate)
+    likes = request.args.get('likes', [])
+    likesTimings = request.args.get('likesTimings', [])
+    mustVisit = {dayNum: [] for dayNum in range(1, numDays + 1)}
+
+    if likes and likesTimings:
+        likes = list(map(urlDecode, likes.split('|')))
+        likesTimings = list(map(urlDecode, likesTimings.split('|')))
+
+        for pointName, timing in zip(likes, likesTimings):
+            dayNum, enterTime, exitTime = map(float, timing.split('-'))
+            mustVisit[dayNum].append((enterTime, exitTime, pointName))
+        for dayNum in mustVisit:
+            mustVisit[dayNum] = list(sorted(mustVisit[dayNum]))
+
+    dislikes = request.args.get('dislikes', [])
+    if dislikes:
+        dislikes = list(map(urlDecode, dislikes.split('|')))
 
     constraints = {
-        'city': city,
+        'city': cityName,
         'likes': likes,
         'likesTimings': likesTimings,
         'dislikes': dislikes,
