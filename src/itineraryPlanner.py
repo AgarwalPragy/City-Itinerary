@@ -71,7 +71,9 @@ def getBestSequence(sequences):
             maxGScoreSequences.append(sequence)
 
     print('Number of sequences:', len(maxGScoreSequences), 'with same gratification:', maxGScore)
-    if len(maxGScoreSequences) == 1:
+    if len(maxGScoreSequences) == 0:
+        maxGScoreSequence = []
+    elif len(maxGScoreSequences) == 1:
         maxGScoreSequence = maxGScoreSequences[0]
     else:
         minTravelledDistance = float('inf')
