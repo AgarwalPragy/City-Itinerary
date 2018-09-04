@@ -94,8 +94,11 @@ def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int,
         coordinatesData.append([lat, lng])
 
     coordinatesInArrayFormat = np.array(coordinatesData)
-
-    kMeans = KMeans(n_clusters=numDays, max_iter=100, n_init=10, tol=1e-6).fit(coordinatesInArrayFormat)
+    try:
+        kMeans = KMeans(n_clusters=numDays, max_iter=100, n_init=10, tol=1e-6).fit(coordinatesInArrayFormat)
+    except Exception as e:
+        print('Error:', e)
+        return listOfPoints
     # print('iter: ', kMeans.n_iter_)
     # plot clustered data
     if Debug:
