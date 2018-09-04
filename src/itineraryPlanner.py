@@ -59,7 +59,7 @@ def getTravelTime(point1, point2):
 
 
 def getBestSequence(sequences):
-    maxGScore = -float('inf')
+    maxGScore = -99999
     maxGScoreSequence = []
     print('Number of sequences to check for gratification:', len(sequences))
     for sequence in sequences:
