@@ -159,7 +159,16 @@ injectedPointAliases = [
 injectedCityAliases = [
     (CityID('USA', 'Los Angeles'), CityID('USA', 'LA')),
     (CityID('USA', 'New York'), CityID('USA', 'NY')),
+    (CityID('USA', 'New York'), CityID('US', 'NY')),
+    (CityID('US', 'New York'), CityID('US', 'NY')),
+    (CityID('US', 'New York City'), CityID('US', 'New York')),
+    (CityID('United States', 'New York City'), CityID('US', 'NY')),
+    (CityID('United States of America', 'New York'), CityID('US', 'NY')),
+    (CityID('United States', 'New York City'), CityID('USA', 'New York')),
+
     (CityID('USA', 'NY'), CityID('USA', 'NYC')),
+    (CityID('US', 'NY'), CityID('USA', 'NYC')),
+    (CityID('USA', 'NYC'), CityID('USA', 'New York City')),
     (CityID('India', 'Mumbai'), CityID('India', 'Bombay')),
     (CityID('India', 'Mumbai'), CityID('India', 'Mumbai (Bombay)')),
     (CityID('India', 'Calcutta'), CityID('India', 'Kolkata')),
