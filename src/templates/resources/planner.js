@@ -347,11 +347,11 @@ var registerVue = function() {
         el: '#plan-box',
         data: {
             cities: {},
-            points: {},
+            points: {points: [], pointsOrder: []},
             searchSelectedCity: initialConstraints.city,
             constraints: false,
             itinerary: [],
-            mustVisit: {0: []},
+            mustVisit: {},
         },
         mounted: function() {},
         methods: {
@@ -363,7 +363,6 @@ var registerVue = function() {
         watch: {
             cities: function() {
                 registerCityFuse();
-                registerPointFuse();
             },
             points: function() {
                 registerPointFuse();
@@ -377,7 +376,6 @@ var registerVue = function() {
                         city: app.constraints.city
                     }, function (response) {
                         app.points = response.data;
-                        registerPointFuse();
                     });
                 },
                 deep: true
