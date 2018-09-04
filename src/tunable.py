@@ -5,7 +5,7 @@ clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
 clientDefaultCity = 'Jaipur, India'
-clientMaxPossiblePointsPerDay = 8
+clientMaxPossiblePointsPerDay = 10
 
 stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
 synonyms = [
@@ -150,6 +150,7 @@ injectedPointAliases = [
     (PointID('India', 'Mumbai', 'Indian Institute of Technology Bombay'), PointID('India', 'Mumbai', 'IIT Bombay')),
     (PointID('India', 'Mumbai', 'IIT B'), PointID('India', 'Mumbai', 'IIT Bombay')),
     (PointID('India', 'Mumbai', 'InterContinental Marine Drive'), PointID('India', 'Mumbai', 'Marine Drive (Queen’s Necklace)')),
+    (PointID('India', 'Jaipur', 'Palace of the Winds'), PointID('India', 'Jaipur', 'Hawa Mahal')),
 ]
 
 injectedCityAliases = [
