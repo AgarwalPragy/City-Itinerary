@@ -83,6 +83,7 @@ def getBestSequence(sequences):
             for index in range(1, len(sequence)):
                 currentPoint = sequence[index]['point']
                 travelledDistance += latlngDistance(*lastPoint['coordinates'].split(','), *currentPoint['coordinates'].split(','))
+                lastPoint = currentPoint
             if travelledDistance < minTravelledDistance:
                 minTravelledDistance = travelledDistance
                 maxGScoreSequence = sequence
@@ -316,7 +317,7 @@ def printSequence(sequence, dayStartTime, GScore, weekDay):
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
     countryName = "India"
-    cityName = 'Jaipur'
+    cityName = 'New Delhi'
 
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
 
