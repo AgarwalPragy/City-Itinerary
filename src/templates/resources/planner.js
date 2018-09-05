@@ -10,6 +10,8 @@ var recenteringMap = false;
 var itineraryCallUUID = null;
 var searchSelectedCity = initialConstraints.city;
 var timeEditingPoint = null;
+var dateFormat = 'Y/m/d H.i';
+var momentDateFormat = 'YYYY/MM/DD HH.mm';
 
 Date.prototype.addHours = function(h) {
    this.setTime(this.getTime() + (h*60*60*1000));
@@ -232,30 +234,37 @@ var registerPointFuse = function() {
     pointFuse = new Fuse(items, options);
 };
 
+var limitTripLength = function() {
+    var minDate = moment($('#date_timepicker_start').val(), momentDateFormat);
+    var maxDate = moment(minDate).add(8, 'days');
+
+    var currentEndDate = moment($('#date_timepicker_end').val(), momentDateFormat);
+    if(currentEndDate.isSameOrBefore(minDate) || currentEndDate.isAfter(maxDate)) {
+        currentEndDate = moment(minDate).add(4, 'days');
+    }
+    $('#date_timepicker_end').datetimepicker({
+        minDate: minDate.format(momentDateFormat),
+        maxDate: maxDate.format(momentDateFormat),
+        value: currentEndDate.format(momentDateFormat),
+    });
+}
 
 var registerDateTime = function () {
     $('#date_timepicker_start').datetimepicker({
-        format: 'Y/m/d H.i',
+        format: dateFormat,
         defaultTime:'10:00',
         value: initialConstraints.startDate + ' ' + initialConstraints.startDayTime + ':00',
-        allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
-        onShow:function( ct ){
-            // this.setOptions({
-            //     maxDate: $('#date_timepicker_end').val()?$('#date_timepicker_end').val():false
-            // })
-        },
+        allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
+        onShow: limitTripLength,
+        onChangeDateTime: limitTripLength,
         timepicker: true
     });
     $('#date_timepicker_end').datetimepicker({
-        format: 'Y/m/d H.i',
+        format: dateFormat,
         defaultTime:'20:00',
         value: initialConstraints.endDate + ' ' + initialConstraints.endDayTime + ':00',
-        allowTimes: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
-        onShow:function( ct ){
-            this.setOptions({
-                minDate: $('#date_timepicker_start').val()?$('#date_timepicker_start').val():false
-            })
-        },
+        allowTimes: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00'],
+        onShow: limitTripLength,
         timepicker: true
     });
 };
@@ -268,6 +277,7 @@ var registerMap = function() {
     }).addTo(map);
     map.setView([51.505, -0.09], 12);
 };
+
 
 var clearMap = function() {
     for (var i = allClusters.length - 1; i >= 0; i--) {
