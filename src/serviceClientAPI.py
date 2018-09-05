@@ -46,11 +46,15 @@ def getTopPointsOfCity(city, amount):
     # Remove outliers
     cityCoords = city['coordinates']
     points = city['points']
+
+    # Remove points for which we don't have coordinates
+    points = {pointName: point for pointName, point in points.items() if point.get('coordinates', None) is not None}
+
     if cityCoords:
         cityCoords = list(map(float, cityCoords.split(',')))
         points = {pointName: point
                   for pointName, point in points.items()
-                  if point.get('coordinates', None) and latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
+                  if latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
                   }
 
     topnames = city['pointsOrder'][:150]
@@ -141,9 +145,6 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
 
     # For clustering, remove points that I must visit
     points = [point for point in points if point['pointName'] not in set(likes)]
-
-    # Remove points for which we don't have coordinates
-    points = [point for point in points if point['coordinates'] != None]
 
     clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
     if not clusteringPoints:
