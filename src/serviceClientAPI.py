@@ -146,7 +146,7 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     # For clustering, remove points that I must visit
     points = [point for point in points if point['pointName'] not in set(likes)]
 
-    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
+    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays - len(todaysLikes)]
     if not clusteringPoints:
         return {'itinerary': [{
             'point': {
