@@ -267,7 +267,7 @@ body {
             padding: 0;
         }
             .pin-popup {
-                width: 300px;
+                width: 400px;
                 height: 300px;
                 overflow-y: auto;
             }
@@ -276,8 +276,11 @@ body {
                     font-weight: bold;
                 }
                 .pin-popup-description {
-                    margin-top: 1em;
                     font-size: 1em;
+                }
+                .pin-popup-timing {
+                    margin-top: 1em;
+                    font-size: 0.8em;
                 }
 
     .plan-box {

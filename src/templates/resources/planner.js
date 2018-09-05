@@ -158,11 +158,28 @@ var fuzzyPointMatcher = function(query, callback) {
 };
 
 
-var renderPinPopup = function(point) {
+var renderPinPopup = function(point, dayNum) {
     var desc = point.description || '';
+    desc = desc.replace(/\n/g, '<hr/>').substring(0, 200) + '...';
+    var openings = '';
+    var closings = '';
+    var open = point.openingHour.split(',')
+    var close = point.closingHour.split(',')
+    for (var i = 0; i < 7; i++) {
+        openings += '<td>' + (open[i] === '$' ? '$': utils.roundUpTime(open[i])) + '</td>';
+        closings += '<td>' + (close[i] === '$' ? '$': utils.roundUpTime(close[i])) + '</td>';
+    }
+
     return '<div class="pin-popup">' +
                '<div class="pin-popup-title">' + point.pointName + '</div>' +
-               '<div class="pin-popup-description">' + desc.replace(/\n/g, '<hr/>') + '</div>' +
+               '<div class="pin-popup-timing">' + 
+                   '<table class="table table-bordered"> <thead> <tr> <th scope="col">Timings</th> <th scope="col">Sun</th> <th scope="col">Mon</th> <th scope="col">Tue</th> <th scope="col">Wed</th> <th scope="col">Thu</th> <th scope="col">Fri</th> <th scope="col">Sat</th> </tr> </thead> <tbody> <tr> <th scope="row">Open</th>' + 
+                   openings +
+                   '</tr> <tr> <th scope="row">Close</th>' +
+                   closings +
+                   '</tr> </tbody> </table>' +
+               '</div>' +
+               '<div class="pin-popup-description">' + desc + '</div>' +
            '</div>';
 };
 
