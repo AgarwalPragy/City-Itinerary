@@ -150,6 +150,9 @@ var registerCitySearch = function () {
             }
         }
     ).on('typeahead:selected', function (e, city) {
+        $('.background-image').css(
+            'background-image', "url('" + utils.getEncodedCityImageURL(city, null, null) + "')");
+
         searchSelectedCity = city.fullName;
     }).on('blur', function (e) {
         $('#city-searchbar').val(searchSelectedCity);

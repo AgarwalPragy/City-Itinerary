@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 import ssl
 from flask import Blueprint, send_file, request
 from flask_cors import cross_origin
@@ -38,7 +38,7 @@ def getImageFromNetwork(url: str) -> Image:
 memcache = {}
 
 
-def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
+def getImageFromMemcache(url: str, size: Optional[Tuple[int, int]]) -> Image:
     # TODO: Make this LRU instead of infinitely growing
     global memcache
 
@@ -50,12 +50,15 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
             original = getImageFromNetwork(url)
         except Exception as e:
             return getImageFromMemcache(brokenImage, size)
-        resized = imageResize(original, size)
         memcache[urlHash] = {
-            'original': original,
-            size: resized
+            'original': original
         }
-        return resized
+        if size:
+            resized = imageResize(original, size)
+            memcache[urlHash][size] = resized
+            return resized
+        else:
+            return original
 
     desiredSize = images.get(size, None)
     if desiredSize:
@@ -64,6 +67,8 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
     else:
         # print('Cache Hit!!')
         original = images.get('original', None)
+        if size is None:
+            return original
         return imageResize(original, size)
 
 
@@ -71,13 +76,16 @@ def getImageFromMemcache(url: str, size: Tuple[int, int]) -> Image:
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def fetchImage():
     url = request.args.get('url')
-    width = request.args.get('width')
-    height = request.args.get('height')
+    width = request.args.get('width', 'null')
+    height = request.args.get('height', 'null')
 
     # print('Requested image-fetch', url, width, height)
 
     url = urlDecode(url)
-    size = int(width), int(height)
+    if width != 'null' and height != 'null':
+        size = int(width), int(height)
+    else:
+        size = None
 
     image = getImageFromMemcache(url, size)
     # print(image)

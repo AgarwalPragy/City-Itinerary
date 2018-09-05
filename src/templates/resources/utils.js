@@ -1,7 +1,7 @@
 var utils = {}
 
-utils.cityImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png';
-utils.pointImageUnavailable = 'http://getdrawings.com/img/gotham-city-silhouette-14.png';
+utils.cityImageUnavailable = 'https://image.ibb.co/ipaPee/city_image.png';
+utils.pointImageUnavailable = 'https://image.ibb.co/ipaPee/city_image.png';
 
 utils.uuid4 = function () {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
