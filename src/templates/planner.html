@@ -52,13 +52,13 @@
                                 <tr>
                                     <th scope="row">Open</th>
                                     <td v-for="val in visit.point.openingHour.split(',')">
-                                        {{val==="$"?"closed":val}}
+                                        {{val==="$"?"closed":utils.roundUpTime(val)}}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th scope="row">Close</th>
                                     <td v-for="val in visit.point.closingHour.split(',')">
-                                        {{val==="$"?"closed":val}}
+                                        {{val==="$"?"closed":utils.roundUpTime(val)}}
                                     </td>
                                 </tr>
                             </tbody>

@@ -10,6 +10,16 @@ utils.uuid4 = function () {
   });
 };
 
+
+utils.roundUpTime = function(val) {
+    val = parseFloat(val);
+    var hours = parseInt(val);
+    var minutes = (val - hours) * 60;
+    minutes = parseInt(Math.ceil(minutes / 15) * 15);
+    return hours + (minutes/60);
+}
+
+
 utils.getData = function(url, params, callback) {
     console.log('Got a call for ' + url + ' with params:');
     console.log(params);
