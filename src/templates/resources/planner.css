@@ -264,6 +264,9 @@ body {
             grid-template-rows: 60px auto;
             grid-gap: 0;
         }
+        .dislikes-box {
+            grid-template-rows: 25px auto;
+        }
 
         .itinerary-box {
             grid-column: 1;
@@ -382,7 +385,7 @@ body {
                         margin-right: -2em;
                         margin-bottom: -1em;
                         height: 3em;
-                        background: RGBA(0, 0, 0, 0.15);
+                        background: RGBA(0, 0, 0, 0.05);
                         border: 1px solid RGBA(0, 0, 0, 0.3);
                         border-right: none;
                         border-left: none;
