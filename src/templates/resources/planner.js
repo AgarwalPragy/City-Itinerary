@@ -105,23 +105,31 @@ var renderPointEmptyResult = function(context) {
 
 
 var fuzzyCityMatcher = function(query, callback) {
-    var sanitized = query.toLowerCase().replace(/[^a-z]/g, '')
+    var sanitized = query.toLowerCase().replace(/[^a-z]/g, '');
     var matches = [];
-    var results = cityFuse.search(sanitized);
-    $.each(results, function(index, obj) {
-        matches.push(obj.item);
-    });
+    if(sanitized === '')
+        matches = cityFuse.list;
+    else {
+        var results = cityFuse.search(sanitized);
+        $.each(results, function(index, obj) {
+            matches.push(obj.item);
+        });
+    }
     callback(matches);
 };
 
 
 var fuzzyPointMatcher = function(query, callback) {
-    var sanitized = query.toLowerCase().replace(/[^a-z]/g, '')
+    var sanitized = query.toLowerCase().replace(/[^a-z]/g, '');
     var matches = [];
-    var results = pointFuse.search(sanitized);
-    $.each(results, function(index, obj) {
-        matches.push(obj.item);
-    });
+    if(sanitized === '')
+        matches = pointFuse.list;
+    else {
+        var results = pointFuse.search(sanitized);
+        $.each(results, function(index, obj) {
+            matches.push(obj.item);
+        });
+    }
     callback(matches);
 };
 
@@ -138,13 +146,13 @@ var renderPinPopup = function(point) {
 var registerCitySearch = function () {
     $('#city-searchbar').typeahead(
         {
-            minLength: 1,
+            minLength: 0,
             hint: false
         },
         {
             name: 'fuzzySearchOnCities',
             display: 'fullName',
-            limit: 40,
+            limit: 50,
             source: fuzzyCityMatcher,
             templates: {
                 empty: renderCityEmptyResult,
@@ -165,13 +173,13 @@ var registerCitySearch = function () {
 var registerPointSearch = function () {
     $('#point-searchbar').typeahead(
         {
-            minLength: 1,
+            minLength: 0,
             hint: false
         },
         {
             name: 'fuzzySearchOnPoints',
             display: 'fullName',
-            limit: 40,
+            limit: 50,
             source: fuzzyPointMatcher,
             templates: {
                 empty: renderPointEmptyResult,
@@ -241,6 +249,9 @@ var limitTripLength = function() {
     var currentEndDate = moment($('#date_timepicker_end').val(), momentDateFormat);
     if(currentEndDate.isSameOrBefore(minDate) || currentEndDate.isAfter(maxDate)) {
         currentEndDate = moment(minDate).add(4, 'days');
+        currentEndDate = currentEndDate.format(momentDateFormat);
+        currentEndDate = currentEndDate.substring(0, currentEndDate.length-5) + '20.00';
+        currentEndDate = moment(currentEndDate, momentDateFormat);
     }
     $('#date_timepicker_end').datetimepicker({
         minDate: minDate.format(momentDateFormat),
