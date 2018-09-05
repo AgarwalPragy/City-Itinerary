@@ -7,7 +7,7 @@ var allClusters = [];
 var allClusterPaths = [];
 var recenteringMap = false;
 var itineraryCallUUID = null;
-
+var searchSelectedCity = initialConstraints.city;
 
 Date.prototype.addHours = function(h) {
    this.setTime(this.getTime() + (h*60*60*1000));
@@ -33,6 +33,14 @@ var getRatingStars = function(point) {
     return classes;
 };
 
+var editTime = function(visit, dayNum) {
+    // window.alert(dayNum);
+    $('#edit-modal').modal({
+        focus: true,
+        show: true,
+        keyboard: true,
+    });
+}
 
 var renderCitySearchResult = function(city) {
     return '<div class="search-result">' +
@@ -120,9 +128,9 @@ var registerCitySearch = function () {
             }
         }
     ).on('typeahead:selected', function (e, city) {
-        app.searchSelectedCity = city.fullName;
+        searchSelectedCity = city.fullName;
     }).on('blur', function (e) {
-        $('#city-searchbar').val(app.searchSelectedCity);
+        $('#city-searchbar').val(searchSelectedCity);
     });
 };
 
@@ -330,7 +338,10 @@ var getItineraryPage = function(page) {
     }, function (response) {
         var data = response.data;
         var uuid = data.uuid;
-        if(uuid !== itineraryCallUUID) return; // If response is from some old request, ignore
+        if(uuid !== itineraryCallUUID) {
+            console.log('Ignoring response of previous API call with UUID: ' + itineraryCallUUID);
+            return; // If response is from some old request, ignore
+        }
         currentPage = parseInt(data.itinerary.currentPage);
         if(currentPage === 1) {
             app.itinerary = data.itinerary.itinerary;
@@ -356,7 +367,6 @@ var registerVue = function() {
         data: {
             cities: {},
             points: {points: [], pointsOrder: []},
-            searchSelectedCity: initialConstraints.city,
             constraints: false,
             itinerary: [],
             mustVisit: {},

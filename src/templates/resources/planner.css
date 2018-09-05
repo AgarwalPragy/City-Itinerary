@@ -328,6 +328,7 @@ body {
                         height: 1em;
                         float: left;
                         font-size: 1.4em;
+                        cursor: pointer;
                     }
                     .point-listing {
                         background: RGBA(255, 255, 255, 0.65);
@@ -362,12 +363,19 @@ body {
                                 text-align: right;
                                 padding-right: 2em;
                             }
-                            .point-time-title {
-                                text-transform: uppercase;
-                                font-weight: bold;
-                                font-size: 70%;
-                                padding: 1em;
+                            .editable-point-time {
+                                cursor: pointer;
                             }
+                                .edit-button {
+                                    margin-top: 3px;
+                                    font-size: 1.2em;
+                                }
+                                .point-time-title {
+                                    text-transform: uppercase;
+                                    font-weight: bold;
+                                    font-size: 70%;
+                                    padding: 1em;
+                                }
 
                     .bad-point-listing {
                         background: RGBA(255, 255, 255, 0.65);
