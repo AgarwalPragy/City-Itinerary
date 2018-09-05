@@ -170,7 +170,8 @@
                                     </div>
                                  </div>
                                 <div class="point-listing"
-                                     v-if="visit.point.pointName !== '__newday__'">
+                                     v-if="visit.point.pointName !== '__newday__'"
+                                     v-on:click="openPopup(visit.point.pointName)">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
                                     <div class="point-name">{{ visit.point.pointName }}</div>
                                     <div class="point-rating">
@@ -218,7 +219,8 @@
                                     <span class="fa-hover-show fas fa-heartbeat" v-on:click="removeLikePoint(visit)"></span>
                                  </div>
                                 <div class="point-listing"
-                                     v-if="visit.point.pointName !== '__newday__'">
+                                     v-if="visit.point.pointName !== '__newday__'"
+                                     v-on:click="openPopup(visit.point.pointName)">
                                     <div class="point-image"><img :src="utils.getEncodedPointImageURL(visit.point, 180, 100)"></div>
                                     <div class="point-name">{{ visit.point.pointName }}</div>
                                     <div class="point-rating">
@@ -269,6 +271,7 @@
             </div>
         </div>
     </div>
+    <!-- js Google Maps --><script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaQe88CMk238s8580_-WU9pjFnbpheUFw&callback=resetMap"></script>
     <!-- js injected --> <script type="text/javascript"> {% endraw %} var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
     <!-- js UTILS    --><script src="resources/utils.js"></script>
     <!-- js SELF     --><script src="resources/planner.js"></script>

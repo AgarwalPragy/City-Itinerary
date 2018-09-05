@@ -2,21 +2,45 @@ var app = null;
 var editTimeApp = null;
 var cityFuse = null;
 var pointFuse = null;
-var map = null;
-var allCoordinates = [];
-var allClusters = [];
-var allClusterPaths = [];
-var recenteringMap = false;
 var itineraryCallUUID = null;
 var searchSelectedCity = initialConstraints.city;
 var timeEditingPoint = null;
 var dateFormat = 'Y/m/d H.i';
 var momentDateFormat = 'YYYY/MM/DD HH.mm';
+var lastName = null;
+
+var map = null;
+var directionsService = null;
+var mapIcons = [
+    'http://maps.google.com/mapfiles/marker_orange.png',
+    'http://maps.google.com/mapfiles/marker_purple.png',
+    'http://maps.google.com/mapfiles/marker_grey.png',
+    'http://maps.google.com/mapfiles/marker_green.png',
+    'http://maps.google.com/mapfiles/marker_yellow.png',
+    'http://maps.google.com/mapfiles/marker_white.png',
+    'http://maps.google.com/mapfiles/marker_black.png',
+    'http://maps.google.com/mapfiles/marker.png'
+];
+// https://mapstyle.withgoogle.com/
+var mapStyles = [{"elementType": "labels", "stylers": [{"visibility": "off"} ] }, {"featureType": "administrative.neighborhood", "stylers": [{"visibility": "off"} ] }, {"featureType": "poi.business", "stylers": [{"visibility": "off"} ] }, {"featureType": "road", "elementType": "labels.icon", "stylers": [{"visibility": "off"} ] }, {"featureType": "transit", "stylers": [{"visibility": "off"} ] } ];
+var bounds = null;
+var allInfoWindows = null;
+var allMarkers = null;
+
 
 Date.prototype.addHours = function(h) {
    this.setTime(this.getTime() + (h*60*60*1000));
    return this;
 };
+
+
+var openPopup = function(name) {
+    if(lastName !== null)
+        allInfoWindows[lastName].close();
+    allInfoWindows[name].open(map, allMarkers[name]);
+    lastName = name;
+}
+
 
 var getPointFromName = function(pointName) {
     return app.points.points[pointName];
@@ -244,11 +268,11 @@ var registerPointFuse = function() {
 
 var limitTripLength = function() {
     var minDate = moment($('#date_timepicker_start').val(), momentDateFormat);
-    var maxDate = moment(minDate).add(8, 'days');
+    var maxDate = moment(minDate).add(7, 'days');
 
     var currentEndDate = moment($('#date_timepicker_end').val(), momentDateFormat);
     if(currentEndDate.isSameOrBefore(minDate) || currentEndDate.isAfter(maxDate)) {
-        currentEndDate = moment(minDate).add(4, 'days');
+        currentEndDate = moment(minDate).add(3, 'days');
         currentEndDate = currentEndDate.format(momentDateFormat);
         currentEndDate = currentEndDate.substring(0, currentEndDate.length-5) + '20.00';
         currentEndDate = moment(currentEndDate, momentDateFormat);
@@ -281,62 +305,99 @@ var registerDateTime = function () {
 };
 
 
-var registerMap = function() {
-    map = L.map('mapid')
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-    map.setView([51.505, -0.09], 12);
+var resetMap = function() {
+    map = new google.maps.Map(document.getElementById('mapid'), {
+        zoom: 6,
+        center: {lat: 18.9, lng: 72.82},
+        mapTypeControl: true,
+        scaleControl: true,
+        mapTypeControlOptions: {
+            style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+            mapTypeIds: ['roadmap']
+        },
+        styles: mapStyles,
+    });
+    directionsService = new google.maps.DirectionsService;
+    bounds = new google.maps.LatLngBounds();
+    allInfoWindows = {};
+    allMarkers = {};
+    lastName = null;
 };
 
-
-var clearMap = function() {
-    for (var i = allClusters.length - 1; i >= 0; i--) {
-        allClusters[i].remove();
-    }
-    allClusters = [];
-}
-
-var reCenterMap = function() {
-    if(recenteringMap)
-        return;
-    recenteringMap = true;
-    if(allCoordinates.length < 1) return;
-    var bounds = new L.LatLngBounds(allCoordinates);
-    map.fitBounds(bounds, {
-        padding: [10, 10]
+var addPointsToMap = function(dayNum, items) {
+    var directionsDisplay = new google.maps.DirectionsRenderer({
+        map: map,
+        preserveViewport: false,
+        suppressMarkers: true,
     });
-    map.invalidateSize();
-    recenteringMap = false;
-}
-
-var addPointsToMap = function(currentPage, items) {
-    var pins = [];
-    if(!items) return;
+    if(items.length === 1) {
+        // TODO: finish this
+        return;
+    }
+    var waypoints = [];
+    var goodItems = [];
     for (var i = 0; i < items.length; i++) {
         var point = items[i].point;
-        var pointName = point.pointName;
-        if(pointName === '__newday__')
-            continue;
-        console.log('Point: ' + point.fullName + ', coordinates: ' + point.coordinates);
-        var coordinates = utils.getCoordinatesFromString(point.coordinates);
-        coordinates = L.latLng(coordinates[0], coordinates[1]);
-        allCoordinates.push(coordinates);
-        pin = L.marker(coordinates);        
-        pin.bindPopup(renderPinPopup(point));
-        pins.push(pin);
+        if(point.pointName === '__newday__') continue;
+        goodItems.push(items[i]);
+        var coordinates = point.coordinates.split(',');
+        var lat = parseFloat(coordinates[0]);
+        var lng = parseFloat(coordinates[1]);
+        coordinates = new google.maps.LatLng(lat, lng);
+        bounds.extend(coordinates);
+        waypoints.push({
+            location: coordinates,
+            stopover: true,
+        });
     }
-    cluster = L.layerGroup(pins);
-    allClusters.push(cluster);
-    cluster.addTo(map);
-    // path = L.Routing.control({
-    //     waypoints: allCoordinates,
-    //     routeWhileDragging: false
-    // });
-    // allClusterPaths.push(path);
-    // path.addTo(map);
-    reCenterMap();
+
+    map.fitBounds(bounds);
+    map.panToBounds(bounds);
+    var origin = waypoints[0].location;
+    var destination = waypoints[waypoints.length-1].location;
+    waypoints = waypoints.splice(1, waypoints.length-1);
+
+    directionsService.route({
+        origin: origin,
+        destination: destination,
+        waypoints: waypoints,
+        optimizeWaypoints: false,
+        travelMode: 'DRIVING',   // TODO: check if mixed modes possible
+    }, function(response, status) {
+        if (status !== 'OK'){
+            console.log('Directions request failed due to ' + status);
+            return;
+        }
+        var legs = response.routes[0].legs;
+
+        for(var i = 0; i < legs.length; i++){
+            var point = goodItems[i].point;
+            makeClosuredMarker(dayNum, point, legs[i].start_location);
+        }
+        // Plot the destination
+        makeClosuredMarker(dayNum, goodItems[goodItems.length-1].point, legs[legs.length-1].end_location);
+        directionsDisplay.setDirections(response);
+    });
 }
+
+var makeClosuredMarker = function(dayNum, point, position) {
+    var name = point.pointName;
+    allInfoWindows[name] =new google.maps.InfoWindow({
+        content: renderPinPopup(point),
+    });
+
+    allMarkers[name] = new google.maps.Marker({
+        icon: mapIcons[dayNum-1],
+        map: map,
+        position: position,
+        title: point.pointName,
+    });
+
+    allMarkers[name].addListener('click', function() {
+        openPopup(name);
+    });
+}
+
 
 var isLiked = function(point) {
     var index = app.constraints.likes.indexOf(point.pointName);
@@ -399,9 +460,7 @@ var getItineraryPage = function(page) {
         if(currentPage === 1) {
             app.itinerary = data.itinerary.itinerary;
             app.mustVisit = data.mustVisit;
-            clearMap();
-            allCoordinates = [];
-            allClusters = [];
+            resetMap();
         }
         else
             app.itinerary = app.itinerary.concat(data.itinerary.itinerary);
@@ -409,8 +468,6 @@ var getItineraryPage = function(page) {
         addPointsToMap(currentPage, data.itinerary.itinerary);
         if(data.itinerary.nextPage !== false)
             getItineraryPage(data.itinerary.nextPage);
-        else
-            setTimeout(reCenterMap, 1000);
     });
 }
 
@@ -495,7 +552,6 @@ var registerVue = function() {
     });
 
     registerDateTime();
-    registerMap();
     registerCitySearch();
     registerPointSearch();
 })();
