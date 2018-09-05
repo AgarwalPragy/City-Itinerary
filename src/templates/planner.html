@@ -30,82 +30,82 @@
 <body>
     <div class="background-image"></div>
 
-<div id="edit-modal" class="modal fade" role="dialog" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content" id="edit-modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{visit.point.pointName}}</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="edit-time-information">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th scope="col">Timings</th>
-                                <th scope="col">Sun</th> <th scope="col">Mon</th> <th scope="col">Tue</th> <th scope="col">Wed</th> <th scope="col">Thu</th> <th scope="col">Fri</th> <th scope="col">Sat</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <th scope="row">Open</th>
-                                <td v-for="val in visit.point.openingHour.split(',')">
-                                    {{val==="$"?"closed":val}}
-                                </td>
-                            </tr>
-                            <tr>
-                                <th scope="row">Close</th>
-                                <td v-for="val in visit.point.closingHour.split(',')">
-                                    {{val==="$"?"closed":val}}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div>
-                        <span class="edit-time-recommended-title">Recommended Time:</span>
-                        <span class="edit-time-recommended-value">{{visit.point.recommendedNumHours}}</span>
-                        <span class="edit-time-recommended-title">hours</span>
-                    </div>
+    <div id="edit-modal" class="modal fade" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content" id="edit-modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{{visit.point.pointName}}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
-                <hr>
-                <div class="form edit-time-form">
-                    <div class="form-row">
-                        <div class="col">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Visit on day</span>
-                                </div>
-                                <input id= "edit-time-dayNum" type="text" class="form-control" :value="visit.dayNum">
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Enter Time</span>
-                                </div>
-                                <input id= "edit-time-enterTime" type="text" class="form-control" :value="visit.enterTime">
-                            </div>
-                        </div>
-                        <div class="col">
-                            <div class="input-group">
-                                <div class="input-group-prepend">
-                                    <span class="input-group-text">Exit Time</span>
-                                </div>
-                                <input id= "edit-time-exitTime" type="text" class="form-control" :value="visit.exitTime">
-                            </div>
+                <div class="modal-body">
+                    <div class="edit-time-information">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Timings</th>
+                                    <th scope="col">Sun</th> <th scope="col">Mon</th> <th scope="col">Tue</th> <th scope="col">Wed</th> <th scope="col">Thu</th> <th scope="col">Fri</th> <th scope="col">Sat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <th scope="row">Open</th>
+                                    <td v-for="val in visit.point.openingHour.split(',')">
+                                        {{val==="$"?"closed":val}}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">Close</th>
+                                    <td v-for="val in visit.point.closingHour.split(',')">
+                                        {{val==="$"?"closed":val}}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div>
+                            <span class="edit-time-recommended-title">Recommended Time:</span>
+                            <span class="edit-time-recommended-value">{{visit.point.recommendedNumHours}}</span>
+                            <span class="edit-time-recommended-title">hours</span>
                         </div>
                     </div>
+                    <hr>
+                    <div class="form edit-time-form">
+                        <div class="form-row">
+                            <div class="col">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Visit on day</span>
+                                    </div>
+                                    <input id= "edit-time-dayNum" type="text" class="form-control" :value="visit.dayNum">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Enter Time</span>
+                                    </div>
+                                    <input id= "edit-time-enterTime" type="text" class="form-control" :value="visit.enterTime">
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">Exit Time</span>
+                                    </div>
+                                    <input id= "edit-time-exitTime" type="text" class="form-control" :value="visit.exitTime">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <span id="Response Status"></span>
-                <button type="button" class="btn btn-primary" v-on:click="validateTime(visit)">Save</button>
+                <div class="modal-footer">
+                    <span id="Response Status"></span>
+                    <button type="button" class="btn btn-primary" v-on:click="validateTime(visit)">Save</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 
     <div id="container" class="content">
         <div class="top-box">
