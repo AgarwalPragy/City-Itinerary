@@ -1,4 +1,5 @@
 var app = null;
+var editTimeApp = null;
 var cityFuse = null;
 var pointFuse = null;
 var map = null;
@@ -8,6 +9,7 @@ var allClusterPaths = [];
 var recenteringMap = false;
 var itineraryCallUUID = null;
 var searchSelectedCity = initialConstraints.city;
+var timeEditingPoint = null;
 
 Date.prototype.addHours = function(h) {
    this.setTime(this.getTime() + (h*60*60*1000));
@@ -33,13 +35,33 @@ var getRatingStars = function(point) {
     return classes;
 };
 
-var editTime = function(visit, dayNum) {
-    // window.alert(dayNum);
-    $('#edit-modal').modal({
-        focus: true,
-        show: true,
-        keyboard: true,
-    });
+var validateTime = function(visit) {
+    var chosenDay = $('#edit-time-dayNum').val();
+    var chosenEnter = $('#edit-time-enterTime').val();
+    var chosenExit = $('#edit-time-exitTime').val();
+
+    // TODO: Magic here
+
+    var likes = JSON.parse(JSON.stringify(app.constraints.likes));
+    var likesTimings = JSON.parse(JSON.stringify(app.constraints.likesTimings));
+
+    var index = likes.indexOf(visit.point.pointName);
+    if(index >= 0) {
+        likes.splice(index, 1);
+        likesTimings.splice(index, 1);
+    }
+    likes.push(visit.point.pointName);
+    likesTimings.push([chosenDay, chosenEnter, chosenExit].join('-'))
+    app.constraints.likes = likes;
+    app.constraints.likesTimings = likesTimings;
+    $('#edit-modal').modal('hide');
+}
+
+
+var openEditTimeModal = function(visit) {
+    editTimeApp.visit = visit;
+    timeEditingPoint = visit.point;
+    $('#edit-modal').modal();
 }
 
 var renderCitySearchResult = function(city) {
@@ -120,7 +142,7 @@ var registerCitySearch = function () {
         {
             name: 'fuzzySearchOnCities',
             display: 'fullName',
-            limit: 6,
+            limit: 40,
             source: fuzzyCityMatcher,
             templates: {
                 empty: renderCityEmptyResult,
@@ -144,7 +166,7 @@ var registerPointSearch = function () {
         {
             name: 'fuzzySearchOnPoints',
             display: 'fullName',
-            limit: 6,
+            limit: 40,
             source: fuzzyPointMatcher,
             templates: {
                 empty: renderPointEmptyResult,
@@ -152,7 +174,14 @@ var registerPointSearch = function () {
             }
         }
     ).on('typeahead:selected', function (e, point) {
-        // TODO: add point to some list.
+        openEditTimeModal({
+            point: point,
+            enterTime: '',
+            exitTime: '',
+            dayNum: '',
+        })
+    }).on('blur', function (e) {
+        // $('#point-searchbar').val('');
     });
 };
 
@@ -361,6 +390,23 @@ var getItineraryPage = function(page) {
     });
 }
 
+var registerEditTimeVue = function() {
+    editTimeApp = new Vue({
+        el: '#edit-modal-content',
+        data: {
+            visit: {
+                point: {
+                    pointName: '',
+                    openingHour: '$,$,$,$,$,$,$',
+                    closingHour: '$,$,$,$,$,$,$',
+                },
+                enterTime: -1,
+                exitTime: -1,
+            }
+        }
+    });
+}
+
 var registerVue = function() {
     app = new Vue({
         el: '#plan-box',
@@ -405,6 +451,7 @@ var registerVue = function() {
 
 (function() {
     registerVue();
+    registerEditTimeVue();
     app.constraints = initialConstraints;
     utils.getData('/api/cities', {}, function (response) {
         app.cities = response.data;
