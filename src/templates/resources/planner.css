@@ -334,6 +334,17 @@ body {
                     letter-spacing: 0.2em;
                 }
 
+                .options-container {
+                    margin: auto;
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    grid-gap: 1em;
+                    margin-top: 0.4em;
+                    margin-left: 1em;
+                    margin-right: 1em;
+
+                }
+
                 .list-box-search {
                     width: 100%;
                     padding-left: 4em;
