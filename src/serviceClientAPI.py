@@ -4,12 +4,15 @@ import json
 import time
 import datetime
 from functools import lru_cache
+from collections import defaultdict
+
 
 from utilities import urlDecode, latlngDistance, roundUpTime
 from itineraryPlanner import getDayItinerary
 from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime
 from tunable import maxCityRadius, avgSpeedOfTravel, clientMaxPossiblePointsPerDay
 from clustering import getBestPoints
+import clusteringStatic
 
 clientAPI = Blueprint('clientAPI', __name__)
 
@@ -276,6 +279,21 @@ def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startD
 
 
 @lru_cache(None)
+def clusterCity(cityName, pointNames, numDays):
+    pointMap = getTopPointsOfCity(cityName, 150)['points']
+    points = [pointMap[name] for name in pointNames]
+
+    allCoordinates = tuple(tuple(map(float, point['coordinates'].split(','))) for point in points)
+    labels, labelMap = clusteringStatic.cluster(allCoordinates, numDays, debug=False)
+
+    dayPoints = defaultdict(list)
+    for point, label in zip(points, labels):
+        dayPoints[labelMap[label]].append(point)
+
+    return dayPoints
+
+
+@lru_cache(None)
 def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime,
                           page):
     numDays = getNumDays(startDate, endDate)
@@ -284,30 +302,9 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
         return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
     pointMap = getTopPointsOfCity(cityName, 150)['points']
-
     points = pointMap.values()
 
-    # Remove dislikes
-    points = [point for point in points if point['pointName'] not in set(dislikes)]
-
-    # Remove points for which we were already shown in the previous pages
-    for oldpage in range(page - 1, 0, -1):
-        prevItinerary = _getItinerary_incremental(cityName=cityName,
-                                                  likes=likes,
-                                                  mustVisit=mustVisit,
-                                                  dislikes=dislikes,
-                                                  startDate=startDate,
-                                                  endDate=endDate,
-                                                  startDayTime=startDayTime,
-                                                  endDayTime=endDayTime,
-                                                  page=oldpage)['itinerary']
-        prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
-        points = [point for point in points if point['pointName'] not in prevItineraryPoints]
-
-    todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
-
-    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
-    if not clusteringPoints:
+    if not points:
         return {'itinerary': [{
             'point': {
                 'pointName': '__newday__'
@@ -316,15 +313,20 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
             'date': 'No data. (╯°□°）╯︵ ┻━┻'
         }], 'score': -1, 'nextPage': False, 'currentPage': 1}
 
-    todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
-                                 allSelectedPoints=[],
-                                 numDays=numDays,
-                                 numPoints=clientMaxPossiblePointsPerDay)
+    # Remove dislikes
+    pointNames = [point['pointName'] for point in points if point['pointName'] not in set(dislikes)]
+    # Remove likes
+    pointNames = [pointName for pointName in pointNames if pointName not in set(likes)]
 
-    # Remove today's like from today's points
-    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
+    # limit the points sent for clustering
+    pointNames = pointNames[:clientMaxPossiblePointsPerDay * numDays]
 
-    # choose the best points form todaysPoints points
+    cityClustering = clusterCity(cityName, tuple(pointNames), numDays)
+    todaysPoints = cityClustering[page-1]
+
+    todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
+
+    # limit the number of points
     todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
 
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
