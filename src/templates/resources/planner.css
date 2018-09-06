@@ -135,6 +135,14 @@ body {
         text-align: center;
     }
 
+    #response-status {
+        text-align: left;
+        margin-right: auto; 
+        font-size: 1em;
+        font-weight: bold;
+        color: red;
+    }
+
 .content {
     background: rgba(255, 255, 255, 0.35);
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.25);

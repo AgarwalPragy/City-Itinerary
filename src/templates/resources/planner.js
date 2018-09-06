@@ -4,7 +4,6 @@ var cityFuse = null;
 var pointFuse = null;
 var itineraryCallUUID = null;
 var searchSelectedCity = initialConstraints.city;
-var timeEditingPoint = null;
 var dateFormat = 'Y/m/d H.i';
 var momentDateFormat = 'YYYY/MM/DD HH.mm';
 var lastName = null;
@@ -61,32 +60,53 @@ var getRatingStars = function(point) {
     return classes;
 };
 
+var clearModal = function() {
+    $('#edit-time-dayNum').val('');
+    $('#edit-time-enterTime').val('');
+    $('#edit-time-exitTime').val('');
+    $('#response-status').text('');
+}
+
 var validateTime = function(visit) {
     var chosenDay = $('#edit-time-dayNum').val();
     var chosenEnter = $('#edit-time-enterTime').val();
     var chosenExit = $('#edit-time-exitTime').val();
 
-    // TODO: Magic here
-
     var likes = JSON.parse(JSON.stringify(app.constraints.likes));
     var likesTimings = JSON.parse(JSON.stringify(app.constraints.likesTimings));
-
     var index = likes.indexOf(visit.point.pointName);
     if(index >= 0) {
         likes.splice(index, 1);
         likesTimings.splice(index, 1);
     }
     likes.push(visit.point.pointName);
-    likesTimings.push([chosenDay, chosenEnter, chosenExit].join('-'))
-    app.constraints.likes = likes;
-    app.constraints.likesTimings = likesTimings;
-    $('#edit-modal').modal('hide');
+    likesTimings.push([chosenDay, chosenEnter, chosenExit].join('-'));
+
+    utils.getData('/api/validate', {
+        city: app.constraints.city,
+        startDate: app.constraints.startDate,
+        endDate: app.constraints.endDate,
+        startDayTime: app.constraints.startDayTime,
+        endDayTime: app.constraints.endDayTime,
+        dislikes: app.constraints.dislikes.join('|'),
+        likes: likes.join('|'),
+        likesTimings: likesTimings.join('|'),
+    }, function (response) {
+        code = response.data;
+        $('#response-status').text(code);
+        if(code === 'success') {
+            clearModal();
+            $('#edit-modal').modal('hide');   
+            app.constraints.likes = likes;
+            app.constraints.likesTimings = likesTimings;
+        }
+    });
 }
 
 
 var openEditTimeModal = function(visit) {
     editTimeApp.visit = visit;
-    timeEditingPoint = visit.point;
+    editTimeApp.$forceUpdate();
     $('#edit-modal').modal();
 }
 
@@ -568,6 +588,9 @@ var registerVue = function() {
         app.constraints = newconstraints;
     });
 
+    $('#edit-modal').on('hidden.bs.modal', function () {
+        clearModal();
+    })
     registerDateTime();
     registerCitySearch();
     registerPointSearch();

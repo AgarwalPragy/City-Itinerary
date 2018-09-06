@@ -6,10 +6,10 @@ import time
 import datetime
 from functools import lru_cache
 
-from utilities import urlDecode, latlngDistance
+from utilities import urlDecode, latlngDistance, roundUpTime
 from itineraryPlanner import getDayItinerary
 from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime, clientMaxPossiblePointsPerDay
-from tunable import maxCityRadius
+from tunable import maxCityRadius, avgSpeedOfTravel
 from clustering import getBestPoints
 
 clientAPI = Blueprint('clientAPI', __name__)
@@ -212,6 +212,85 @@ def _getItinerary(cityName, likes, mustVisit, dislikes, startDate, endDate, star
                             page=page)
     # print('Response from _getItinerary():', len(result['itinerary']), result['score'], result['nextPage'], result['currentPage'])
     return result
+
+
+
+@clientAPI.route('/api/validate')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def validateLikes():
+    cityName = clientDefaultCity
+    cityName = request.args.get('city', cityName)
+    if cityName:
+        cityName = urlDecode(cityName)
+
+    strFormat = '%y/%m/%d'
+    startDate = datetime.datetime.now().strftime(strFormat)
+    endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength - 1)).strftime(strFormat)
+    startDayTime, endDayTime = clientDefaultStartTime, clientDefaultEndTime
+
+    startDate = request.args.get('startDate', startDate)
+    endDate = request.args.get('endDate', endDate)
+    startDayTime = float(request.args.get('startDayTime', startDayTime))
+    endDayTime = float(request.args.get('endDayTime', endDayTime))
+
+    numDays = getNumDays(startDate, endDate)
+
+    likes = request.args.get('likes', [])
+    likesTimings = request.args.get('likesTimings', [])
+    mustVisit = {dayNum: [] for dayNum in range(1, numDays + 1)}
+
+    if likes and likesTimings:
+        likes = list(map(urlDecode, likes.split('|')))
+        likesTimings = list(map(urlDecode, likesTimings.split('|')))
+
+        for pointName, timing in zip(likes, likesTimings):
+            dayNum, enterTime, exitTime = map(float, timing.split('-'))
+            if dayNum not in mustVisit:
+                return 'Invalid day number {}'.format(int(dayNum))
+            mustVisit[dayNum].append((enterTime, exitTime, pointName))
+        for dayNum in mustVisit:
+            mustVisit[dayNum] = list(sorted(mustVisit[dayNum]))
+
+    dislikes = request.args.get('dislikes', [])
+    if dislikes:
+        dislikes = set(map(urlDecode, dislikes.split('|')))
+
+    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
+    today = start
+    weekDay = (today.weekday() + 1) % 7
+    pointMap = getTopPointsOfCity(cityName, 100)['points']
+    for dayNum, visits in mustVisit.items():
+        previousPoint = None
+        previousExitTime = None
+        for enterTime, exitTime, pointName in visits:
+            if pointName in dislikes:
+                return 'You\'ve asked us not to show {}'.format(pointName)
+            point = pointMap[pointName]
+            if 'openingHour' not in point or 'closingHour' not in point:
+                continue
+            opening = point['openingHour'].split(',')[weekDay]
+            closing = point['closingHour'].split(',')[weekDay]
+            if opening == '$' or closing == '$':
+                return '{} is closed on the day {} of your plan'.format(point['pointName'], dayNum)
+            opening = float(opening)
+            closing = float(closing)
+            if not(opening <= enterTime < exitTime <= closing):
+                return 'Unacceptable enter and exit time'
+            if previousPoint:
+                travelTime = latlngDistance(*previousPoint['coordinates'].split(','), *point['coordinates'].split(',')) / avgSpeedOfTravel
+                travelTime = roundUpTime(travelTime)
+                if previousExitTime + travelTime > enterTime:
+                    return 'It takes {} hours to travel from {} to {}. You can\'t exit {} at {} and enter {} at {}'.format(
+                        travelTime, previousPoint['pointName'], point['pointName'],
+                        previousPoint['pointName'], previousExitTime, point['pointName'], enterTime
+                    )
+
+            previousPoint = point
+            previousExitTime = exitTime
+        weekDay = (weekDay + 1) % 7
+
+    return 'success'
+
 
 
 @clientAPI.route('/api/itinerary')
