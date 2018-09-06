@@ -127,12 +127,12 @@ def clusterAllIDs(_pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryID
     chosenAlready = [False] * len(allPointAliases)
     pointIDUnions: UnionFind[PointID] = UnionFind()
     for index1, alias1 in enumerate(tqdm(allPointAliases)):
-        # if chosenAlready[index1]:
-        #     continue
+        if chosenAlready[index1]:
+            continue
         chosenAlready[index1] = True
         for index2, alias2 in enumerate(allPointAliases[index1 + 1:], index1 + 1):
-            # if chosenAlready[index2]:
-            #     continue
+            if chosenAlready[index2]:
+                continue
 
             if matchPointIDs(alias1, alias2):
                 pointIDUnions.union(alias1, alias2)
@@ -147,8 +147,8 @@ def clusterAllIDs(_pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryID
         root = pointIDUnions[pointAlias]
         rootCity = extractCityID(root)
         cityAlias = extractCityID(pointAlias)
-        # if rootCity == cityAlias:
-        #     continue
+        if rootCity == cityAlias:
+            continue
         cityIDUnions.union(rootCity, cityAlias)
     print('Injecting city aliases')
     for cityAlias1, cityAlias2 in injectedCityAliases:

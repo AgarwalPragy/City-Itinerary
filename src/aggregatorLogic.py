@@ -20,24 +20,18 @@ catTitleWeightCount = 0
 
 
 def getBestName(names: List[str], strictness: int=3) -> str:
-    """returns the longest name which occurs sufficiently enough
+    """returns the median length name which occurs sufficiently enough
     strictness: [1..100]"""
-
-    # sufficiently enough: in order to remove long but incorrect names
+    # sufficiently enough: in order to remove incorrect names
     counts = Counter(names)
     numUnique = len(counts)
-    sufficientAmount = counts.most_common(1 + numUnique//strictness)[-1][1]
-    
-    # get the shortest name that occurs atleast sufficientAmount times
-    sortedNames = sorted(names, key=len, reverse=False)
-    for name in sortedNames:
-        if counts[name] >= sufficientAmount:
-            return sanitizeName(name)
-
-    # this shouldn't be reached
-    # return longest name as a failsafe
-    print('CHECK YOUR LOGIC HERE')
-    return sanitizeName(sortedNames[0])
+    popularNames = ('####'.join('####'.join([name]*count) for name, count in counts.most_common(1 + numUnique//strictness))).split('####')
+    # of all the names that occur sufficiently many times, choose the median length one
+    sortedNames = sorted(popularNames, key=len)
+    bestName = sanitizeName(sortedNames[len(sortedNames)//2])
+    if len(names) > 4:
+        print(bestName, names)
+    return bestName
 
 
 def getMinMaxAttributeValue(valueListByCrawler: Dict[str, List], func):
@@ -123,10 +117,6 @@ def formatTime(timeString: str, isOpen):
         return 24
 
     return result
-
-
-
-
 
 
 def processPointAggregated(pointAggregated: PointAggregated):
