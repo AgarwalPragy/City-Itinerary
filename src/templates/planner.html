@@ -7,24 +7,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
     <!-- Note: Order of loading is important! -->
-    <!-- favicon       --><link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
-    <!-- css bootstrap --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
-    <!-- css datetime  --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
-    <!-- css fa-icons  --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
-    <!-- css leaflet   --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
+    <!-- favicon             --><link rel="icon" type="image/png" sizes="96x96" href="/favicon.png">
+    <!-- css bootstrap       --><link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css">
+    <!-- css datetime        --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.min.css">
+    <!-- css fa-icons        --><link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+    <!-- css leaflet         --><link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css">
     <!-- css leaflet routing --><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.9/leaflet-routing-machine.css">
-    <!-- css SELF      --><link rel="stylesheet" href="resources/planner.css">
-    <!-- js  jquery    --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
-    <!-- js  popper    --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
-    <!-- js  moment    --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-    <!-- js  boostrap  --><script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
-    <!-- js  datetime  --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
-    <!-- js  axios     --><script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
-    <!-- js  vue       --><script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
-    <!-- js  typeahead --><script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
-    <!-- js  fuse      --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js"></script>
-    <!-- js  leaflet   --><script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
+    <!-- css jquery-toggles  --><link rel="stylesheet" href="resources/jquery-toggles.css">
+
+    <!-- css SELF            --><link rel="stylesheet" href="resources/planner.css">
+    <!-- js  jquery          --><script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <!-- js  popper          --><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js"></script>
+    <!-- js  moment          --><script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <!-- js  boostrap        --><script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js"></script>
+    <!-- js  datetime        --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-datetimepicker/2.5.20/jquery.datetimepicker.full.min.js"></script>
+    <!-- js  axios           --><script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <!-- js  vue             --><script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.min.js"></script>
+    <!-- js  typeahead       --><script src="https://cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+    <!-- js  fuse            --><script src="https://cdnjs.cloudflare.com/ajax/libs/fuse.js/3.2.1/fuse.min.js"></script>
+    <!-- js  leaflet         --><script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
     <!-- js  leaflet routing --><script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-routing-machine/3.2.9/leaflet-routing-machine.min.js"></script>
+    <!-- js  jquery-toggles  --><script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toggles/2.0.4/toggles.min.js"></script>
     <title>City Itinerary Planner</title>
 </head>
 <body>
@@ -153,6 +156,10 @@
                 <div class="itinerary-box">
                     <div class="list-box-header">
                         <div class="list-box-title">Suggested Plan</div>
+                        <div class="options-container" v-pre>
+                            <div class="toggle toggle-light" id="p-factor"></div>
+                            <div class="toggle toggle-light" id="algorithm"></div>
+                        </div>
                     </div>
                     <div class="overflow-container">
                         <ul>
@@ -272,9 +279,9 @@
         </div>
     </div>
     <!-- js Google Maps --><script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaQe88CMk238s8580_-WU9pjFnbpheUFw&callback=resetMap"></script>
-    <!-- js injected --> <script type="text/javascript"> {% endraw %} var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
-    <!-- js UTILS    --><script src="resources/utils.js"></script>
-    <!-- js SELF     --><script src="resources/planner.js"></script>
+    <!-- js injected    --> <script type="text/javascript"> {% endraw %} var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
+    <!-- js UTILS       --><script src="resources/utils.js"></script>
+    <!-- js SELF        --><script src="resources/planner.js"></script>
 </body>
 </html>
 {% endraw %}

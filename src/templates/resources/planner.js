@@ -591,6 +591,25 @@ var registerVue = function() {
     $('#edit-modal').on('hidden.bs.modal', function () {
         clearModal();
     })
+
+    $('#p-factor').toggles({
+        text: {
+            on: 'Prefer <b>best</b> points',
+            off: 'Prefer <b>more</b> points'
+        },
+        width: 250,
+        height: 25,
+    });
+
+    $('#algorithm').toggles({
+        text: {
+            off: 'Show different areas each day',
+            on: 'Days can overlap'
+        },
+        width: 250,
+        height: 25,
+    });
+
     registerDateTime();
     registerCitySearch();
     registerPointSearch();
