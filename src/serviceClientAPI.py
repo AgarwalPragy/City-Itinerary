@@ -258,6 +258,7 @@ def validateLikes():
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
     today = start
     weekDay = (today.weekday() + 1) % 7
+    weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     pointMap = getTopPointsOfCity(cityName, 100)['points']
     for dayNum, visits in mustVisit.items():
         previousPoint = None
@@ -275,7 +276,9 @@ def validateLikes():
             opening = float(opening)
             closing = float(closing)
             if not(opening <= enterTime < exitTime <= closing):
-                return 'Unacceptable enter and exit time'
+                return 'Unacceptable enter and exit time. {} is open from {} to {} on {}'.format(
+                    point['pointName'], opening, closing, weekDays[weekDay]
+                )
             if previousPoint:
                 travelTime = latlngDistance(*previousPoint['coordinates'].split(','), *point['coordinates'].split(',')) / avgSpeedOfTravel
                 travelTime = roundUpTime(travelTime)
