@@ -2,7 +2,7 @@ import json
 import sys
 from math import radians, sin, cos, atan2, sqrt
 sys.path.append('.')
-from utilities import roundUpTime, latlngDistance
+from utilities import roundUpTime, latlngDistance, floatCompare
 from tunable import avgSpeedOfTravel, pFactorLess, pFactorMore
 import time
 
@@ -70,7 +70,7 @@ def getBestSequence(sequences, pFactor):
         if gScore > maxGScore:
             maxGScore = gScore
             maxGScoreSequences = [sequence]
-        elif gScore == maxGScore:
+        elif floatCompare(gScore, maxGScore):
             maxGScoreSequences.append(sequence)
 
     print('Number of sequences:', len(maxGScoreSequences), 'with same gratification:', maxGScore)
@@ -80,6 +80,7 @@ def getBestSequence(sequences, pFactor):
         maxGScoreSequence = maxGScoreSequences[0]
     else:
         minTravelledDistance = float('inf')
+        maxGScoreSequence = None
         for sequence in maxGScoreSequences:
             lastPoint = sequence[0]['point']
             travelledDistance = 0
@@ -87,9 +88,15 @@ def getBestSequence(sequences, pFactor):
                 currentPoint = sequence[index]['point']
                 travelledDistance += latlngDistance(*lastPoint['coordinates'].split(','), *currentPoint['coordinates'].split(','))
                 lastPoint = currentPoint
-            if travelledDistance < minTravelledDistance:
+            if floatCompare(travelledDistance, minTravelledDistance) and maxGScoreSequence is not None:
+                points1 = [visit['point']['pointName'] for visit in sequence]
+                points2 = [visit['point']['pointName'] for visit in maxGScoreSequence]
+                if points1 < points2:
+                    maxGScoreSequence = sequence
+            elif travelledDistance < minTravelledDistance:
                 minTravelledDistance = travelledDistance
                 maxGScoreSequence = sequence
+
 
         print('Travelled distance in best sequence: ', minTravelledDistance)
     return maxGScoreSequence, maxGScore
@@ -287,7 +294,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
     bestSequence = getBestSequence(possibleSequences, pFactor)
 
     # for sequence in possibleSequences:
-    #     print('gScore: ', gratificationScoreOfSequence([seqData['point'] for seqData in sequence]))
+    #     print('gScore: ', gratificationScoreOfSequence([seqData['point'] for seqData in sequence], pFactor))
     #     for seqData in sequence:
     #         print(seqData['point']['pointName'])
     #     print()
@@ -339,7 +346,7 @@ if __name__ == '__main__':
 
     dayStartTime = 9
     dayEndTime = 20
-    weekDay = 5
+    weekDay = 4
     mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
     mustVisitPointsTime = [[13, 14], [17, 18]]  # , [16.5, 17.5], [21, 22]]
@@ -363,7 +370,7 @@ if __name__ == '__main__':
 
     startTime = time.time()
     bestSequence, maxGScore = getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPointsTime,
-                                              dayStartTime, dayEndTime, weekDay, pFactor = 'more')
+                                              dayStartTime, dayEndTime, weekDay, pFactor = 'less')
     endTime = time.time()
 
     print('timeTaken: ', endTime-startTime)

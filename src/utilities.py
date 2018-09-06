@@ -138,3 +138,8 @@ def latlngDistance(lat1, lon1, lat2, lon2):
 
     distance = R * c
     return distance*distanceOverEstimatorFactor
+
+
+def floatCompare(a, b, rel_tol=1e-09, abs_tol=0.0):
+    # https://stackoverflow.com/a/33024979
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
