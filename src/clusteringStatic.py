@@ -3,11 +3,14 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 from matplotlib import pyplot as plt
+from sklearn.cluster import KMeans
 
 from equal_groups import EqualGroupsKMeans
 from utilities import latlngDistance
 import time
 
+
+np.random.seed(0)
 
 def allPossibleOrders(centers, sequence, lastCenter, distance, allSequenes):
     for index, center in enumerate(centers):
@@ -50,6 +53,7 @@ def getBestOrder(centers):
 def cluster(X, numClusters, debug=False):
     t1 = time.time()
     X = np.array(X)
+    # clustering = KMeans(n_clusters=numClusters, init='k-means++', n_init=10, max_iter=100, tol=1e-6).fit(X)
     clustering = EqualGroupsKMeans(n_clusters=numClusters, init='k-means++', n_init=2, max_iter=100, tol=1e-6).fit(X)
     centers = clustering.cluster_centers_.tolist()
     bestOrder = getBestOrder(centers)
