@@ -223,5 +223,5 @@ weightOfGscorePointSelection = 2
 outlierSelectionThreshold = 3
 distanceThresholdToRejectPoint = 100
 
-pFactorLess = 1
-pFactorMore = 2
+pFactorLess = 4
+pFactorMore = 10

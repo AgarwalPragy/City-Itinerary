@@ -78,7 +78,9 @@ def planner():
         'endDate': endDate,
         'startDayTime': startDayTime,
         'endDayTime': endDayTime,
-        'page': 1
+        'page': 1,
+        'pFactor': 'less',
+        'algo': 'static'
     }
 
     return render_template('planner.html', initialConstraints=json.dumps(constraints))

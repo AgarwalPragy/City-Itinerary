@@ -196,7 +196,7 @@ def getNumDays(startDate, endDate):
 
 @lru_cache(None)
 def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime,
-                               page):
+                               page, pFactor):
     numDays = getNumDays(startDate, endDate)
 
     if not (0 < page <= numDays):
@@ -219,7 +219,8 @@ def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startD
                                                   endDate=endDate,
                                                   startDayTime=startDayTime,
                                                   endDayTime=endDayTime,
-                                                  page=oldpage)['itinerary']
+                                                  page=oldpage,
+                                                  pFactor=pFactor)['itinerary']
         prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
         points = [point for point in points if point['pointName'] not in prevItineraryPoints]
 
@@ -238,7 +239,8 @@ def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startD
     todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
                                  allSelectedPoints=[],
                                  numDays=numDays,
-                                 numPoints=clientMaxPossiblePointsPerDay)
+                                 numPoints=clientMaxPossiblePointsPerDay,
+                                 pFactor=pFactor)
 
     # Remove today's like from today's points
     todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
@@ -256,7 +258,8 @@ def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startD
                                        mustVisitPlaceEnterExitTime=todaysLikesTimings,
                                        dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
                                        dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
-                                       weekDay=weekDay)
+                                       weekDay=weekDay,
+                                       pFactor=pFactor)
 
     datePoint = {
         'point': {
@@ -295,7 +298,7 @@ def clusterCity(cityName, pointNames, numDays):
 
 @lru_cache(None)
 def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime,
-                          page):
+                          page, pFactor):
     numDays = getNumDays(startDate, endDate)
 
     if not (0 < page <= numDays):
@@ -339,7 +342,8 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
                                        mustVisitPlaceEnterExitTime=todaysLikesTimings,
                                        dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
                                        dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
-                                       weekDay=weekDay)
+                                       weekDay=weekDay,
+                                       pFactor=pFactor)
 
     datePoint = {
         'point': {
@@ -361,7 +365,7 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
     }
 
 
-def _getItinerary_incremental(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
+def _getItinerary_incremental(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page, pFactor):
     result = __getItinerary_incremental(cityName=cityName,
                                         likes=tuple(likes),
                                         mustVisit=tuple(mustVisit),
@@ -370,11 +374,12 @@ def _getItinerary_incremental(cityName, likes, mustVisit, dislikes, startDate, e
                                         endDate=endDate,
                                         startDayTime=startDayTime,
                                         endDayTime=endDayTime,
-                                        page=page)
+                                        page=page,
+                                        pFactor=pFactor)
     return result
 
 
-def _getItinerary_static(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
+def _getItinerary_static(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page, pFactor):
     result = __getItinerary_static(cityName=cityName,
                                    likes=tuple(likes),
                                    mustVisit=tuple(mustVisit),
@@ -383,7 +388,8 @@ def _getItinerary_static(cityName, likes, mustVisit, dislikes, startDate, endDat
                                    endDate=endDate,
                                    startDayTime=startDayTime,
                                    endDayTime=endDayTime,
-                                   page=page)
+                                   page=page,
+                                   pFactor=pFactor)
     return result
 
 
@@ -434,6 +440,7 @@ def getItinerary():
     page = int(request.args.get('page', '1'))
 
     algo = request.args.get('algo', 'static')
+    pFactor = request.args.get('pFactor', 'less')
 
     itineraryFunction = _getItinerary_static
     if algo == 'incremental':
@@ -447,7 +454,8 @@ def getItinerary():
                                   endDate=endDate,
                                   startDayTime=startDayTime,
                                   endDayTime=endDayTime,
-                                  page=page)
+                                  page=page,
+                                  pFactor=pFactor)
 
     mustVisitItinerary = []
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))

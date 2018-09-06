@@ -96,7 +96,7 @@ var validateTime = function(visit) {
         $('#response-status').text(code);
         if(code === 'success') {
             clearModal();
-            $('#edit-modal').modal('hide');   
+            $('#edit-modal').modal('hide');
             app.constraints.likes = likes;
             app.constraints.likesTimings = likesTimings;
         }
@@ -192,8 +192,8 @@ var renderPinPopup = function(point, dayNum) {
 
     return '<div class="pin-popup">' +
                '<div class="pin-popup-title">' + point.pointName + '</div>' +
-               '<div class="pin-popup-timing">' + 
-                   '<table class="table table-bordered"> <thead> <tr> <th scope="col">Timings</th> <th scope="col">Sun</th> <th scope="col">Mon</th> <th scope="col">Tue</th> <th scope="col">Wed</th> <th scope="col">Thu</th> <th scope="col">Fri</th> <th scope="col">Sat</th> </tr> </thead> <tbody> <tr> <th scope="row">Open</th>' + 
+               '<div class="pin-popup-timing">' +
+                   '<table class="table table-bordered"> <thead> <tr> <th scope="col">Timings</th> <th scope="col">Sun</th> <th scope="col">Mon</th> <th scope="col">Tue</th> <th scope="col">Wed</th> <th scope="col">Thu</th> <th scope="col">Fri</th> <th scope="col">Sat</th> </tr> </thead> <tbody> <tr> <th scope="row">Open</th>' +
                    openings +
                    '</tr> <tr> <th scope="row">Close</th>' +
                    closings +
@@ -484,6 +484,8 @@ var getItineraryPage = function(page) {
         dislikes: app.constraints.dislikes.join('|'),
         likes: app.constraints.likes.join('|'),
         likesTimings: app.constraints.likesTimings.join('|'),
+        algo: app.constraints.algo,
+        pFactor: app.constraints.pFactor,
         page: page,
         uuid: itineraryCallUUID
     }, function (response) {
@@ -534,6 +536,8 @@ var registerVue = function() {
             constraints: false,
             itinerary: [],
             mustVisit: {},
+            pFactor: 'less',
+            algo: 'static',
         },
         mounted: function() {},
         methods: {
@@ -584,6 +588,8 @@ var registerVue = function() {
             dislikes: [],
             likes: [],
             likesTimings: [],
+            pFactor: app.constraints.pFactor,
+            algo: app.constraints.algo,
         }
         app.constraints = newconstraints;
     });
@@ -599,6 +605,12 @@ var registerVue = function() {
         },
         width: 250,
         height: 25,
+    }).on('toggle', function(e, active) {
+        if (active) {
+            app.constraints.pFactor = 'more';
+        } else {
+            app.constraints.pFactor = 'less';
+        }
     });
 
     $('#algorithm').toggles({
@@ -608,6 +620,12 @@ var registerVue = function() {
         },
         width: 250,
         height: 25,
+    }).on('toggle', function(e, active) {
+        if (active) {
+            app.constraints.algo = 'incremental';
+        } else {
+            app.constraints.algo = 'static';
+        }
     });
 
     registerDateTime();
