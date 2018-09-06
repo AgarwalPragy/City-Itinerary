@@ -1,4 +1,3 @@
-from typing import List
 from flask import Blueprint, request, jsonify
 from flask_cors import cross_origin
 import json
@@ -8,8 +7,8 @@ from functools import lru_cache
 
 from utilities import urlDecode, latlngDistance, roundUpTime
 from itineraryPlanner import getDayItinerary
-from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime, clientMaxPossiblePointsPerDay
-from tunable import maxCityRadius, avgSpeedOfTravel
+from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime
+from tunable import maxCityRadius, avgSpeedOfTravel, clientMaxPossiblePointsPerDay
 from clustering import getBestPoints
 
 clientAPI = Blueprint('clientAPI', __name__)
@@ -50,12 +49,14 @@ def getTopPointsOfCity(city, amount):
     # Remove points for which we don't have coordinates
     points = {pointName: point for pointName, point in points.items() if point.get('coordinates', None) is not None}
 
+    # Remove outliers
     if cityCoords:
         cityCoords = list(map(float, cityCoords.split(',')))
-        points = {pointName: point
-                  for pointName, point in points.items()
-                  if latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
-                  }
+        points = {
+            pointName: point
+            for pointName, point in points.items()
+            if latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
+        }
 
     topnames = city['pointsOrder'][:150]
     pointsOrder = []
@@ -68,8 +69,8 @@ def getTopPointsOfCity(city, amount):
                 break
 
     return {
-        'points': topPoints,
-        'pointsOrder': pointsOrder
+        'pointsOrder': pointsOrder,
+        'points': topPoints
     }
 
 
@@ -96,126 +97,6 @@ def getAttractions():
         cityName = urlDecode(cityName)
         return jsonify(getTopPointsOfCity(cityName, amount))
     return 'invalid city'
-
-
-def getTodaysLikes(mustVisit, page):
-    todaysLikes = mustVisit[page-1][1]  # mustVisit is 0-indexed. day is 1-indexed
-    return [item[2] for item in todaysLikes], [item[:2] for item in todaysLikes]
-
-
-def getNumDays(startDate, endDate):
-    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
-    end = datetime.datetime(*list(map(int, endDate.strip().split('/'))))
-    return (end - start).days + 1
-
-
-@lru_cache(None)
-def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
-    numDays = getNumDays(startDate, endDate)
-
-    if not (0 < page <= numDays):
-        return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
-
-    pointMap = getTopPointsOfCity(cityName, 150)['points']
-
-    points = pointMap.values()
-
-    # Remove dislikes
-    points = [point for point in points if point['pointName'] not in set(dislikes)]
-
-    # Remove points for which we were already shown in the previous pages
-    for oldpage in range(page-1, 0, -1):
-        prevItinerary = _getItinerary(cityName=cityName,
-                                      likes=likes,
-                                      mustVisit=mustVisit,
-                                      dislikes=dislikes,
-                                      startDate=startDate,
-                                      endDate=endDate,
-                                      startDayTime=startDayTime,
-                                      endDayTime=endDayTime,
-                                      page=oldpage)['itinerary']
-        prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
-        points = [point for point in points if point['pointName'] not in prevItineraryPoints]
-
-    todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
-
-    # print('Page:', page)
-    # print('Todays likes:', todaysLikes)
-    # print('Todays Like Timings:', todaysLikesTimings)
-
-    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
-    if not clusteringPoints:
-        return {'itinerary': [{
-            'point': {
-                'pointName': '__newday__'
-            },
-            'dayNum': page,
-            'date': 'No data. (╯°□°）╯︵ ┻━┻'
-        }], 'score': -1, 'nextPage': False, 'currentPage': 1}
-
-    todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
-                                 allSelectedPoints=[],
-                                 numDays=numDays,
-                                 numPoints=clientMaxPossiblePointsPerDay)
-
-    # Remove today's like from today's points
-    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
-
-    # choose the best points form todaysPoints points
-    todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
-
-    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
-    today = start + datetime.timedelta(days=page-1)
-    # print('Today Date:', today)
-
-    print('Sending List of Points to itinerary')
-    print([point['pointName'] for point in todaysPoints])
-    print('Sending Must Visit Points to itinerary')
-    print(todaysLikes)
-
-    weekDay = (today.weekday() + 1) % 7
-
-    itinerary, score = getDayItinerary(listOfPoints=todaysPoints,
-                                       mustVisitPoints=[pointMap[like] for like in todaysLikes],
-                                       mustVisitPlaceEnterExitTime=todaysLikesTimings,
-                                       dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
-                                       dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
-                                       weekDay=weekDay)
-
-    datePoint = {
-        'point': {
-            'pointName': '__newday__'
-        },
-        'dayNum': page,
-        'date': today.strftime('%A/ %d %B /%y')
-    }
-
-    # Add dayNum to each visit of the itinerary
-    for visit in itinerary:
-        visit['dayNum'] = page
-
-    return {
-        'itinerary': [datePoint] + itinerary,
-        'score': score,
-        'nextPage': (page + 1 if page < numDays else False),
-        'currentPage': page
-    }
-
-
-def _getItinerary(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
-    # print('_getItinerary(', cityName, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page, ')')
-    result = __getItinerary(cityName=cityName,
-                            likes=tuple(likes),
-                            mustVisit=tuple(mustVisit),
-                            dislikes=tuple(dislikes),
-                            startDate=startDate,
-                            endDate=endDate,
-                            startDayTime=startDayTime,
-                            endDayTime=endDayTime,
-                            page=page)
-    # print('Response from _getItinerary():', len(result['itinerary']), result['score'], result['nextPage'], result['currentPage'])
-    return result
-
 
 
 @clientAPI.route('/api/validate')
@@ -278,12 +159,13 @@ def validateLikes():
                 return '{} is closed on the day {} of your plan'.format(point['pointName'], dayNum)
             opening = float(opening)
             closing = float(closing)
-            if not(opening <= enterTime < exitTime <= closing):
+            if not (opening <= enterTime < exitTime <= closing):
                 return 'Unacceptable enter and exit time. {} is open from {} to {} on {}'.format(
                     point['pointName'], opening, closing, weekDays[weekDay]
                 )
             if previousPoint:
-                travelTime = latlngDistance(*previousPoint['coordinates'].split(','), *point['coordinates'].split(',')) / avgSpeedOfTravel
+                travelTime = latlngDistance(*previousPoint['coordinates'].split(','),
+                                            *point['coordinates'].split(',')) / avgSpeedOfTravel
                 travelTime = roundUpTime(travelTime)
                 if previousExitTime + travelTime > enterTime:
                     return 'It takes {} hours to travel from {} to {}. You can\'t exit {} at {} and enter {} at {}'.format(
@@ -298,6 +180,210 @@ def validateLikes():
     return 'success'
 
 
+def getTodaysLikes(mustVisit, page):
+    todaysLikes = mustVisit[page - 1][1]  # mustVisit is 0-indexed. day is 1-indexed
+    return [item[2] for item in todaysLikes], [item[:2] for item in todaysLikes]
+
+
+def getNumDays(startDate, endDate):
+    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
+    end = datetime.datetime(*list(map(int, endDate.strip().split('/'))))
+    return (end - start).days + 1
+
+
+@lru_cache(None)
+def __getItinerary_incremental(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime,
+                               page):
+    numDays = getNumDays(startDate, endDate)
+
+    if not (0 < page <= numDays):
+        return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
+
+    pointMap = getTopPointsOfCity(cityName, 150)['points']
+
+    points = pointMap.values()
+
+    # Remove dislikes
+    points = [point for point in points if point['pointName'] not in set(dislikes)]
+
+    # Remove points for which we were already shown in the previous pages
+    for oldpage in range(page - 1, 0, -1):
+        prevItinerary = _getItinerary_incremental(cityName=cityName,
+                                                  likes=likes,
+                                                  mustVisit=mustVisit,
+                                                  dislikes=dislikes,
+                                                  startDate=startDate,
+                                                  endDate=endDate,
+                                                  startDayTime=startDayTime,
+                                                  endDayTime=endDayTime,
+                                                  page=oldpage)['itinerary']
+        prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
+        points = [point for point in points if point['pointName'] not in prevItineraryPoints]
+
+    todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
+
+    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
+    if not clusteringPoints:
+        return {'itinerary': [{
+            'point': {
+                'pointName': '__newday__'
+            },
+            'dayNum': page,
+            'date': 'No data. (╯°□°）╯︵ ┻━┻'
+        }], 'score': -1, 'nextPage': False, 'currentPage': 1}
+
+    todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
+                                 allSelectedPoints=[],
+                                 numDays=numDays,
+                                 numPoints=clientMaxPossiblePointsPerDay)
+
+    # Remove today's like from today's points
+    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
+
+    # choose the best points form todaysPoints points
+    todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
+
+    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
+    today = start + datetime.timedelta(days=page - 1)
+
+    weekDay = (today.weekday() + 1) % 7
+
+    itinerary, score = getDayItinerary(listOfPoints=todaysPoints,
+                                       mustVisitPoints=[pointMap[like] for like in todaysLikes],
+                                       mustVisitPlaceEnterExitTime=todaysLikesTimings,
+                                       dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
+                                       dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
+                                       weekDay=weekDay)
+
+    datePoint = {
+        'point': {
+            'pointName': '__newday__'
+        },
+        'dayNum': page,
+        'date': today.strftime('%A/ %d %B /%y')
+    }
+
+    # Add dayNum to each visit of the itinerary
+    for visit in itinerary:
+        visit['dayNum'] = page
+
+    return {
+        'itinerary': [datePoint] + itinerary,
+        'score': score,
+        'nextPage': (page + 1 if page < numDays else False),
+        'currentPage': page
+    }
+
+
+@lru_cache(None)
+def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime,
+                          page):
+    numDays = getNumDays(startDate, endDate)
+
+    if not (0 < page <= numDays):
+        return {'itinerary': [], 'score': -1, 'nextPage': False, 'currentPage': 1}
+
+    pointMap = getTopPointsOfCity(cityName, 150)['points']
+
+    points = pointMap.values()
+
+    # Remove dislikes
+    points = [point for point in points if point['pointName'] not in set(dislikes)]
+
+    # Remove points for which we were already shown in the previous pages
+    for oldpage in range(page - 1, 0, -1):
+        prevItinerary = _getItinerary_incremental(cityName=cityName,
+                                                  likes=likes,
+                                                  mustVisit=mustVisit,
+                                                  dislikes=dislikes,
+                                                  startDate=startDate,
+                                                  endDate=endDate,
+                                                  startDayTime=startDayTime,
+                                                  endDayTime=endDayTime,
+                                                  page=oldpage)['itinerary']
+        prevItineraryPoints = set([item['point']['pointName'] for item in prevItinerary])
+        points = [point for point in points if point['pointName'] not in prevItineraryPoints]
+
+    todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
+
+    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
+    if not clusteringPoints:
+        return {'itinerary': [{
+            'point': {
+                'pointName': '__newday__'
+            },
+            'dayNum': page,
+            'date': 'No data. (╯°□°）╯︵ ┻━┻'
+        }], 'score': -1, 'nextPage': False, 'currentPage': 1}
+
+    todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
+                                 allSelectedPoints=[],
+                                 numDays=numDays,
+                                 numPoints=clientMaxPossiblePointsPerDay)
+
+    # Remove today's like from today's points
+    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
+
+    # choose the best points form todaysPoints points
+    todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
+
+    start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
+    today = start + datetime.timedelta(days=page - 1)
+
+    weekDay = (today.weekday() + 1) % 7
+
+    itinerary, score = getDayItinerary(listOfPoints=todaysPoints,
+                                       mustVisitPoints=[pointMap[like] for like in todaysLikes],
+                                       mustVisitPlaceEnterExitTime=todaysLikesTimings,
+                                       dayStartTime=(startDayTime if page == 1 else clientDefaultStartTime),
+                                       dayEndTime=(endDayTime if page == numDays else clientDefaultEndTime),
+                                       weekDay=weekDay)
+
+    datePoint = {
+        'point': {
+            'pointName': '__newday__'
+        },
+        'dayNum': page,
+        'date': today.strftime('%A/ %d %B /%y')
+    }
+
+    # Add dayNum to each visit of the itinerary
+    for visit in itinerary:
+        visit['dayNum'] = page
+
+    return {
+        'itinerary': [datePoint] + itinerary,
+        'score': score,
+        'nextPage': (page + 1 if page < numDays else False),
+        'currentPage': page
+    }
+
+
+def _getItinerary_incremental(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
+    result = __getItinerary_incremental(cityName=cityName,
+                                        likes=tuple(likes),
+                                        mustVisit=tuple(mustVisit),
+                                        dislikes=tuple(dislikes),
+                                        startDate=startDate,
+                                        endDate=endDate,
+                                        startDayTime=startDayTime,
+                                        endDayTime=endDayTime,
+                                        page=page)
+    return result
+
+
+def _getItinerary_static(cityName, likes, mustVisit, dislikes, startDate, endDate, startDayTime, endDayTime, page):
+    result = __getItinerary_static(cityName=cityName,
+                                   likes=tuple(likes),
+                                   mustVisit=tuple(mustVisit),
+                                   dislikes=tuple(dislikes),
+                                   startDate=startDate,
+                                   endDate=endDate,
+                                   startDayTime=startDayTime,
+                                   endDayTime=endDayTime,
+                                   page=page)
+    return result
+
 
 @clientAPI.route('/api/itinerary')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
@@ -311,7 +397,7 @@ def getItinerary():
 
     strFormat = '%y/%m/%d'
     startDate = datetime.datetime.now().strftime(strFormat)
-    endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength-1)).strftime(strFormat)
+    endDate = (datetime.datetime.now() + datetime.timedelta(days=clientDefaultTripLength - 1)).strftime(strFormat)
     startDayTime, endDayTime = clientDefaultStartTime, clientDefaultEndTime
 
     startDate = request.args.get('startDate', startDate)
@@ -339,31 +425,33 @@ def getItinerary():
     for dayNum in range(1, numDays + 1):
         tupleMustVisit.append((dayNum, tuple(map(tuple, mustVisit[dayNum]))))
 
-    # print('Processed MustVisit:', mustVisit)
-
     dislikes = request.args.get('dislikes', [])
     if dislikes:
         dislikes = list(map(urlDecode, dislikes.split('|')))
 
-    # print('Processed User Timings:', startDayTime, endDayTime)
-    # input()
     page = int(request.args.get('page', '1'))
 
-    itinerary = _getItinerary(cityName=cityName,
-                              likes=likes,
-                              mustVisit=tupleMustVisit,
-                              dislikes=dislikes,
-                              startDate=startDate,
-                              endDate=endDate,
-                              startDayTime=startDayTime,
-                              endDayTime=endDayTime,
-                              page=page)
+    algo = request.args.get('algo', 'static')
+
+    itineraryFunction = _getItinerary_static
+    if algo == 'incremental':
+        itineraryFunction = _getItinerary_incremental
+
+    itinerary = itineraryFunction(cityName=cityName,
+                                  likes=likes,
+                                  mustVisit=tupleMustVisit,
+                                  dislikes=dislikes,
+                                  startDate=startDate,
+                                  endDate=endDate,
+                                  startDayTime=startDayTime,
+                                  endDayTime=endDayTime,
+                                  page=page)
 
     mustVisitItinerary = []
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
     pointMap = getTopPointsOfCity(cityName, 100)['points']
     for dayNum in range(1, numDays + 1):
-        today = start + datetime.timedelta(days=dayNum-1)
+        today = start + datetime.timedelta(days=dayNum - 1)
         datePoint = {
             'point': {
                 'pointName': '__newday__'
@@ -381,10 +469,6 @@ def getItinerary():
             }
             mustVisitItinerary.append(visit)
 
-
-    tend = time.time()
-    print('Time for request:', tend - tstart)
-
     itineraryCallUUID = request.args.get('uuid', None)
     result = {
         'itinerary': itinerary,
@@ -392,9 +476,11 @@ def getItinerary():
         'mustNotVisit': dislikes,
         'uuid': itineraryCallUUID
     }
-    # print(result)
     result = json.loads(json.dumps(result))
-    # print(result)
+
+    tend = time.time()
+    print('Time for request:', tend - tstart)
+
     return jsonify(result)
 
 
