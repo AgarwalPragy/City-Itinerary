@@ -3,13 +3,16 @@ import sys
 from math import radians, sin, cos, atan2, sqrt
 sys.path.append('.')
 from utilities import roundUpTime, latlngDistance
-from tunable import avgSpeedOfTravel, distanceOverEstimatorFactor
+from tunable import avgSpeedOfTravel, pFactorLess, pFactorMore
 import time
 
-def gratificationScoreOfSequence(pointsInOrder):
+def gratificationScoreOfSequence(pointsInOrder, pFactor):
     # TODO: improve this?
-    return sum(point['gratificationScore'] for point in pointsInOrder)
-
+    if pFactor == 'less':
+        gscore = sum(point['gratificationScore']**pFactorLess for point in pointsInOrder)
+    else:
+        gscore = sum(point['gratificationScore']**pFactorMore for point in pointsInOrder)
+    return gscore
 
 
 def readAllData(filePath: str):
@@ -58,12 +61,12 @@ def getTravelTime(point1, point2):
     return roundUpTime(distance/avgSpeedOfTravel)  # assumed avg speed 40km/hr
 
 
-def getBestSequence(sequences):
+def getBestSequence(sequences, pFactor):
     maxGScore = -99999
     maxGScoreSequences = []
     print('Number of sequences to check for gratification:', len(sequences))
     for sequence in sequences:
-        gScore = gratificationScoreOfSequence([seqData['point'] for seqData in sequence])
+        gScore = gratificationScoreOfSequence([seqData['point'] for seqData in sequence], pFactor)
         if gScore > maxGScore:
             maxGScore = gScore
             maxGScoreSequences = [sequence]
@@ -211,7 +214,7 @@ def possibleSequencesBWStartTimeAndEndPoint(listOfPoints, visitedPoints, current
 
 
 def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, dayStartTime,
-                    dayEndTime, weekDay):
+                    dayEndTime, weekDay, pFactor):
     possibleSequences = []
     visitedPoints = {}
     if len(mustVisitPoints) == 0:
@@ -281,7 +284,7 @@ def getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPlaceEnterExitTime, 
 
             possibleSequences = possibleSequencesAfterIter[:]
 
-    bestSequence = getBestSequence(possibleSequences)
+    bestSequence = getBestSequence(possibleSequences, pFactor)
 
     # for sequence in possibleSequences:
     #     print('gScore: ', gratificationScoreOfSequence([seqData['point'] for seqData in sequence]))
@@ -316,8 +319,8 @@ def printSequence(sequence, dayStartTime, GScore, weekDay):
 
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
-    countryName = "India"
-    cityName = 'New Delhi'
+    countryName = "UAE"
+    cityName = 'Dubai'
 
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
 
@@ -336,7 +339,7 @@ if __name__ == '__main__':
 
     dayStartTime = 9
     dayEndTime = 20
-    weekDay = 0
+    weekDay = 5
     mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
     mustVisitPointsTime = [[13, 14], [17, 18]]  # , [16.5, 17.5], [21, 22]]
@@ -360,7 +363,7 @@ if __name__ == '__main__':
 
     startTime = time.time()
     bestSequence, maxGScore = getDayItinerary(listOfPoints, mustVisitPoints, mustVisitPointsTime,
-                                              dayStartTime, dayEndTime, weekDay)
+                                              dayStartTime, dayEndTime, weekDay, pFactor = 'more')
     endTime = time.time()
 
     print('timeTaken: ', endTime-startTime)

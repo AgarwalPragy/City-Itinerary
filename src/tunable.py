@@ -217,8 +217,11 @@ weightOfMaxGscoreClusterSelection = 1
 weightOfAvgGscoreClusterSelection = 1
 weightOfNumPointsClusterSelection = 0.15
 
-weightOfDistancePointSelection = 1
-weightOfGscorePointSelection = 3
+weightOfDistancePointSelection = 3
+weightOfGscorePointSelection = 2
 
 outlierSelectionThreshold = 3
 distanceThresholdToRejectPoint = 100
+
+pFactorLess = 1
+pFactorMore = 2

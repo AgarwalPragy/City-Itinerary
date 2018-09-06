@@ -7,13 +7,13 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 import numpy as np
-from math import radians, sin, cos, atan2, sqrt
-import math
+import time
 from tunable import weightOfMaxGscoreClusterSelection, weightOfAvgGscoreClusterSelection, weightOfNumPointsClusterSelection
 from tunable import weightOfDistancePointSelection, weightOfGscorePointSelection
-import time
+from tunable import clientDefaultStartTime, clientDefaultEndTime, pFactorMore, pFactorLess
 from itineraryPlanner import getDayItinerary
-from tunable import clientDefaultStartTime, clientDefaultEndTime
+from utilities import latlngDistance
+
 def readAllData(filePath: str):
     with open(filePath, 'r') as f:
         allData = json.loads(f.read())
@@ -38,53 +38,43 @@ def getTopPointsOfCity(allData, countryName, cityName, amount=50):
             break
     return topPoints
 
-def getDistance(lat1, lon1, lat2, lon2):
-    # approximate radius of earth in km
-    R = 6373.0
-    lat1 = radians(float(lat1))
-    lon1 = radians(float(lon1))
-    lat2 = radians(float(lat2))
-    lon2 = radians(float(lon2))
-
-    dlon = lon2 - lon1
-    dlat = lat2 - lat1
-
-    a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-
-    distance = R * c
-    return distance
+def getGScoreOfPoint(point, pFactor):
+    if pFactor == 'less':
+        return point['gratificationScore']**pFactorLess
+    else:
+        return point['gratificationScore']**pFactorMore
 
 
-def getAvgMaxGscore(listOfPoints):
+def getAvgMaxGscore(listOfPoints, pFactor):
     maxGscore = -float('inf')
     avgGscore = 0
 
     for point in listOfPoints:
-        avgGscore += point['gratificationScore']
-        if maxGscore < point['gratificationScore']:
-            maxGscore = point['gratificationScore']
+        gscoreOfPoint = getGScoreOfPoint(point, pFactor)
+        avgGscore += gscoreOfPoint
+        if maxGscore < gscoreOfPoint:
+            maxGscore = gscoreOfPoint
 
     avgGscore = avgGscore/len(listOfPoints)
     return maxGscore, avgGscore
 
 
-def getWeightedScoreOfCluster(listOfPoints):
-    maxGscore, avgGscore = getAvgMaxGscore(listOfPoints)
+def getWeightedScoreOfCluster(listOfPoints, pFactor):
+    maxGscore, avgGscore = getAvgMaxGscore(listOfPoints, pFactor)
     numPoints = len(listOfPoints)
 
     return weightOfAvgGscoreClusterSelection*avgGscore + weightOfMaxGscoreClusterSelection*maxGscore + weightOfNumPointsClusterSelection*numPoints
 
 
-def getWeightedScoreOfPoint(point, centerOfCluster):
+def getWeightedScoreOfPoint(point, centerOfCluster, pFactor):
     [lat, lng] = map(float, point['coordinates'].split(','))
     [centerX, centerY] = centerOfCluster
-    distance = getDistance(lat, lng, centerX, centerY)
-    pointGscore = point['gratificationScore']
+    distance = latlngDistance(lat, lng, centerX, centerY)
+    pointGscore = getGScoreOfPoint(point, pFactor)
     return -weightOfDistancePointSelection*distance + weightOfGscorePointSelection * pointGscore
 
 # allSelectedPoints: already selected points
-def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int, Debug=False):
+def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int, pFactor, Debug=False):
     dayWiseClusteredData = defaultdict(list)
 
     coordinatesData = []
@@ -118,7 +108,7 @@ def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int,
     maxWeightedScoreIndex = 0
     maxWeightedScore = -float('inf')
     for day in dayWiseClusteredData:
-        weightedValue = getWeightedScoreOfCluster(dayWiseClusteredData[day])
+        weightedValue = getWeightedScoreOfCluster(dayWiseClusteredData[day], pFactor)
         if weightedValue > maxWeightedScore:
             maxWeightedScore = weightedValue
             maxWeightedScoreIndex = day
@@ -153,7 +143,7 @@ def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int,
 
             for index, point in enumerate(maxWeightCluster):
                 if not takenPoints[index]:
-                    weightedScore = getWeightedScoreOfPoint(point, maxWeightClusterCenter)
+                    weightedScore = getWeightedScoreOfPoint(point, maxWeightClusterCenter, pFactor)
                     if weightedScore > maxWeightedScore:
                         maxWeightedScore = weightedScore
                         maxWeightedScoreIndex = index
@@ -179,23 +169,29 @@ def getBestPoints(listOfPoints, allSelectedPoints, numDays: int, numPoints: int,
 
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
-    countryName = "India"
-    cityName = 'Mumbai'
+    countryName = "France"
+    cityName = 'Paris'
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName, amount=100)
 
     cityTopPoints = [point for point in cityTopPoints if point['coordinates'] is not None][:50]
-    numDays = 7
+    numDays = 5
 
     # tstart = time.time()
     selectedPoints = []
     itinerayLabels = []
     Debug = False
+    pFactor = 'more'
     numPoints = 8
     itineraryDayWiseCoordinates = []
     for day in range(numDays):
         print('day: ', day)
-        clusteredPoints = getBestPoints(cityTopPoints, selectedPoints, numDays-day, numPoints, Debug)
-        itinerarySeq, maxGscore = getDayItinerary(clusteredPoints, [], [], clientDefaultStartTime, clientDefaultEndTime, day)
+        clusteredPoints = getBestPoints(cityTopPoints, selectedPoints, numDays-day, numPoints, pFactor, Debug)
+
+        print('clustered points: ')
+        for index, point in enumerate(clusteredPoints):
+            print(index, point['pointName'])
+
+        itinerarySeq, maxGscore = getDayItinerary(clusteredPoints, [], [], clientDefaultStartTime, clientDefaultEndTime, day, pFactor)
 
         for index, seqData in enumerate(itinerarySeq):
             point = seqData['point']
