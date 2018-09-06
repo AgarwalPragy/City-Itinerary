@@ -143,10 +143,7 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     # print('Todays likes:', todaysLikes)
     # print('Todays Like Timings:', todaysLikesTimings)
 
-    # For clustering, remove points that I must visit
-    points = [point for point in points if point['pointName'] not in set(likes)]
-
-    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays - len(todaysLikes)]
+    clusteringPoints = points[:clientMaxPossiblePointsPerDay * numDays]
     if not clusteringPoints:
         return {'itinerary': [{
             'point': {
@@ -159,7 +156,13 @@ def __getItinerary(cityName: str, likes, mustVisit, dislikes, startDate, endDate
     todaysPoints = getBestPoints(listOfPoints=clusteringPoints,
                                  allSelectedPoints=[],
                                  numDays=numDays,
-                                 numPoints=clientMaxPossiblePointsPerDay - len(todaysLikes))
+                                 numPoints=clientMaxPossiblePointsPerDay)
+
+    # Remove today's like from today's points
+    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
+
+    # choose the best points form todaysPoints points
+    todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
 
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
     today = start + datetime.timedelta(days=page-1)
