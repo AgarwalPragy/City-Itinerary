@@ -600,8 +600,8 @@ var registerVue = function() {
 
     $('#p-factor').toggles({
         text: {
-            on: 'Prefer <b>best</b> points',
-            off: 'Prefer <b>more</b> points'
+            on: 'Prefering <b>best</b> points',
+            off: 'Prefering <b>more</b> points'
         },
         width: 250,
         height: 25,
@@ -615,8 +615,8 @@ var registerVue = function() {
 
     $('#algorithm').toggles({
         text: {
-            off: 'Show different areas each day',
-            on: 'Days can overlap'
+            off: 'Showing different areas each day',
+            on: 'Allowing days to overlap'
         },
         width: 250,
         height: 25,
