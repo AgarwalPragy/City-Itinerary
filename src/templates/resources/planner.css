@@ -274,6 +274,12 @@ body {
             height: 100%;
             padding: 0;
         }
+            #mapid > div:nth-child(2) {
+                display: none;
+            }
+            #mapid > div:nth-child(3) {
+                display: none;
+            }
             .pin-popup {
                 width: 400px;
                 height: 300px;
