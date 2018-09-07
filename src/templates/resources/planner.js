@@ -83,7 +83,7 @@ var validateTime = function(visit) {
     likesTimings.push([chosenDay, chosenEnter, chosenExit].join('-'));
 
     utils.getData('/api/validate', {
-        city: app.constraints.city,
+        city: app.constraints.cityName,
         startDate: app.constraints.startDate,
         endDate: app.constraints.endDate,
         startDayTime: app.constraints.startDayTime,
@@ -481,7 +481,7 @@ var getItineraryPage = function(page) {
         itineraryCallUUID = utils.uuid4();
     }
     utils.getData('/api/itinerary', {
-        city: app.constraints.city,
+        city: app.constraints.cityName,
         startDate: app.constraints.startDate,
         endDate: app.constraints.endDate,
         startDayTime: app.constraints.startDayTime,
@@ -560,11 +560,11 @@ var registerVue = function() {
             },
             constraints: {
                 handler: function() {
-                    $('#city-searchbar').val(app.constraints.city);
+                    $('#city-searchbar').val(app.constraints.cityName);
                     console.log('constraints changed!')
                     getItineraryPage(1);
                     utils.getData('/api/points', {
-                        city: app.constraints.city
+                        city: app.constraints.cityName
                     }, function (response) {
                         app.points = response.data;
                     });
@@ -577,9 +577,9 @@ var registerVue = function() {
 
 
 (function() {
-    searchSelectedCity = initialConstraints.city;
+    searchSelectedCity = initialConstraints.cityName;
     utils.getData('/api/city-image', {
-        city: searchSelectedCity.cityName
+        city: searchSelectedCity
     }, function(response) {
         var url = response.data;
         var imgurl = utils.fetchImageURL(url, 1400, 875)
@@ -595,7 +595,7 @@ var registerVue = function() {
     });
     $('#city-searchbar-submit').on('click', function() {
         newconstraints = {
-            city: $('#city-searchbar').val(),
+            cityName: $('#city-searchbar').val(),
             startDate: $('#date_timepicker_start').val().split(' ')[0],
             endDate: $('#date_timepicker_end').val().split(' ')[0],
             startDayTime: $('#date_timepicker_start').val().split(' ')[1].split(':')[0],
@@ -608,7 +608,7 @@ var registerVue = function() {
         }
         app.constraints = newconstraints;
         utils.getData('/api/city-image', {
-            city: app.constraints.city.cityName
+            city: newconstraints.cityName,
         }, function(response) {
             var url = response.data;
             var imgurl = utils.fetchImageURL(url, 1400, 875)

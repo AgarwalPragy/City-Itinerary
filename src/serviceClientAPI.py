@@ -520,6 +520,8 @@ def getRecentPlans():
 def getCityImage():
     cityName = request.args.get('city', 'mumbai')
     cityName = cityName.strip().lower().replace(' ', '')
+    if ',' in cityName:
+        cityName = cityName.split(',')[0]
     if 'bengaluru' in cityName:
         cityName = 'bangalore'
     if 'calcutta' in cityName:

@@ -70,7 +70,7 @@ def planner():
         dislikes = list(map(urlDecode, dislikes.split('|')))
 
     constraints = {
-        'city': cityName,
+        'cityName': cityName,
         'likes': likes,
         'likesTimings': likesTimings,
         'dislikes': dislikes,
