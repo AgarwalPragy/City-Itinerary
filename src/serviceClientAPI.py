@@ -41,9 +41,8 @@ countries, cities, citiesNoPoints = loadData()
 
 
 @lru_cache(None)
-def getTopPointsOfCity(city, amount):
-    if isinstance(city, (str,)):
-        city = cities[city]
+def getTopPointsOfCity(cityName, amount):
+    city = cities[cityName]
 
     # Remove outliers
     cityCoords = city['coordinates']
@@ -53,13 +52,20 @@ def getTopPointsOfCity(city, amount):
     points = {pointName: point for pointName, point in points.items() if point.get('coordinates', None) is not None}
 
     # Remove outliers
-    if cityCoords:
+    try:
         cityCoords = list(map(float, cityCoords.split(',')))
         points = {
             pointName: point
             for pointName, point in points.items()
             if latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
         }
+    except Exception as e:
+        print('Error:', e)
+        return {
+            'pointsOrder': [],
+            'points': []
+        }
+
 
     topnames = city['pointsOrder'][:150]
     pointsOrder = []
@@ -85,10 +91,17 @@ recentPlans = [
 ]
 
 
+@lru_cache(None)
+def _getCities():
+    goodCities = {cityName: city for cityName, city in citiesNoPoints.items() if len(getTopPointsOfCity(cityName, 10)['points']) == 10}
+    return goodCities
+
+
+
 @clientAPI.route('/api/cities')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getCities():
-    return jsonify(citiesNoPoints)
+    return jsonify(_getCities())
 
 
 @clientAPI.route('/api/points')
