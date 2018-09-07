@@ -5,11 +5,12 @@ from collections import defaultdict
 from jsonUtils import J
 import json
 import re
+import math
 
 from entities import *
 from utilities import *
 from siteRankings import alexa_ranking_orderedList, domain_avg_ranking
-from tunable import avgRecommendedNumHours, avgOpenTime, avgCloseTime
+from tunable import avgRecommendedNumHours, avgOpenTime, avgCloseTime, injectedBestNames
 from gratify import gratificationScoreOfPoint
 from cityCenter import getCenterOfCity
 
@@ -23,14 +24,26 @@ def getBestName(names: List[str], strictness: int=3) -> str:
     """returns the median length name which occurs sufficiently enough
     strictness: [1..100]"""
     # sufficiently enough: in order to remove incorrect names
+    names = sorted(names, key=len)
     counts = Counter(names)
     numUnique = len(counts)
-    popularNames = ('####'.join('####'.join([name]*count) for name, count in counts.most_common(1 + numUnique//strictness))).split('####')
+    sufficientAmount = counts.most_common(1 + numUnique//strictness)[-1][1]
+
+    popularNames = ('####'.join('####'.join([name]*count) for name, count in counts.most_common() if count >= sufficientAmount)).split('####')
     # of all the names that occur sufficiently many times, choose the median length one
-    sortedNames = sorted(popularNames, key=len)
-    bestName = sanitizeName(sortedNames[len(sortedNames)//2])
+    if len(popularNames) == 1:
+        bestName = popularNames[0]
+    else:
+        sortedNames = sorted(popularNames, key=len)
+        bestName = sanitizeName(sortedNames[math.ceil(len(sortedNames)/2)])
     if len(names) > 4:
+        print('#######################', bestName, names)
+
+    if 'botanique' in bestName.lower():
         print(bestName, names)
+
+    bestName = injectedBestNames.get(bestName, bestName)
+
     return bestName
 
 

@@ -4,18 +4,19 @@ from entities import CityID, CountryID, PointID
 clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'Mumbai, India'
+clientDefaultCity = 'Mumbai (Bombay), India'
 clientMaxPossiblePointsPerDay = 8
 
 maxCityRadius = 100  # in KM
 
-stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' of ', ' & ', '\'s ']))
+stopWords = list(map(lambda x: x.lower(), [' and ', 'the ', ' & ', '\'s ']))
 synonyms = [
     ('dargah', 'mosque'),
     ('darga', 'mosque'),
     ('masjidh', 'mosque'),
     ('bagh', 'garden'),
     ('qila', 'fort'),
+    ('quila', 'fort')
 ]
 
 matchPointID_countryThreshold = 75
@@ -119,7 +120,7 @@ okayCategoryTitleWords = list(set(word.strip().lower() for word in [
 
 goodCategoryTitleWords = list(set(word.strip().lower() for word in [
     'Archaeological', 'Architectural',
-    'botanical',  'beach', 'burj khalifa',
+    'botanical', 'Buckingham Palace', 'beach', 'burj khalifa',
     'Canyon', 'Castle', 'cathedral', 'cave', 'Chapel', 'City', 'Courthouse',
     'dam', 'desert',
     'Equestrian',
@@ -133,10 +134,10 @@ goodCategoryTitleWords = list(set(word.strip().lower() for word in [
     'marina', 'marine', 'Minar', 'monument', 'Mosque', 'Mountain', 'Museum', 'marine drive',
     'national',
     'Observatory',
-    'palace', 'Pier',
+    'palace', 'Palm Jumeirah', 'Pier',
     'religious', 'river', 'Rock', 'Ruin',
-    'Scenic', 'scenic drive', 'science', 'spring', 'state', 'Statue'
-    'temple', 'Tomb', 'tower',
+    'Scenic', 'summer palace', 'scenic drive', 'science', 'spring', 'state', 'Statue'
+    'temple', 'top of rock', 'Tomb', 'tower',
     'University',
     'Valley',
     'waterfall',
@@ -174,6 +175,12 @@ injectedCityAliases = [
     (CityID('India', 'Calcutta'), CityID('India', 'Kolkata')),
     (CityID('India', 'Bengaluru'), CityID('India', 'Bangalore'))
 ]
+
+injectedBestNames = {
+    'Intercontinental Marine Drive': 'Marine Drive',
+    'California': 'United States of America',
+    'Great Britain': 'United Kingdom',
+}
 
 injectedCountryAliases = [
     (CountryID('USA'), CountryID('United States of America')),
