@@ -21,7 +21,7 @@ synonyms = [
 
 matchPointID_countryThreshold = 75
 matchPointID_cityThreshold = 85
-matchPointID_pointThreshold = 95
+matchPointID_pointThreshold = 90
 
 avgRecommendedNumHours = 2
 avgOpenTime = '9:00 am'
@@ -180,6 +180,8 @@ injectedBestNames = {
     'Intercontinental Marine Drive': 'Marine Drive',
     'California': 'United States of America',
     'Great Britain': 'United Kingdom',
+    'Dubai Marina Yacht Club': 'Dubai Marina Mall',
+    'Burj Khalifa - At The Top': 'Burj Khalifa'
 }
 
 injectedCountryAliases = [

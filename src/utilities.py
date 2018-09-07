@@ -57,7 +57,8 @@ def processName(name: str) -> str:
 def doesFuzzyMatch(name1: str, name2: str, threshold: int) -> bool:
     n1, n2 = processName(name1), processName(name2)
     similar = fuzz.ratio(n1, n2) > threshold
-    contained = fuzz.partial_ratio(n1, n2) > threshold
+    ln1, ln2 = len(n1), len(n2)
+    contained = (fuzz.partial_ratio(n1, n2) > threshold) and ((max(ln1, ln2) / min(ln1, ln2)) <= 2.5)
     return contained or similar
 
 
@@ -73,7 +74,7 @@ def scaleRating(givenRating: float, worstRating: int, bestRating: int) -> float:
 
 
 def getWilsonScore(p, n) -> float:
-    z = 1.96 # consider 95% confidence interval
+    z = 1.96  # consider 95% confidence interval
     if n > 0:
         lower_bound = (p + z*z/(2*n) - z*math.sqrt((p*(1-p) + z*z/(4*n) )/n) )/ (1 + z*z/n)
     else:
