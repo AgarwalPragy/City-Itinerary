@@ -4,7 +4,7 @@ from entities import CityID, CountryID, PointID
 clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'New Delhi, India'
+clientDefaultCity = 'Mumbai, India'
 clientMaxPossiblePointsPerDay = 8
 
 maxCityRadius = 100  # in KM

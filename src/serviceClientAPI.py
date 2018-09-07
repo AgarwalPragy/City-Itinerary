@@ -5,6 +5,7 @@ import time
 import datetime
 from functools import lru_cache
 from collections import defaultdict
+from random import randint
 
 
 from utilities import urlDecode, latlngDistance, roundUpTime
@@ -60,7 +61,7 @@ def getTopPointsOfCity(cityName, amount):
             if latlngDistance(*point['coordinates'].split(','), *cityCoords) < maxCityRadius
         }
     except Exception as e:
-        print('Error:', e)
+        # print('Error:', e)
         return {
             'pointsOrder': [],
             'points': []
@@ -511,3 +512,19 @@ def getItinerary():
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def getRecentPlans():
     return jsonify(recentPlans)
+
+
+
+@clientAPI.route('/api/city-image')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def getCityImage():
+    cityName = request.args.get('city', 'mumbai')
+    cityName = cityName.strip().lower().replace(' ', '')
+    if 'bengaluru' in cityName:
+        cityName = 'bangalore'
+    if 'calcutta' in cityName:
+        cityName = 'kolkata'
+    if 'bombay' in cityName:
+        cityName = 'mumbai'
+
+    return 'http://localhost:5000/resources/city-images/{}-{}.jpg'.format(cityName, randint(1, 3))

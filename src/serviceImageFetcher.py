@@ -6,6 +6,7 @@ from functools import lru_cache
 import hashlib
 import io
 from PIL import Image
+from resizeimage import resizeimage
 import urllib.request
 
 from utilities import urlDecode
@@ -23,7 +24,7 @@ def strHash(string):
 
 
 def imageResize(image: Image, size: Tuple[int, int]) -> Image:
-    return image.resize(size, Image.ANTIALIAS)
+    return resizeimage.resize_cover(image, size, validate=False)
 
 
 def getImageFromNetwork(url: str) -> Image:
@@ -45,7 +46,7 @@ def getImageFromMemcache(url: str, size: Optional[Tuple[int, int]]) -> Image:
     urlHash = strHash(url)
     images = memcache.get(urlHash, None)
     if not images:
-        # print('Cache MISS :(')
+        print('Cache MISS for', url)
         try:
             original = getImageFromNetwork(url)
         except Exception as e:
@@ -96,3 +97,24 @@ def fetchImage():
 
     return send_file(output, mimetype='image/png', as_attachment=False)
 
+
+@imageFetcher.route('/api/prefetch')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def preFetchCityImages():
+    cityNames = ['agra', 'amsterdam',
+                 'bangkok', 'barcelona',
+                 'dubai',
+                 'mumbai',
+                 'riyadh', 'rome',
+                 'seoul', 'shanghai', 'singapore',
+                 'taipei', 'tokyo',
+                 'vienna']
+    size = 1500, 875
+    cityName, num = None, None
+    try:
+        for cityName in cityNames:
+            for num in range(1, 4):
+                getImageFromMemcache('http://localhost:5000/resources/city-images/{}-{}.jpg'.format(cityName, num), size)
+    except Exception as e:
+        return 'city: {}-{}. Error: {}'.format(cityName, num, e)
+    return 'All good!'

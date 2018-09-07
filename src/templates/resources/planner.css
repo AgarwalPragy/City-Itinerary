@@ -95,7 +95,7 @@ body {
     background-size: cover;
     display: block;
     filter: blur(5px);
-    -webkit-filter: blur(8px);
+    -webkit-filter: blur(5px);
     height: 100vh;
     width: 100vw;
     left: 0;
@@ -335,14 +335,14 @@ body {
                 }
 
                 .options-container {
-                    margin: auto;
+                    margin: 0;
                     display: grid;
                     grid-template-columns: 1fr 1fr;
                     grid-gap: 1em;
                     margin-top: 0.4em;
-                    margin-left: 1em;
-                    margin-right: 1em;
-
+                    text-align: center;
+                    padding-left: 1em;
+                    padding-right: 1em;
                 }
 
                 .list-box-search {

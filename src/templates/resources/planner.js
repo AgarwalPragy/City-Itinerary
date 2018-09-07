@@ -3,7 +3,7 @@ var editTimeApp = null;
 var cityFuse = null;
 var pointFuse = null;
 var itineraryCallUUID = null;
-var searchSelectedCity = initialConstraints.city;
+var searchSelectedCity = null;
 var dateFormat = 'Y/m/d H.i';
 var momentDateFormat = 'YYYY/MM/DD HH.mm';
 var lastName = null;
@@ -221,10 +221,15 @@ var registerCitySearch = function () {
             }
         }
     ).on('typeahead:selected', function (e, city) {
-        $('.background-image').css(
-            'background-image', "url('" + utils.getEncodedCityImageURL(city, null, null) + "')");
-
         searchSelectedCity = city.fullName;
+        utils.getData('/api/city-image', {
+            city: city.cityName
+        }, function(response) {
+            var url = response.data;
+            var imgurl = utils.fetchImageURL(url, 1400, 875)
+            $('.background-image').css('background-image',
+                "url('" + imgurl + "')");
+        });
     }).on('blur', function (e) {
         $('#city-searchbar').val(searchSelectedCity);
     });
@@ -572,6 +577,16 @@ var registerVue = function() {
 
 
 (function() {
+    searchSelectedCity = initialConstraints.city;
+    utils.getData('/api/city-image', {
+        city: searchSelectedCity.cityName
+    }, function(response) {
+        var url = response.data;
+        var imgurl = utils.fetchImageURL(url, 1400, 875)
+        $('.background-image').css('background-image',
+            "url('" + imgurl + "')");
+    });
+
     registerVue();
     registerEditTimeVue();
     app.constraints = initialConstraints;
@@ -592,18 +607,41 @@ var registerVue = function() {
             algo: app.constraints.algo,
         }
         app.constraints = newconstraints;
+        utils.getData('/api/city-image', {
+            city: app.constraints.city.cityName
+        }, function(response) {
+            var url = response.data;
+            var imgurl = utils.fetchImageURL(url, 1400, 875)
+            $('.background-image').css('background-image',
+                "url('" + imgurl + "')");
+        });
     });
 
     $('#edit-modal').on('hidden.bs.modal', function () {
         clearModal();
     })
 
+    $('#algorithm').toggles({
+        text: {
+            off: 'Showing different areas',
+            on: 'Allowing days to overlap'
+        },
+        width: 220,
+        height: 25,
+    }).on('toggle', function(e, active) {
+        if (active) {
+            app.constraints.algo = 'incremental';
+        } else {
+            app.constraints.algo = 'static';
+        }
+    });
+
     $('#p-factor').toggles({
         text: {
-            on: 'Prefering <b>best</b> points',
-            off: 'Prefering <b>more</b> points'
+            on: 'Prefering best points',
+            off: 'Prefering more points'
         },
-        width: 250,
+        width: 220,
         height: 25,
     }).on('toggle', function(e, active) {
         if (active) {
@@ -613,20 +651,6 @@ var registerVue = function() {
         }
     });
 
-    $('#algorithm').toggles({
-        text: {
-            off: 'Showing different areas each day',
-            on: 'Allowing days to overlap'
-        },
-        width: 250,
-        height: 25,
-    }).on('toggle', function(e, active) {
-        if (active) {
-            app.constraints.algo = 'incremental';
-        } else {
-            app.constraints.algo = 'static';
-        }
-    });
 
     registerDateTime();
     registerCitySearch();

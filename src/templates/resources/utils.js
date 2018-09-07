@@ -21,15 +21,15 @@ utils.roundUpTime = function(val) {
 
 
 utils.getData = function(url, params, callback) {
-    console.log('Got a call for ' + url + ' with params:');
-    console.log(params);
+    // console.log('Got a call for ' + url + ' with params:');
+    // console.log(params);
     axios.get(url, {
         params: params
     }).then(function(response) {
-        console.log('Request for ' + url + ' with params:')
-        console.log(params)
-        console.log('resulted in:');
-        console.log(response.data);
+        // console.log('Request for ' + url + ' with params:')
+        // console.log(params)
+        // console.log('resulted in:');
+        // console.log(response.data);
         callback(response);
     });
 };
