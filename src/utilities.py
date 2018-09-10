@@ -24,6 +24,8 @@ def readAllListingsFromFiles():
         with open(filename, 'r') as f:
             data += json.loads(f.read())
         print('Read:', filename)
+
+
     return data
 
 
@@ -70,7 +72,7 @@ def doesFuzzyMatch(name1: str, name2: str, threshold: int) -> bool:
     n1, n2 = processName(name1), processName(name2)
     similar = fuzz.ratio(n1, n2) > threshold
     ln1, ln2 = len(n1), len(n2)
-    contained = (fuzz.partial_ratio(n1, n2) > threshold) and ((max(ln1, ln2) / min(ln1, ln2)) <= 2.5)
+    contained = (fuzz.partial_ratio(n1, n2) == 100) and ((max(ln1, ln2) / min(ln1, ln2)) <= 2.5)
     return contained or similar
 
 
