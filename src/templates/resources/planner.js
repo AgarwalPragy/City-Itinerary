@@ -12,6 +12,7 @@ var map = null;
 var mapRedrawNeeded = false;
 var lastRedrawTime = new Date();
 var directionsService = null;
+var firstDraw = true;
 var mapIcons = [
     'http://maps.google.com/mapfiles/marker_orange.png',
     'http://maps.google.com/mapfiles/marker_purple.png',
@@ -424,11 +425,12 @@ var _addPointsToMap = function(dayNum, items) {
 var addPointsToMap = function() {
     var now = new Date();
     var seconds = (now.getTime() - lastRedrawTime.getTime()) / 1000;
-    if(seconds < 5) {
+    if(seconds < 5 && (!firstDraw)) {
         if(mapRedrawNeeded)
             setTimeout(addPointsToMap, 1000);
         return;
     }
+    firstDraw = false;
     lastRedrawTime = now;
     mapRedrawNeeded = false;
     resetMap();
@@ -446,8 +448,8 @@ var addPointsToMap = function() {
     if(items.length > 0)
         _addPointsToMap(dayNum, JSON.parse(JSON.stringify(items)));
 
+    // map.panToBounds(bounds);
     map.fitBounds(bounds);
-    map.panToBounds(bounds);
 }
 
 var makeClosuredMarker = function(dayNum, point, position) {
