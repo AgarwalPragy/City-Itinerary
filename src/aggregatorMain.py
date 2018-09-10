@@ -13,7 +13,6 @@ from utilities import doesFuzzyMatch, UnionFind, tree, processName, getCurrentTi
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
 from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, pointGratificationBasedOn, fullConfig
 from gratify import getCategoryTitleWeight
-from tunable import allListingFiles
 from utilities import readAllListingsFromFiles
 
 ID = t.Union[CountryID, CityID, PointID]
@@ -118,6 +117,16 @@ def clusterAllIDs(_pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryID
     print('Matching point identifiers')
     chosenAlready = [False] * len(allPointAliases)
     pointIDUnions: UnionFind[PointID] = UnionFind()
+
+    def isBadPointAlias(alias):
+        cityName = processName(alias.cityName)
+        pointName = processName(alias.pointName)
+        if cityName == pointName:
+            print('Bad Alias!', alias)
+            return True
+
+        return False
+
     for index1, alias1 in enumerate(tqdm(allPointAliases)):
         if chosenAlready[index1]:
             continue
@@ -126,7 +135,7 @@ def clusterAllIDs(_pointIDs: t.List[PointID], cityIDs: t.List[CityID], countryID
             if chosenAlready[index2]:
                 continue
 
-            if matchPointIDs(alias1, alias2):
+            if matchPointIDs(alias1, alias2) and not isBadPointAlias(alias1) and not isBadPointAlias(alias2):
                 pointIDUnions.union(alias1, alias2)
                 chosenAlready[index2] = True
     print('Injecting point aliases')

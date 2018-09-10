@@ -197,6 +197,12 @@ injectedBestNames = {
     'Mumbai (Bombay)': 'Bombay',
     'Bengaluru (Bangalore)': 'Bengaluru',
     'Kolkata (Calcutta)': 'Kolkata',
+    'MAK: Austrian Museum of Applied ArtsContemporary Art': 'Museum of Applied Arts',
+    'Belvedere Palace Museum': 'Belvedere Palace',
+    'Kunsthistorisches Museum Wien': 'Kunsthistorisches Museum',
+    'Shanghai Museum of Arts and Crafts': 'Shanghai Museum',
+    'Rockefeller Center Christmas Tree': 'Rockefeller Center',
+    'Lower East Side': 'Tenement Museum',
 }
 
 injectedCountryAliases = [

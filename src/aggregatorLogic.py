@@ -36,11 +36,8 @@ def getBestName(names: List[str], strictness: int=3) -> str:
     else:
         sortedNames = sorted(popularNames, key=len)
         bestName = sanitizeName(sortedNames[math.ceil(len(sortedNames)/2)])
-    if len(names) > 4:
+    if len(names) >= 4:
         print('#######################', bestName, names)
-
-    if 'botanique' in bestName.lower():
-        print(bestName, names)
 
     bestName = injectedBestNames.get(bestName, bestName)
 
