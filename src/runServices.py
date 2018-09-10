@@ -1,9 +1,8 @@
 from flask import Flask, request
-from flask import send_file, send_from_directory, render_template
+from flask import send_from_directory, render_template
 from flask_cors import CORS, cross_origin
 import datetime
 import json
-import urllib
 
 from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
@@ -96,6 +95,7 @@ def planner():
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def resources(path):
     return send_from_directory('templates/resources/', path)
+
 
 
 @app.after_request

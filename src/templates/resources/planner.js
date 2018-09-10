@@ -263,7 +263,7 @@ var registerPointSearch = function () {
             dayNum: '',
         })
     }).on('blur', function (e) {
-        // $('#point-searchbar').val('');
+        $('#point-searchbar').val('');
     });
 };
 

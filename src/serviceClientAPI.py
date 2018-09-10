@@ -1,9 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 from flask_cors import cross_origin
 import json
 import time
 import datetime
-from functools import lru_cache
+from functools import lru_cache, wraps
 from collections import defaultdict
 from random import randint
 
@@ -19,6 +19,20 @@ import clusteringStatic
 clientAPI = Blueprint('clientAPI', __name__)
 
 
+def autoNiceView(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        response = func(*args, **kwargs)
+        try:
+            if request.args.get('pretty', None) is not None and response.is_json:
+                return render_template('apiViewer.html', data=json.dumps(response.get_json()))
+        except Exception as e:
+            print(e)
+        return response
+
+    return wrapper
+
+
 def loadListings():
     listings = readAllListingsFromFiles()
     listings = {listing['_uuid']: listing for listing in listings}
@@ -26,9 +40,9 @@ def loadListings():
 
 
 def loadData():
+    print('Loading Aggregated data')
     with open('../aggregatedData/latest/data.json', 'r') as f:
         countries = json.loads(f.read())
-
     cities = {city['fullName']: city
               for country in countries.values()
               for city in country['cities'].values()}
@@ -41,12 +55,14 @@ def loadData():
             if attrib == 'sources': continue
             if attrib == 'pointsOrder': continue
             citiesNoPoints[cityIdentifier][attrib] = value
+    print('done.')
 
     return countries, cities, citiesNoPoints
 
 
 countries, cities, citiesNoPoints = loadData()
 listings = loadListings()
+
 
 @lru_cache(None)
 def getTopPointsOfCity(cityName, amount):
@@ -105,15 +121,16 @@ def _getCities():
     return goodCities
 
 
-
 @clientAPI.route('/api/cities')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getCities():
     return jsonify(_getCities())
 
 
 @clientAPI.route('/api/points')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getCityPoints():
     cityName = request.args.get('city', None)
     amount = int(request.args.get('amount', 100))
@@ -125,6 +142,7 @@ def getCityPoints():
 
 @clientAPI.route('/api/point')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getSinglePoint():
     cityName = request.args.get('city', None)
     pointName = request.args.get('point', None)
@@ -137,6 +155,7 @@ def getSinglePoint():
 
 @clientAPI.route('/api/listing')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getListings():
     uuids = request.args.get('uuids', '')
     uuids = uuids.replace(' ', '')
@@ -444,6 +463,7 @@ def _getItinerary_static(cityName, likes, mustVisit, dislikes, startDate, endDat
 
 @clientAPI.route('/api/itinerary')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getItinerary():
     tstart = time.time()
 
@@ -545,6 +565,7 @@ def getItinerary():
 
 @clientAPI.route('/api/recent-plans')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
 def getRecentPlans():
     return jsonify(recentPlans)
 

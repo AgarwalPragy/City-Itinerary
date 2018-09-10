@@ -2,22 +2,16 @@
 <html>
 <head>
 	<title>API Viewer</title>
-	<link rel="stylesheet" href="json-viewer.css">
+	<link rel="stylesheet" href="../resources/json-viewer.css">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
-	<script src="json-viewer.js"></script>
+	<script src="../resources/json-viewer.js"></script>
 </head>
 <body>
-	<input type="" id="api-url" placeholder="Enter the api URL here" style="display: block; width: 100%;" value="/api/">
 	<div id="json-container"></div>
 	<script>
-		var getResult = function() {
-			url = $('#api-url').val();
-			axios.get(url).then(function(response) {
-				$('#json-container').jsonview(response.data);
-			});
-		};
-		$('#api-url').blur(getResult);
+		var data = {{data|safe}};
+		$('#json-container').jsonview(data);
 	</script>
 </body>
 </html>
