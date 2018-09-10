@@ -329,7 +329,7 @@ body {
             grid-row: 2/ span 1;
         }
             .list-box-header {
-                background: RGBA(255, 255, 255, 0.55);
+                background: RGBA(255, 255, 255, 0.75);
             }
                 .list-box-title {
                     padding: 3px;
@@ -394,7 +394,7 @@ body {
                         cursor: pointer;
                     }
                     .point-listing {
-                        background: RGBA(255, 255, 255, 0.65);
+                        background: RGBA(255, 255, 255, 0.85);
                         display: grid;
                         grid-template-columns: 180px 1fr;
                         grid-template-rows: auto 20px;
@@ -404,7 +404,7 @@ body {
                         cursor: pointer;
                     }
                     .point-listing:hover {
-                        background: RGBA(255, 255, 255, 0.95);
+                        background: RGBA(255, 255, 255, 1);
                     }
                         .point-image img {
                             border-radius: 0;
@@ -445,7 +445,7 @@ body {
                                 }
 
                     .bad-point-listing {
-                        background: RGBA(255, 255, 255, 0.65);
+                        background: RGBA(255, 255, 255, 0.85);
                         display: grid;
                         grid-template-columns: 2fr 3fr;
                         grid-gap: 0;
