@@ -269,11 +269,26 @@ body {
     .map-box {
         padding: 0;
         height: 100%;
+        position: relative;
+        text-align: center;
     }
         #mapid {
             height: 100%;
             padding: 0;
         }
+            #map-status {
+                position: absolute;
+                bottom: 1.5em;
+                left: 1em;
+                width: 50%;
+                height: 2em;
+                border: 1px solid #333;
+                background: RGBA(255,255,255,0.8);
+                font-size: 1.5em;
+                font-weight: bold;
+                padding-top: 0.2em;
+                padding-bottom: 0.2em;
+            }
             #mapid > div:nth-child(2) {
                 display: none;
             }

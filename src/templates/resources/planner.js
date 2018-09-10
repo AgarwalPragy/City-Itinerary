@@ -428,9 +428,11 @@ var _addPointsToMap = function(dayNum, items) {
 var addPointsToMap = function() {
     var now = new Date();
     var seconds = (now.getTime() - lastRedrawTime.getTime()) / 1000;
+    $('#map-status').show();
     if(seconds < 5 && (!firstDraw)) {
-        if(mapRedrawNeeded)
+        if(mapRedrawNeeded){
             setTimeout(addPointsToMap, 1000);
+        }
         return;
     }
     firstDraw = false;
@@ -453,6 +455,7 @@ var addPointsToMap = function() {
 
     // map.panToBounds(bounds);
     map.fitBounds(bounds);
+    $('#map-status').hide();
 }
 
 var makeClosuredMarker = function(dayNum, point, position) {
@@ -533,6 +536,7 @@ var getItineraryPage = function(page) {
             console.log('Ignoring response of previous API call with UUID: ' + itineraryCallUUID);
             return; // If response is from some old request, ignore
         }
+        $('#map-status').show();
         currentPage = parseInt(data.itinerary.currentPage);
         if(currentPage === 1) {
             app.itinerary = data.itinerary.itinerary;
