@@ -9,6 +9,8 @@ var momentDateFormat = 'YYYY/MM/DD HH.mm';
 var lastName = null;
 
 var map = null;
+var mapRedrawNeeded = false;
+var lastRedrawTime = new Date();
 var directionsService = null;
 var mapIcons = [
     'http://maps.google.com/mapfiles/marker_orange.png',
@@ -366,7 +368,7 @@ var resetMap = function() {
     lastName = null;
 };
 
-var addPointsToMap = function(dayNum, items) {
+var _addPointsToMap = function(dayNum, items) {
     var directionsDisplay = new google.maps.DirectionsRenderer({
         map: map,
         preserveViewport: false,
@@ -392,9 +394,6 @@ var addPointsToMap = function(dayNum, items) {
             stopover: true,
         });
     }
-
-    map.fitBounds(bounds);
-    map.panToBounds(bounds);
     var origin = waypoints[0].location;
     var destination = waypoints[waypoints.length-1].location;
     waypoints = waypoints.splice(1, waypoints.length-1);
@@ -420,6 +419,35 @@ var addPointsToMap = function(dayNum, items) {
         makeClosuredMarker(dayNum, goodItems[goodItems.length-1].point, legs[legs.length-1].end_location);
         directionsDisplay.setDirections(response);
     });
+}
+
+var addPointsToMap = function() {
+    var now = new Date();
+    var seconds = (now.getTime() - lastRedrawTime.getTime()) / 1000;
+    if(seconds < 5) {
+        if(mapRedrawNeeded)
+            setTimeout(addPointsToMap, 1000);
+        return;
+    }
+    lastRedrawTime = now;
+    mapRedrawNeeded = false;
+    resetMap();
+    var items = [];
+    var dayNum = 1;
+    for (var i = 0; i < app.itinerary.length; i++) {
+        if(app.itinerary[i].point.pointName === '__newday__' && items.length > 0){
+            _addPointsToMap(dayNum, JSON.parse(JSON.stringify(items)));
+            items = [];
+            dayNum++;
+        } else if(app.itinerary[i].point.pointName !== '__newday__') {
+            items.push(app.itinerary[i]);
+        }
+    }
+    if(items.length > 0)
+        _addPointsToMap(dayNum, JSON.parse(JSON.stringify(items)));
+
+    map.fitBounds(bounds);
+    map.panToBounds(bounds);
 }
 
 var makeClosuredMarker = function(dayNum, point, position) {
@@ -504,14 +532,16 @@ var getItineraryPage = function(page) {
         if(currentPage === 1) {
             app.itinerary = data.itinerary.itinerary;
             app.mustVisit = data.mustVisit;
-            resetMap();
         }
         else
             app.itinerary = app.itinerary.concat(data.itinerary.itinerary);
 
-        addPointsToMap(currentPage, data.itinerary.itinerary);
         if(data.itinerary.nextPage !== false)
             getItineraryPage(data.itinerary.nextPage);
+        else {
+            mapRedrawNeeded = true;
+            addPointsToMap();
+        }
     });
 }
 
