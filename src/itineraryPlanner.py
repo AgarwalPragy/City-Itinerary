@@ -41,9 +41,10 @@ def getEnterTimeBasedOnOpeningHour(point, enterTime, exitTime, weekDay):
         openHourOfDay = float(openHourOfDay)
         closeHourOfDay = float(closeHourOfDay)
 
+
     if enterTime >= openHourOfDay and exitTime <= closeHourOfDay:
         return enterTime
-    elif enterTime < openHourOfDay and exitTime < closeHourOfDay:
+    elif enterTime < openHourOfDay and (exitTime - enterTime) + openHourOfDay <= closeHourOfDay:
         return openHourOfDay
     else:
         return -1
@@ -326,7 +327,7 @@ def printSequence(sequence, dayStartTime, GScore, weekDay):
 
 if __name__ == '__main__':
     allData = readAllData('../aggregatedData/latest/data.json')
-    countryName = "UAE"
+    countryName = "United Arab Emirates"
     cityName = 'Dubai'
 
     cityTopPoints = getTopPointsOfCity(allData, countryName, cityName)
@@ -346,7 +347,7 @@ if __name__ == '__main__':
 
     dayStartTime = 9
     dayEndTime = 20
-    weekDay = 4
+    weekDay = 1
     mustVisitPoints = []#[listOfPoints[0], listOfPoints[2]]  # , listOfPoints[3], listOfPoints[4]]
 
     mustVisitPointsTime = [[13, 14], [17, 18]]  # , [16.5, 17.5], [21, 22]]
