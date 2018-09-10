@@ -157,7 +157,7 @@ def getSinglePoint():
     return 'invalid city/point'
 
 
-@clientAPI.route('/api/listing')
+@clientAPI.route('/api/listings')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 @autoNiceView
 def getListings():
