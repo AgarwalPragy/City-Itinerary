@@ -85,11 +85,11 @@ def planner():
 
     return render_template('planner.html', initialConstraints=json.dumps(constraints))
 
-
-@app.route('/city/<cityName>/')
-@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
-def cityAttractions(cityName: str):
-    return send_file('templates/city.html')
+#
+# @app.route('/city/<cityName>/')
+# @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+# def cityAttractions(cityName: str):
+#     return send_file('templates/city.html')
 
 
 @app.route('/resources/<path:path>')

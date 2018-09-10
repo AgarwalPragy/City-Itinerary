@@ -13,6 +13,8 @@ from utilities import doesFuzzyMatch, UnionFind, tree, processName, getCurrentTi
 from entities import JEL, JKL, JCL, JPL, CityID, CountryID, PointID
 from tunable import matchPointID_countryThreshold, matchPointID_cityThreshold, matchPointID_pointThreshold, injectedPointAliases, injectedCityAliases, injectedCountryAliases, pointGratificationBasedOn, fullConfig
 from gratify import getCategoryTitleWeight
+from tunable import allListingFiles
+from utilities import readAllListingsFromFiles
 
 ID = t.Union[CountryID, CityID, PointID]
 
@@ -29,16 +31,6 @@ def saveData(filename, data: t.Any) -> None:
     print('saving to', filename)
     with open(filename, 'w') as f:
         f.write(json.dumps(data, cls=EnhancedJSONEncoder))
-
-
-def readListingsFromFiles(filenames: t.List[str]) -> t.List[JEL]:
-    data: t.List[JEL] = []
-    print('Reading files.')
-    for filename in filenames:
-        with open(filename, 'r') as f:
-            data += json.loads(f.read())
-        print('Read:', filename)
-    return data
 
 
 def extractPointID(identifier: t.Union[PointID]) -> PointID:
@@ -388,16 +380,7 @@ def makeReverseMap(mapping):
 
 
 def processAll():
-    listings: t.List[JEL] = readListingsFromFiles([
-        '../data/injectedData/countryFlags.json',
-        '../data/tripexpertData/cities.json',
-        '../data/tripexpertData/tripexpert_requiredcities.json',
-        '../data/viatorData/viator_requiredcities.json',
-        '../data/inspirockData/finalInspirock.json',
-        '../data/skyscannerData/finalSkyscanner.json',
-        '../data/googleCoordinates/googleAPICoordinates.json',
-        '../data/tripAdvisor/finalTripAdvisor.json'
-    ])
+    listings: t.List[JEL] = readAllListingsFromFiles()
 
     print('Processing.')
 
@@ -434,8 +417,8 @@ def processAll():
 
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
-    toAggregatedData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
-    aggregatedListings, categoriesFound, allPointScores = aggregateAllListings(toAggregatedData, revPoint, revCity, revCountry)
+    toAggregateData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
+    aggregatedListings, categoriesFound, allPointScores = aggregateAllListings(toAggregateData, revPoint, revCity, revCountry)
 
     for timestamp in [getCurrentTime(), 'latest']:
         print('Saving results')
@@ -448,7 +431,7 @@ def processAll():
             'bestPointIDMap': {str(key): str(val) for key, val in bestPointIDMap.items()},
             'bestCityIDMap': {str(key): str(val) for key, val in bestCityIDMap.items()},
             'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()},
-            'toAggregatedData': toAggregatedData,
+            'toAggregateData': toAggregateData,
             'categoriesFound': list(categoriesFound),
             'allPointScores': allPointScores
         }

@@ -8,14 +8,21 @@ from collections import defaultdict
 from random import randint
 
 
-from utilities import urlDecode, latlngDistance, roundUpTime
+from utilities import urlDecode, latlngDistance, roundUpTime, readAllListingsFromFiles
 from itineraryPlanner import getDayItinerary
 from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime
 from tunable import maxCityRadius, avgSpeedOfTravel, clientMaxPossiblePointsPerDay
+from tunable import allListingFiles
 from clustering import getBestPoints
 import clusteringStatic
 
 clientAPI = Blueprint('clientAPI', __name__)
+
+
+def loadListings():
+    listings = readAllListingsFromFiles()
+    listings = {listing['_uuid']: listing for listing in listings}
+    return listings
 
 
 def loadData():
@@ -39,7 +46,7 @@ def loadData():
 
 
 countries, cities, citiesNoPoints = loadData()
-
+listings = loadListings()
 
 @lru_cache(None)
 def getTopPointsOfCity(cityName, amount):
@@ -107,13 +114,41 @@ def getCities():
 
 @clientAPI.route('/api/points')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
-def getAttractions():
+def getCityPoints():
     cityName = request.args.get('city', None)
     amount = int(request.args.get('amount', 100))
     if cityName:
         cityName = urlDecode(cityName)
         return jsonify(getTopPointsOfCity(cityName, amount))
     return 'invalid city'
+
+
+@clientAPI.route('/api/point')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def getSinglePoint():
+    cityName = request.args.get('city', None)
+    pointName = request.args.get('point', None)
+    if cityName and pointName:
+        cityName = urlDecode(cityName)
+        pointName = urlDecode(pointName)
+        return jsonify(getTopPointsOfCity(cityName, 150)['points'][pointName])
+    return 'invalid city/point'
+
+
+@clientAPI.route('/api/listing')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+def getListings():
+    uuids = request.args.get('uuids', '')
+    uuids = uuids.replace(' ', '')
+    if uuids:
+        if '|' in uuids:
+            uuids = uuids.split('|')
+        elif '""' in uuids:
+            uuids = [uuid.replace('"', '') for uuid in uuids.split('""')]
+        else:
+            uuids = [uuids]
+        return jsonify({uuid: listings[uuid] for uuid in uuids})
+    return 'invalid uuid'
 
 
 @clientAPI.route('/api/validate')

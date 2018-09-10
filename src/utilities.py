@@ -8,11 +8,23 @@ from functools import lru_cache
 from urllib.parse import unquote
 from fuzzywuzzy import fuzz
 from math import radians, sin, cos, atan2, sqrt
-from tunable import stopWords, synonyms, distanceOverEstimatorFactor
+import json
+
+from tunable import stopWords, synonyms, distanceOverEstimatorFactor, allListingFiles
 
 __all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scaleRating', 'getWilsonScore', 'urlDecode', 'sanitizeName', 'tree', 'UnionFind', 'roundUpTime']
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
+
+
+def readAllListingsFromFiles():
+    data = []
+    print('Reading files.')
+    for filename in allListingFiles:
+        with open(filename, 'r') as f:
+            data += json.loads(f.read())
+        print('Read:', filename)
+    return data
 
 
 def avg(items):

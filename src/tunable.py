@@ -1,6 +1,18 @@
 from entities import CityID, CountryID, PointID
 
 
+allListingFiles = [
+    '../data/injectedData/countryFlags.json',
+    '../data/tripexpertData/cities.json',
+    '../data/tripexpertData/tripexpert_requiredcities.json',
+    '../data/viatorData/viator_requiredcities.json',
+    '../data/inspirockData/finalInspirock.json',
+    '../data/skyscannerData/finalSkyscanner.json',
+    '../data/googleCoordinates/googleAPICoordinates.json',
+    '../data/tripAdvisor/finalTripAdvisor.json',
+]
+
+
 clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
