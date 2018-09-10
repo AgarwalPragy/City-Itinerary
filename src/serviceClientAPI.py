@@ -12,25 +12,20 @@ from utilities import urlDecode, latlngDistance, roundUpTime, readAllListingsFro
 from itineraryPlanner import getDayItinerary
 from tunable import clientDefaultCity, clientDefaultTripLength, clientDefaultEndTime, clientDefaultStartTime
 from tunable import maxCityRadius, avgSpeedOfTravel, clientMaxPossiblePointsPerDay
-from tunable import allListingFiles
 from clustering import getBestPoints
 import clusteringStatic
 
 clientAPI = Blueprint('clientAPI', __name__)
 
+countries, cities, citiesNoPoints = None, None, None
+listings = None
 
-def autoNiceView(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        response = func(*args, **kwargs)
-        try:
-            if request.args.get('pretty', None) is not None and response.is_json:
-                return render_template('apiViewer.html', data=json.dumps(response.get_json()))
-        except Exception as e:
-            print(e)
-        return response
-
-    return wrapper
+recentPlans = [
+    # {'city': 'United Kingdom/London', 'duration': '48'},
+    # {'city': 'India/Agra', 'duration': '168'},
+    # {'city': 'India/New Delhi', 'duration': '72'},
+    # {'city': 'Singapore/Singapore', 'duration': '6'}
+]
 
 
 def loadListings():
@@ -60,8 +55,26 @@ def loadData():
     return countries, cities, citiesNoPoints
 
 
-countries, cities, citiesNoPoints = loadData()
-listings = loadListings()
+@clientAPI.before_app_first_request
+def loadEverything():
+    global countries, cities, citiesNoPoints
+    global listings
+    countries, cities, citiesNoPoints = loadData()
+    listings = loadListings()
+
+
+def autoNiceView(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        response = func(*args, **kwargs)
+        try:
+            if request.args.get('pretty', None) is not None and response.is_json:
+                return render_template('apiViewer.html', data=json.dumps(response.get_json()))
+        except Exception as e:
+            print(e)
+        return response
+
+    return wrapper
 
 
 @lru_cache(None)
@@ -90,7 +103,6 @@ def getTopPointsOfCity(cityName, amount):
             'points': []
         }
 
-
     topnames = city['pointsOrder'][:150]
     pointsOrder = []
     topPoints = {}
@@ -105,14 +117,6 @@ def getTopPointsOfCity(cityName, amount):
         'pointsOrder': pointsOrder,
         'points': topPoints
     }
-
-
-recentPlans = [
-    # {'city': 'United Kingdom/London', 'duration': '48'},
-    # {'city': 'India/Agra', 'duration': '168'},
-    # {'city': 'India/New Delhi', 'duration': '72'},
-    # {'city': 'Singapore/Singapore', 'duration': '6'}
-]
 
 
 @lru_cache(None)
@@ -568,7 +572,6 @@ def getItinerary():
 @autoNiceView
 def getRecentPlans():
     return jsonify(recentPlans)
-
 
 
 @clientAPI.route('/api/city-image')
