@@ -4,7 +4,7 @@ from entities import CityID, CountryID, PointID
 clientDefaultTripLength = 4  # number of days
 clientDefaultStartTime = 9   # hours
 clientDefaultEndTime = 20    # hours
-clientDefaultCity = 'Mumbai (Bombay), India'
+clientDefaultCity = 'Bombay, India'
 clientMaxPossiblePointsPerDay = 8
 
 maxCityRadius = 100  # in KM
@@ -181,7 +181,10 @@ injectedBestNames = {
     'California': 'United States of America',
     'Great Britain': 'United Kingdom',
     'Dubai Marina Yacht Club': 'Dubai Marina Mall',
-    'Burj Khalifa - At The Top': 'Burj Khalifa'
+    'Burj Khalifa - At The Top': 'Burj Khalifa',
+    'Mumbai (Bombay)': 'Bombay',
+    'Bengaluru (Bangalore)': 'Bengaluru',
+    'Kolkata (Calcutta)': 'Kolkata',
 }
 
 injectedCountryAliases = [
