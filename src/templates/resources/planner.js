@@ -376,15 +376,18 @@ var _addPointsToMap = function(dayNum, items) {
         suppressMarkers: true,
     });
     if(items.length === 1) {
-        // TODO: finish this
+        var point = items[0].point;
+        var coordinates = point.coordinates.split(',');
+        var lat = parseFloat(coordinates[0]);
+        var lng = parseFloat(coordinates[1]);
+        coordinates = new google.maps.LatLng(lat, lng);
+        bounds.extend(coordinates);
+        makeClosuredMarker(dayNum, point, coordinates);
         return;
     }
     var waypoints = [];
-    var goodItems = [];
     for (var i = 0; i < items.length; i++) {
         var point = items[i].point;
-        if(point.pointName === '__newday__') continue;
-        goodItems.push(items[i]);
         var coordinates = point.coordinates.split(',');
         var lat = parseFloat(coordinates[0]);
         var lng = parseFloat(coordinates[1]);
@@ -404,7 +407,7 @@ var _addPointsToMap = function(dayNum, items) {
         destination: destination,
         waypoints: waypoints,
         optimizeWaypoints: false,
-        travelMode: 'DRIVING',   // TODO: check if mixed modes possible
+        travelMode: 'DRIVING',
     }, function(response, status) {
         if (status !== 'OK'){
             console.log('Directions request failed due to ' + status);
@@ -413,11 +416,11 @@ var _addPointsToMap = function(dayNum, items) {
         var legs = response.routes[0].legs;
 
         for(var i = 0; i < legs.length; i++){
-            var point = goodItems[i].point;
+            var point = items[i].point;
             makeClosuredMarker(dayNum, point, legs[i].start_location);
         }
         // Plot the destination
-        makeClosuredMarker(dayNum, goodItems[goodItems.length-1].point, legs[legs.length-1].end_location);
+        makeClosuredMarker(dayNum, items[items.length-1].point, legs[legs.length-1].end_location);
         directionsDisplay.setDirections(response);
     });
 }
