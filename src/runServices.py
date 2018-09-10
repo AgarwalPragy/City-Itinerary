@@ -21,10 +21,10 @@ app.register_blueprint(imageFetcher)
 app.register_blueprint(clientAPI)
 
 
-@app.route('/')
-@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
-def index():
-    return send_file('templates/index.html')
+# @app.route('/')
+# @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+# def index():
+#     return send_file('templates/index.html')
 
 
 @app.route('/favicon.png')
@@ -32,7 +32,7 @@ def favicon():
     return send_from_directory('templates/', 'favicon.png')
 
 
-@app.route('/planner')
+@app.route('/')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 def planner():
     cityName = clientDefaultCity
