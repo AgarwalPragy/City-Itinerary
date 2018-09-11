@@ -29,7 +29,7 @@ def saveData(filename, data: t.Any) -> None:
 
     print('saving to', filename)
     with open(filename, 'w') as f:
-        f.write(json.dumps(data, cls=EnhancedJSONEncoder))
+        f.write(json.dumps(data, cls=EnhancedJSONEncoder, indent=4))
 
 
 def extractPointID(identifier: t.Union[PointID]) -> PointID:
@@ -431,7 +431,7 @@ def processAll():
     toAggregateData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
     aggregatedListings, categoriesFound, allPointScores, allDiffablePointOrders = aggregateAllListings(toAggregateData, revPoint, revCity, revCountry)
 
-    for timestamp in [getCurrentTime(), 'latest']:
+    for timestamp in [getCurrentTime().replace(':', '.'), 'latest']:
         print('Saving results')
         saveData('../aggregatedData/{}/data.json'.format(timestamp), aggregatedListings)
         print('Saving config')
