@@ -275,7 +275,7 @@
             </div>
         </div>
     </div>
-    <!-- js Google Maps --><script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBenGZCE8q9bT2hBGvMX_2srp9zVnZxETA&callback=resetMap"></script>
+    <!-- js Google Maps --><script async defer src="https://maps.googleapis.com/maps/api/js?key={% endraw %}{{apiKey|safe}}{% raw %}&callback=resetMap"></script>
     <!-- js injected    --> <script type="text/javascript"> {% endraw %} var initialConstraints = {{ initialConstraints|safe }}; {% raw %} </script>
     <!-- js UTILS       --><script src="resources/utils.js"></script>
     <!-- js SELF        --><script src="resources/planner.js"></script>

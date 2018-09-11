@@ -8,7 +8,7 @@ from serviceCrawlerListingAcceptor import crawlerListingAcceptor
 from serviceImageFetcher import imageFetcher
 from serviceClientAPI import clientAPI, getNumDays
 from tunable import clientDefaultStartTime, clientDefaultEndTime, clientDefaultTripLength, clientDefaultCity
-from utilities import urlDecode
+from utilities import urlDecode, getRandomAPIKey
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'This is the secret key for now'
@@ -82,7 +82,7 @@ def planner():
         'algo': 'static'
     }
 
-    return render_template('planner.html', initialConstraints=json.dumps(constraints))
+    return render_template('planner.html', initialConstraints=json.dumps(constraints), apiKey=getRandomAPIKey())
 
 #
 # @app.route('/city/<cityName>/')

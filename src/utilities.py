@@ -8,6 +8,7 @@ from functools import lru_cache
 from urllib.parse import unquote
 from fuzzywuzzy import fuzz
 from math import radians, sin, cos, atan2, sqrt
+import random
 import json
 
 from tunable import stopWords, synonyms, distanceOverEstimatorFactor, allListingFiles
@@ -16,6 +17,14 @@ __all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scal
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
+def getRandomAPIKey():
+    keys = [
+        'AIzaSyBenGZCE8q9bT2hBGvMX_2srp9zVnZxETA',  # pragy
+        'AIzaSyDb3l_7pvVK8f5flQ6hplqnL_TubcNyQWg',  # pragy
+        'AIzaSyCEQ1igltDBqrenLgdArRwka76HkM0Tngs',  # pragy
+
+    ]
+    return random.choice(keys)
 
 def readAllListingsFromFiles():
     data = []
