@@ -402,14 +402,23 @@ var _addPointsToMap = function(dayNum, items) {
     var destination = waypoints[waypoints.length-1].location;
     waypoints = waypoints.splice(1, waypoints.length-1);
 
-    directionsService.route({
+    var routeRequest = {
         origin: origin,
         destination: destination,
         waypoints: waypoints,
         optimizeWaypoints: false,
         travelMode: 'DRIVING',
-    }, function(response, status) {
-        if (status !== 'OK'){
+    };
+    var handleAPIResponse = function(response, status) {
+        if(status === 'ZERO_RESULTS' && response.request.travelMode == 'DRIVING') {
+            var newRequest = response.request;
+            newRequest.travelMode = 'WALKING';
+            directionsService.route(newRequest, handleAPIResponse);
+        } else if(status === 'ZERO_RESULTS' && response.request.travelMode == 'WALKING') {
+            var newRequest = response.request;
+            newRequest.travelMode = 'BICYCLING';
+            directionsService.route(newRequest, handleAPIResponse);
+        } else if (status !== 'OK'){
             console.log('Directions request failed due to ' + status);
             return;
         }
@@ -422,7 +431,8 @@ var _addPointsToMap = function(dayNum, items) {
         // Plot the destination
         makeClosuredMarker(dayNum, items[items.length-1].point, legs[legs.length-1].end_location);
         directionsDisplay.setDirections(response);
-    });
+    }
+    directionsService.route(routeRequest, handleAPIResponse);
 }
 
 var addPointsToMap = function() {
