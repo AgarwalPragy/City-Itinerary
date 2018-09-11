@@ -17,14 +17,17 @@ __all__ = ['maxArgMax', 'processName', 'doesFuzzyMatch', 'getCurrentTime', 'scal
 
 allowedChars = set(string.ascii_lowercase + string.digits + '-')
 
+
 def getRandomAPIKey():
     keys = [
         'AIzaSyBenGZCE8q9bT2hBGvMX_2srp9zVnZxETA',  # pragy
         'AIzaSyDb3l_7pvVK8f5flQ6hplqnL_TubcNyQWg',  # pragy
         'AIzaSyCEQ1igltDBqrenLgdArRwka76HkM0Tngs',  # pragy
         'AIzaSyAKnccxEWLk4OhRNmdSZrT5XkBu7PTnaxc',  # deepak
+        'AIzaSyAaQe88CMk238s8580_-WU9pjFnbpheUFw',  # deepak
     ]
     return random.choice(keys)
+
 
 def readAllListingsFromFiles():
     data = []
@@ -33,8 +36,6 @@ def readAllListingsFromFiles():
         with open(filename, 'r') as f:
             data += json.loads(f.read())
         print('Read:', filename)
-
-
     return data
 
 
@@ -121,6 +122,8 @@ def tree():
 
 
 Titem = TypeVar('Titem')
+
+
 class UnionFind(Generic[Titem]):
     def __init__(self):
         self.parents: Dict[Titem, Titem] = {}
