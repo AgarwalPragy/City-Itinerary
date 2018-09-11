@@ -382,12 +382,10 @@ def aggregateOneCountryFromListings(jsonCountryListings: List[J], bestCountryNam
 
 def orderImages(jsonImageListings: List[J]) -> List[J]:
     # TODO: Sort images by dimension/quality?
-    # return as is for now
-    return jsonImageListings
+    return sorted(jsonImageListings, key=lambda x: alexa_ranking_orderedList.index(x['crawler']))
 
 
 def orderReviews(jsonReviewListings: List[J]) -> List[J]:
     # TODO: Sort reviews by grammar, length, relevancy?
-    # return as is for now
-    return jsonReviewListings
+    return sorted(jsonReviewListings, key=lambda x: alexa_ranking_orderedList.index(x['crawler']))
 
