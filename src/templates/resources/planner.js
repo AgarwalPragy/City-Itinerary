@@ -71,9 +71,9 @@ var clearModal = function() {
 }
 
 var validateTime = function(visit) {
-    var chosenDay = $('#edit-time-dayNum').val();
-    var chosenEnter = $('#edit-time-enterTime').val();
-    var chosenExit = $('#edit-time-exitTime').val();
+    var chosenDay = utils.roundUpTime($('#edit-time-dayNum').val());
+    var chosenEnter = utils.roundUpTime($('#edit-time-enterTime').val());
+    var chosenExit = utils.roundUpTime($('#edit-time-exitTime').val());
 
     var likes = JSON.parse(JSON.stringify(app.constraints.likes));
     var likesTimings = JSON.parse(JSON.stringify(app.constraints.likesTimings));
