@@ -149,7 +149,7 @@ goodCategoryTitleWords = list(set(word.strip().lower() for word in [
     'Gardens by the Bay', 'Universal Studios Singapore',
     'palace', 'Palm Jumeirah', 'Pier',
     'religious', 'river', 'Rock', 'Ruin',
-    'Scenic', 'summer palace', 'scenic drive', 'science', 'spring', 'state', 'Statue'
+    'Scenic', 'summer palace', 'scenic drive', 'science', 'spring', 'state', 'Statue of Liberty', 'Statue',
     'temple', 'top of rock', 'Tomb', 'tower',
     'University',
     'Valley',
