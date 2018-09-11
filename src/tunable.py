@@ -204,6 +204,7 @@ injectedBestNames = {
     'Kunsthistorisches Museum Wien': 'Kunsthistorisches Museum',
     'Shanghai Museum of Arts and Crafts': 'Shanghai Museum',
     'Rockefeller Center Christmas Tree': 'Rockefeller Center',
+    'Da Armando al Pantheon': 'Pantheon',
     'Lower East Side': 'Tenement Museum',
     'Hindustan': 'India',
     'Cathay': 'China',
