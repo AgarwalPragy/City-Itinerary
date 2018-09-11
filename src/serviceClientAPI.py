@@ -390,8 +390,6 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
 
     # Remove dislikes
     pointNames = [point['pointName'] for point in points if point['pointName'] not in set(dislikes)]
-    # Remove likes
-    pointNames = [pointName for pointName in pointNames if pointName not in set(likes)]
 
     # limit the points sent for clustering
     pointNames = pointNames[:clientMaxPossiblePointsPerDay * numDays]
@@ -401,7 +399,10 @@ def __getItinerary_static(cityName: str, likes, mustVisit, dislikes, startDate, 
 
     todaysLikes, todaysLikesTimings = getTodaysLikes(mustVisit, page)
 
-    # limit the number of points
+    # Remove today's like from today's points
+    todaysPoints = [point for point in todaysPoints if point['pointName'] not in set(likes)]
+
+    # choose the best points form todaysPoints points
     todaysPoints = todaysPoints[:clientMaxPossiblePointsPerDay - len(todaysLikes)]
 
     start = datetime.datetime(*list(map(int, startDate.strip().split('/'))))
