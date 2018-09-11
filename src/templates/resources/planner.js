@@ -429,9 +429,9 @@ var addPointsToMap = function() {
     var now = new Date();
     var seconds = (now.getTime() - lastRedrawTime.getTime()) / 1000;
     $('#map-status').show();
-    if(seconds < 5 && (!firstDraw)) {
+    if(seconds < 2 && (!firstDraw)) {
         if(mapRedrawNeeded){
-            setTimeout(addPointsToMap, 1000);
+            setTimeout(addPointsToMap, 500);
         }
         return;
     }
