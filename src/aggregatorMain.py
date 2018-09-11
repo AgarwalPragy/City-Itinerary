@@ -293,11 +293,12 @@ def frontAndBack(items):
     return list(set(processName(''.join(alias)) for alias in items) | set(processName(''.join(alias[::-1])) for alias in items))
 
 
-def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t.List[str], J]:
+def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t.List[str], J, J]:
     print('Aggregating data')
     categoriesFound = set()
     aggregated = tree()
     allPointScores = tree()
+    allDiffablePointOrders = tree()
     countryCount, cityCount, pointCount, imageCount, reviewCount = 0, 0, 0, 0, 0
     catTitleWeightVals = []
     for countryName, country in tqdm(data.items()):
@@ -352,6 +353,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
             orderedCats = list(map(attrgetter('category'), orderedPoints))
             pointScores = list(map(attrgetter('gratificationScore'), orderedPoints))
             allPointScores[countryName][cityName] = list('          '.join(map(str, x)) for x in zip(range(len(orderedPoints)), pointScores, orderedNames, orderedCats))
+            allDiffablePointOrders[countryName][cityName] = list('        '.join(map(str, x)) for x in zip(range(len(orderedPoints)), orderedNames))
             aggregatedCity['pointsOrder'] = orderedNames
             aggregatedCity['images'] = orderImages(city['images'])
             aggregatedCity['reviews'] = orderReviews(city['reviews'])
@@ -378,7 +380,7 @@ def aggregateAllListings(data: J, revPoint, revCity, revCountry) -> t.Tuple[J, t
     print('Avg Category Title Weight (FROM NON-ZERO VALS ONLY):', sum(catTitleWeightVals) / len(catTitleWeightVals))
     # with open('catTitleWeights.txt', 'w') as f:
     #     f.write(str(catTitleWeightVals))
-    return aggregated, categoriesFound, allPointScores
+    return aggregated, categoriesFound, allPointScores, allDiffablePointOrders
 
 
 def makeReverseMap(mapping):
@@ -427,7 +429,7 @@ def processAll():
     revPoint, revCity, revCountry = map(makeReverseMap, [bestPointIDMap, bestCityIDMap, bestCountryIDMap])
 
     toAggregateData = collectAllListings(listings, bestPointIDMap, bestCityIDMap, bestCountryIDMap)
-    aggregatedListings, categoriesFound, allPointScores = aggregateAllListings(toAggregateData, revPoint, revCity, revCountry)
+    aggregatedListings, categoriesFound, allPointScores, allDiffablePointOrders = aggregateAllListings(toAggregateData, revPoint, revCity, revCountry)
 
     for timestamp in [getCurrentTime(), 'latest']:
         print('Saving results')
@@ -442,7 +444,8 @@ def processAll():
             'bestCountryIDMap': {str(key): str(val) for key, val in bestCountryIDMap.items()},
             'toAggregateData': toAggregateData,
             'categoriesFound': list(categoriesFound),
-            'allPointScores': allPointScores
+            'allPointScores': allPointScores,
+            'allDiffablePointOrders': allDiffablePointOrders,
         }
         for key, val in debugInfo.items():
             saveData('../aggregatedData/{}/debug/{}.json'.format(timestamp, key), val)
