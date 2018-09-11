@@ -144,6 +144,18 @@ def getCityPoints():
     return 'invalid city'
 
 
+@clientAPI.route('/api/points-order')
+@cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
+@autoNiceView
+def getCityPointsOrder():
+    cityName = request.args.get('city', None)
+    amount = int(request.args.get('amount', 100))
+    if cityName:
+        cityName = urlDecode(cityName)
+        return jsonify(getTopPointsOfCity(cityName, amount)['pointsOrder'])
+    return 'invalid city'
+
+
 @clientAPI.route('/api/point')
 @cross_origin(origin='localhost', headers=['Content- Type', 'Authorization'])
 @autoNiceView
