@@ -1,7 +1,7 @@
 import scrapy
 import datetime
 import sys
-sys.path.append('.')
+sys.path.append('../')
 
 from entities import *
 from utilities import *
@@ -13,7 +13,7 @@ from utilities import *
 urlToCityAndCountryMapping = {}
 
 
-def getStartingUrls(filePath = "Crawler/POI_Access_Data/inspirock_cities_access_url"):
+def getStartingUrls(filePath = "../../Crawler/POI_Access_Data/inspirock_cities_access_url"):
     with open(filePath, 'r') as f:
         citiesAndUrls = f.readlines()
 

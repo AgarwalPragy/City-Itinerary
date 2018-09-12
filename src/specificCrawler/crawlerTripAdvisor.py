@@ -1,8 +1,8 @@
 import scrapy
-import datetime
+import time
 import re
 import sys
-sys.path.append('.')
+sys.path.append('../')
 
 from entities import *
 from utilities import *
@@ -10,7 +10,7 @@ from utilities import *
 
 # TODO: Silence (but log) crawling exceptions to prevent crashes
 # TODO: Make sure when aggregation is done, values are stripped of whitespace first
-def getStartingUrls(filePath = "Crawler/POI_Access_Data/tripadvisor_cities_access_url"):
+def getStartingUrls(filePath = "../../Crawler/POI_Access_Data/tripadvisor_cities_access_url"):
     urlsDetailFile = open(filePath, 'r')
 
     citiesAndUrls = urlsDetailFile.readlines()
@@ -91,18 +91,35 @@ class CrawlerTripAdvisor(scrapy.Spider):
         # we don't really care about the region once we have the city?
 
         self.log("visiting " + countryName + " " + cityName + " " + pointName)
-        data = response.css('div.text::text').extract()
-        description, notes = None, None
-        if len(data) > 0:
-            description = data[-1]
-            description = ''.join(data[-1])
+        descriptionBox1 = response.css('div.react-container > div.AttractionDetailAboutCard__aboutCardWrapper--3VS2S > div::text').extract()
+        descriptionBox2 = response.css('div.react-container > div.AttractionDetailAboutCard__aboutCardWrapper--3VS2S > div > span::text').extract()
+
+        description = None
+        if descriptionBox1 and len(descriptionBox1) > 1:
+            if descriptionBox1[0].lower() == 'about':
+                description = descriptionBox1[1]
+        elif descriptionBox2:
+            description = descriptionBox2[0]
 
 
-        addressBlock = response.css('div.detail_section.address > span::text')
-        address = ''.join(addressBlock.extract())
+
+        addressBlock1 = response.css('div.detail_section.address > span > span > *::text')
+        addressBlock2 = response.css('div.detail_section.address > span::text')
+
+        address = ""
+        if addressBlock1:
+            addressBlock1 = addressBlock1.extract()
+            for index, value in enumerate(addressBlock1):
+                value = value.strip()
+                if value[-1] == ',':
+                    address += value
+                else:
+                    address += value + ","
 
         if(len(address) == 0):
             address = None
+        else:
+            address = address[:-1]
         
         ratingBox = response.css('div.rating')
 
@@ -119,13 +136,28 @@ class CrawlerTripAdvisor(scrapy.Spider):
         duration = None
         if durationBox:
             duration = durationBox[0]
-            # duration = duration.split(';')[-1]
-            # duration = duration.split('>')[-1]
-            # duration = duration.split('>')[-1]
-            # duration = duration.split('-')[-1]
+            if ';' in duration:
+                duration = duration.split(';')[-1]
+            if '-' in duration:
+                duration = duration.split('-')[-1]
+            if ' ' in duration:
+                duration = duration.split()[-1]
 
             if(len(duration) == 0):
                 duration = None
+
+        rankBox =response.css('div.popIndexContainer > div > span > b > span::text')
+        rank = None
+        if rankBox:
+            rank = rankBox.extract_first().split('#')[-1].strip()
+
+        categoryBox = response.css('div.detail > a::text')
+        category = None
+        if categoryBox:
+            category = ','.join(categoryBox.extract())
+            moreCategoryBox = response.css('div.detail > span.collapse > a::text')
+            if moreCategoryBox:
+                category += ','.join(moreCategoryBox.extract())
 
         phoneBox = response.css('div.detail_section.phone::text')
         phone = None 
@@ -133,18 +165,22 @@ class CrawlerTripAdvisor(scrapy.Spider):
             phone = phoneBox.extract_first()
         pointListing = PointListing(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
                                     countryName=countryName, cityName=cityName, pointName=pointName,
-                                    description=description, notes=notes, address=address, rank = response.meta['rank'],contact = phone,
-                                    avgRating=avgRating, ratingCount=ratingCount, recommendedNumHours = duration)
+                                    description=description, address=address, rank=rank,contact=phone,category=category,
+                                    avgRating=avgRating, ratingCount=ratingCount, recommendedNumHours=duration)
 
         yield pointListing.jsonify()
 
-        Image = response.css('div#topicPhotoGalleryCt.row > div > span > img::attr(src)')
-        if Image:
-            pointImage = Image.extract_first()
-            self.log("imageURL " + pointImage)
-            yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
-                                countryName=countryName, cityName=cityName, pointName=pointName,
-                                imageURL=pointImage).jsonify()
+
+        ImageBox = response.css('div.mini_photo_wrap.taller_box > div > div > img::attr(data-lazyurl)')
+        if ImageBox:
+            for index, pointImage in enumerate(ImageBox.extract()):
+                if index < 5:
+                    self.log("imageURL " + pointImage)
+                    yield ImageResource(crawler=self.name, sourceURL=response.url, crawlTimestamp=getCurrentTime(),
+                                        countryName=countryName, cityName=cityName, pointName=pointName,
+                                        imageURL=pointImage).jsonify()
+                else:
+                    break
 
         # reviewsBox = response.css('div.wrap')
         # ratings = []
